@@ -1,0 +1,36 @@
+name: Create Sysimage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  benchmark:
+    name: Julia ${{ matrix.julia-version }}, @ ${{ matrix.os }}/${{ matrix.arch }}/${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - julia-version: '1.9.3'
+            os: ubuntu-22.04
+            arch: x64
+    steps:
+    - uses: actions/checkout@v3
+    - uses: julia-actions/setup-julia@v1
+      with:
+        version: ${{ matrix.julia-version }}
+        arch: ${{ matrix.arch }}
+    - name: Create Sysimage
+      run: |
+        julia --project=sysimage ./scripts/create_sysimage.jl
+    - name: Upload Sysimage
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
+      run: |
+        git config --global user.name  "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add ./sysimage/sysimage.*
+        git commit -m "Generate Sysimage [actions]"
+        git push
