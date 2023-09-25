@@ -38,7 +38,7 @@ function install-colab-julia {
         using IJulia;
 
         IJulia.installkernel(
-            "Julia",
+            "(pick this) Julia",
             env = Dict("JULIA_NUM_THREADS"=>"'"$JULIA_NUM_THREADS"'")
         )'
 
@@ -54,7 +54,7 @@ function install-colab-julia {
 }
 
 if [[ $# -eq 0 ]]; then
-    install-colab-julia "1.9.1" 2
+    install-colab-julia "1.9.3" 2
 elif [[ $# -eq 1 ]]; then
     install-colab-julia "$1" 2
 else
