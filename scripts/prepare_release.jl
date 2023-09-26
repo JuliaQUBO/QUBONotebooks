@@ -45,6 +45,13 @@ function copy_project()
     )
 end
 
+function copy_manifest()
+    cp(
+        joinpath(WORKSPACE, "notebooks", "Manifest.toml"),
+        joinpath(WORKSPACE, "sysimage", "Manifest.toml")
+    )
+end
+
 function write_next_tag()
     next_tag = get_next_tag()
 

@@ -28,6 +28,7 @@ jobs:
         arch: ${{ matrix.arch }}
     - name: Create Sysimage
       run: |
+        julia --project=notebooks -e 'using Pkg; Pkg.instantiate()'
         julia --project=scripts --threads=auto ./scripts/create_sysimage.jl
 
     - name: Store latest release info
