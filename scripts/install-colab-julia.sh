@@ -35,14 +35,17 @@ function install-colab-julia {
         
         # Install IJulia in global env
         Pkg.activate();
+        @info "Installing IJulia...";
         Pkg.add("IJulia"; io=devnull);
 
         # Install packages in /content
         Pkg.activate(@__DIR__);
+        @info "Installing packages...";
         Pkg.instantiate(; io=devnull);
         
         using IJulia;
 
+        @info "Installing kernel...";
         IJulia.installkernel(
             "QUBO.jl Julia",
             "--project=/content",
