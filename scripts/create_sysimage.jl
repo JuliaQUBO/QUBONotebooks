@@ -9,24 +9,24 @@ mkpath(dirname(SYSIMAGE_PATH))
 const PACKAGES = [
     # Misc
     "Graphs",
-    # "Karnak",
-    # "SpecialFunctions",
-    # # GAMA
-    # "BinaryWrappers",
-    # "lib4ti2_jll",
-    # # JuMP
-    # "AmplNLWriter",
-    # "Bonmin_jll",
-    # "Cbc",
-    # "Couenne_jll",
-    # "GLPK",
-    # "HiGHS",
-    # "Ipopt",
-    # "JuMP",
-    # # QUBO
-    # "QUBO",
-    # "DWave",
-    # "DWaveNeal",
+    "Karnak",
+    "SpecialFunctions",
+    # GAMA
+    "BinaryWrappers",
+    "lib4ti2_jll",
+    # JuMP
+    "AmplNLWriter",
+    "Bonmin_jll",
+    "Cbc",
+    "Couenne_jll",
+    "GLPK",
+    "HiGHS",
+    "Ipopt",
+    "JuMP",
+    # QUBO
+    "QUBO",
+    "DWave",
+    "DWaveNeal",
     # Visualization
     # "Plots",
     # "Measures",
