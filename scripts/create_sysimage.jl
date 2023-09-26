@@ -34,4 +34,9 @@ const PACKAGES = [
     # "StatsPlots",
 ]
 
-PackageCompiler.create_sysimage(PACKAGES; project=NOTEBOOKS_DIR, sysimage_path=SYSIMAGE_PATH)
+PackageCompiler.create_sysimage(
+    PACKAGES; 
+    project       = NOTEBOOKS_DIR,
+    sysimage_path = SYSIMAGE_PATH,
+    cpu_target    = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)",
+)
