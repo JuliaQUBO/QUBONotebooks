@@ -59,7 +59,7 @@ function install-colab-julia {
 }
 
 if [[ $# -eq 0 ]]; then
-    install-colab-julia "1.9.3" 2
+    install-colab-julia "1.9.1" 2
 elif [[ $# -eq 1 ]]; then
     install-colab-julia "$1" 2
 else
