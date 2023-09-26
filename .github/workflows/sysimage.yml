@@ -26,13 +26,14 @@ jobs:
     - name: Create Sysimage
       run: |
         julia --project=sysimage ./scripts/create_sysimage.jl
-    - name: Upload Sysimage
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
-      run: |
-        git config --global user.name  "github-actions[bot]"
-        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git lfs track ./sysimage/sysimage.so
-        git add ./sysimage/sysimage.so
-        git commit -m "Generate Sysimage [actions]"
-        git push
+        du -s ./sysimage/sysimage.so
+    # - name: Upload Sysimage
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
+    #   run: |
+    #     git config --global user.name  "github-actions[bot]"
+    #     git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+    #     git lfs track ./sysimage/sysimage.so
+    #     git add ./sysimage/sysimage.so
+    #     git commit -m "Generate Sysimage [actions]"
+    #     git push

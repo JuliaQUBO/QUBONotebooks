@@ -14,32 +14,38 @@ function install-colab-julia {
         # -nv means "not verbose"
         wget -nv $JULIA_URL -O /tmp/julia.tar.gz
 
+        # Remove Tarball
+        rm /tmp/julia.tar.gz
+
+        # Deflate Julia
+        tar -x -f /tmp/julia.tar.gz -C /usr/local --strip-components 1
+
         # Get Project.toml for installing aditional packages
         wget -nv "https://raw.githubusercontent.com/pedromxavier/QUBO-notebooks/main/notebooks/Project.toml" -O /content/Project.toml
 
         # Get Project Sysimage
-        wget -nv "https://raw.githubusercontent.com/pedromxavier/QUBO-notebooks/main/sysimage/sysimage.so" -O /content/sysimage.so
-        
-        # Deflate Julia
-        tar -x -f /tmp/julia.tar.gz -C /usr/local --strip-components 1
-        
-        # Remove Tarball
-        rm /tmp/julia.tar.gz
+        # wget -nv "https://raw.githubusercontent.com/pedromxavier/QUBO-notebooks/main/sysimage/sysimage.so" -O /content/sysimage.so
+        pip install gdown --quiets
+
+        gdown "1Cc__ryhpKMDs-vCf4IAzmF0loXysyZcA" -O /content/sysimage.so
 
         # Install kernel and rename it to "julia"
-        julia -e '
+        julia --sysimage=/content/sysimage.so -e '
         import Pkg;
         
         # Install IJulia in global env
         Pkg.activate();
+        @info "Installing IJulia...";
         Pkg.add("IJulia"; io=devnull);
 
         # Install packages in /content
         Pkg.activate(@__DIR__);
+        @info "Installing packages...";
         Pkg.instantiate(; io=devnull);
         
         using IJulia;
 
+        @info "Installing kernel...";
         IJulia.installkernel(
             "QUBO.jl Julia",
             "--project=/content",
