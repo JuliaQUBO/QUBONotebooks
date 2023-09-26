@@ -25,8 +25,8 @@ const PACKAGES = [
     "JuMP",
     # QUBO
     "QUBO",
-    "DWave",
-    "DWaveNeal",
+    # "DWave",     # These use PythonCall!
+    # "DWaveNeal", #
     # Visualization
     # "Plots",
     # "Measures",
