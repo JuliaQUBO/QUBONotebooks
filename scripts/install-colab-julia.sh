@@ -26,7 +26,7 @@ function install-colab-julia {
         wget -nv $SYSIMAGE_URL -O /tmp/sysimage.tar.gz
 
         # Deflate Sysimage & Project.toml
-        tar -x -f /tmp/sysimage.tar.gz -C /content --strip-components 1
+        tar -x -f /tmp/sysimage.tar.gz -C /content
 
         # Install kernel and rename it to "julia"
         julia --sysimage=/content/sysimage.so -e '
