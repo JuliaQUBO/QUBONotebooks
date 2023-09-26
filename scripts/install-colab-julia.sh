@@ -20,14 +20,13 @@ function install-colab-julia {
         # Remove Tarball
         rm /tmp/julia.tar.gz
 
-        # Get Project.toml for installing aditional packages
-        wget -nv "https://raw.githubusercontent.com/pedromxavier/QUBO-notebooks/main/notebooks/Project.toml" -O /content/Project.toml
+        SYSIMAGE_URL="https://github.com/pedromxavier/QUBO-notebooks/releases/latest/download/sysimage.tar.gz"
 
-        # Get Project Sysimage
-        # wget -nv "https://raw.githubusercontent.com/pedromxavier/QUBO-notebooks/main/sysimage/sysimage.so" -O /content/sysimage.so
-        pip install gdown --quiet
+        # Get Sysimage & Project.toml for installing aditional packages
+        wget -nv $SYSIMAGE_URL -O /tmp/sysimage.tar.gz
 
-        gdown "1Cc__ryhpKMDs-vCf4IAzmF0loXysyZcA" -O /content/sysimage.so
+        # Deflate Sysimage & Project.toml
+        tar -x -f /tmp/sysimage.tar.gz -C /content --strip-components 1
 
         # Install kernel and rename it to "julia"
         julia --sysimage=/content/sysimage.so -e '
