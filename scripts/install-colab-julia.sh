@@ -14,11 +14,11 @@ function install-colab-julia {
         # -nv means "not verbose"
         wget -nv $JULIA_URL -O /tmp/julia.tar.gz
 
-        # Remove Tarball
-        rm /tmp/julia.tar.gz
-
         # Deflate Julia
         tar -x -f /tmp/julia.tar.gz -C /usr/local --strip-components 1
+
+        # Remove Tarball
+        rm /tmp/julia.tar.gz
 
         # Get Project.toml for installing aditional packages
         wget -nv "https://raw.githubusercontent.com/pedromxavier/QUBO-notebooks/main/notebooks/Project.toml" -O /content/Project.toml
