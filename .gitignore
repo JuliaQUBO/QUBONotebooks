@@ -26,5 +26,6 @@ Manifest.toml
 # PythonCall
 .CondaPkg
 
-# Sysimage
-sysimage/sysimage.so
+# Distribution
+sysimage
+dist
