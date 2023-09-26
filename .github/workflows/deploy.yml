@@ -1,0 +1,61 @@
+name: Create & Deploy Sysimage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: '**'
+
+jobs:
+  benchmark:
+    if: ${{ !(github.event_name == 'push') || contains(github.event.head_commit.message, '[deploy]') }}
+    name: Julia ${{ matrix.julia-version }}, @ ${{ matrix.os }}/${{ matrix.arch }}/${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - julia-version: '1.9.1'
+            os: ubuntu-22.04
+            arch: x64
+    steps:
+    - uses: actions/checkout@v3
+    - uses: julia-actions/setup-julia@v1
+      with:
+        version: ${{ matrix.julia-version }}
+        arch: ${{ matrix.arch }}
+    - name: Create Sysimage
+      run: |
+        julia --project=scripts --threads=auto ./scripts/create_sysimage.jl
+
+    - name: Store latest release info
+      run: gh release view > "$GITHUB_WORKSPACE/last.tag"
+
+    - name: Prepare Release Info
+      run: julia --project=scripts ./scripts/prepare_release.jl
+    
+    - name: Retrieve next release tag
+      run: |
+        TAG="$(cat next.tag)"
+        echo "TAG=$TAG" >> $GITHUB_ENV
+
+    - name: Compute SHA256 for the sysimage file
+      run: |
+        SHA_256="$(sha256sum -z dist/sysimage.tar.gz | cut -d " " -f 1)"
+        echo "SHA_256=$SHA_256" >> $GITHUB_ENV
+
+    - name: Write release title
+      run: |
+        TITLE="QUBO-notebooks Sysimage $TAG"
+        echo "TITLE=$TITLE" >> $GITHUB_ENV
+
+    - name: Write release notes
+      run: envsubst < "$GITHUB_WORKSPACE/.github/workflows/NOTES.md" > "$RUNNER_TEMP/NOTES.md"
+    
+    - name: Publish release
+      run: >
+        gh release create $TAG
+        --latest
+        --notes-file "$RUNNER_TEMP/NOTES.md"
+        --title "$TITLE"
+        --target $GITHUB_SHA
+        dist/sysimage.tar.gz

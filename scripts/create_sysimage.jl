@@ -4,27 +4,29 @@ using PackageCompiler, Libdl
 const NOTEBOOKS_DIR = joinpath(@__DIR__, "..", "notebooks")
 const SYSIMAGE_PATH = joinpath(@__DIR__, "..", "sysimage", "sysimage.$(Libdl.dlext)")
 
+mkpath(dirname(SYSIMAGE_PATH))
+
 const PACKAGES = [
     # Misc
     "Graphs",
-    "Karnak",
-    "SpecialFunctions",
-    # GAMA
-    "BinaryWrappers",
-    "lib4ti2_jll",
-    # JuMP
-    "AmplNLWriter",
-    "Bonmin_jll",
-    "Cbc",
-    "Couenne_jll",
-    "GLPK",
-    "HiGHS",
-    "Ipopt",
-    "JuMP",
-    # QUBO
-    "QUBO",
-    "DWave",
-    "DWaveNeal",
+    # "Karnak",
+    # "SpecialFunctions",
+    # # GAMA
+    # "BinaryWrappers",
+    # "lib4ti2_jll",
+    # # JuMP
+    # "AmplNLWriter",
+    # "Bonmin_jll",
+    # "Cbc",
+    # "Couenne_jll",
+    # "GLPK",
+    # "HiGHS",
+    # "Ipopt",
+    # "JuMP",
+    # # QUBO
+    # "QUBO",
+    # "DWave",
+    # "DWaveNeal",
     # Visualization
     # "Plots",
     # "Measures",
