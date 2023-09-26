@@ -25,7 +25,7 @@ function install-colab-julia {
 
         # Get Project Sysimage
         # wget -nv "https://raw.githubusercontent.com/pedromxavier/QUBO-notebooks/main/sysimage/sysimage.so" -O /content/sysimage.so
-        pip install gdown --quiets
+        pip install gdown --quiet
 
         gdown "1Cc__ryhpKMDs-vCf4IAzmF0loXysyZcA" -O /content/sysimage.so
 
