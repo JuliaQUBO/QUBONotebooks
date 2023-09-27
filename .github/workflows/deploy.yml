@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - julia-version: '1.9.1'
+          - julia-version: '1.8.5'
             os: ubuntu-22.04
             arch: x64
     env:
