@@ -28,29 +28,34 @@ function install-colab-julia {
         # Deflate Sysimage & Project.toml
         tar -x -f /tmp/sysimage.tar.gz -C /content
 
-        # Install kernel and rename it to "julia"
-        julia --sysimage=/content/sysimage.so -e '
-        import Pkg;
-        
-        # Install IJulia in global env
-        Pkg.activate();
-        @info "Installing IJulia...";
-        Pkg.add("IJulia"; io=devnull);
+        # Remove Tarball
+        rm /tmp/sysimage.tar.gz
 
-        # Install packages in /content
-        Pkg.activate(@__DIR__);
-        @info "Installing packages...";
-        Pkg.instantiate(; io=devnull);
-        
-        using IJulia;
+        # Instantiate environment
+        julia --project=/content --sysimage=/content/sysimage.so -e '
+            import Pkg;
+            Pkg.instantiate(; io = devnull);
 
-        @info "Installing kernel...";
-        IJulia.installkernel(
-            "QUBO.jl Julia",
-            "--project=/content",
-            "--sysimage=/content/sysimage.so";
-            env = Dict("JULIA_NUM_THREADS"=>"'"$JULIA_NUM_THREADS"'")
-        )'
+            import Base;
+            Base.retry_load_extensions();
+        '
+
+        # Install IJulia in global env and create kernel
+        julia -e '
+            Pkg.activate();
+        
+            @info "Installing IJulia...";
+            Pkg.add("IJulia"; io=devnull);
+        
+            using IJulia;
+
+            @info "Installing kernel...";
+            IJulia.installkernel(
+                "QUBO.jl Julia",
+                "--project=/content", "--sysimage=/content/sysimage.so";
+                env = Dict("JULIA_NUM_THREADS"=>"'"$JULIA_NUM_THREADS"'")
+            );
+        '
 
         KERNEL_PATH=`julia -e "using IJulia; print(IJulia.kerneldir())"`
         KERNEL_NAME=`ls -d "$KERNEL_PATH"/julia*`
