@@ -33,6 +33,8 @@ function install-colab-julia {
 
         # Install IJulia in global env and create kernel
         julia -e '
+            import Pkg;
+
             @info "Installing IJulia...";
             Pkg.activate();
             Pkg.add("IJulia"; io=devnull);
