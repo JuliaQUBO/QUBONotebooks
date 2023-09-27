@@ -31,28 +31,22 @@ function install-colab-julia {
         # Remove Tarball
         rm /tmp/sysimage.tar.gz
 
-        # Instantiate environment
-        julia --project=/content --sysimage=/content/sysimage.so -e '
-            import Pkg;
-            Pkg.instantiate(; io = devnull);
-
-            import Base;
-            Base.retry_load_extensions();
-        '
-
         # Install IJulia in global env and create kernel
         julia -e '
-            Pkg.activate();
-        
             @info "Installing IJulia...";
+            Pkg.activate();
             Pkg.add("IJulia"; io=devnull);
+
+            @info "Instantiating Project...";
+            Pkg.activate("/content");
+            Pkg.instantiate(; io = devnull);
         
             using IJulia;
 
             @info "Installing kernel...";
             IJulia.installkernel(
                 "QUBO.jl Julia",
-                "--project=/content", "--sysimage=/content/sysimage.so";
+                "--project=/content";
                 env = Dict("JULIA_NUM_THREADS"=>"'"$JULIA_NUM_THREADS"'")
             );
         '
