@@ -10,7 +10,7 @@ function install-colab-julia {
         # Install Julia
         JULIA_VER=`cut -d '.' -f -2 <<< "$JULIA_VERSION"`
         JULIA_URL="https://julialang-s3.julialang.org/bin/linux/x64/$JULIA_VER/julia-$JULIA_VERSION-linux-x86_64.tar.gz"
-        
+
         # -nv means "not verbose"
         wget -nv $JULIA_URL -O /tmp/julia.tar.gz
 
@@ -31,29 +31,29 @@ function install-colab-julia {
         # Remove Tarball
         rm /tmp/sysimage.tar.gz
 
-        # Install IJulia in global env and create kernel
-        julia -e '
+        # Install Packages & Create Kernel
+        julia --project=/content -e '
             import Pkg;
-
-            @info "Installing IJulia...";
-            Pkg.activate();
-            Pkg.add("IJulia"; io=devnull);
 
             @info "Instantiating Project...";
             Pkg.activate("/content");
             Pkg.instantiate(; io = devnull);
-        
-            using IJulia;
+
+            @info "Installing IJulia...";
+            Pkg.activate();
+            Pkg.add("IJulia"; io = devnull);
+
+            import IJulia;
 
             @info "Installing kernel...";
             IJulia.installkernel(
                 "QUBO.jl Julia",
-                "--project=/content";
+                "--project=/content", "--sysimage=/content/sysimage.so";
                 env = Dict("JULIA_NUM_THREADS"=>"'"$JULIA_NUM_THREADS"'")
             );
         '
 
-        KERNEL_PATH=`julia -e "using IJulia; print(IJulia.kerneldir())"`
+        KERNEL_PATH=`julia -e "import IJulia; print(IJulia.kerneldir())"`
         KERNEL_NAME=`ls -d "$KERNEL_PATH"/julia*`
         mv -f $KERNEL_NAME "$KERNEL_PATH"/julia
 
