@@ -11,9 +11,11 @@ const PACKAGES = [
     "Graphs",
     "Karnak",
     "SpecialFunctions",
+    
     # GAMA
     "BinaryWrappers",
     "lib4ti2_jll",
+
     # JuMP
     "AmplNLWriter",
     "Bonmin_jll",
@@ -23,12 +25,14 @@ const PACKAGES = [
     "HiGHS",
     "Ipopt",
     "JuMP",
+
     # QUBO
     "QUBO",
     # "DWave",     # These use PythonCall!
     # "DWaveNeal", #
+
     # Visualization
-    # "Plots",
+    "Plots",
     # "Measures",
     # "PythonCall",
     # "PythonPlot",
