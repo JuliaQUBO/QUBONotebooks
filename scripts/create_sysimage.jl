@@ -11,7 +11,7 @@ const PACKAGES = [
     "Graphs",
     "Karnak",
     "SpecialFunctions",
-    
+
     # GAMA
     "BinaryWrappers",
     "lib4ti2_jll",
@@ -33,11 +33,11 @@ const PACKAGES = [
 
     # Visualization
     "Plots",
-    # "Measures",
+    "Measures",
     # "PythonCall",
     # "PythonPlot",
-    # "StatsBase",
-    # "StatsPlots",
+    "StatsBase",
+    "StatsPlots",
 ]
 
 PackageCompiler.create_sysimage(
