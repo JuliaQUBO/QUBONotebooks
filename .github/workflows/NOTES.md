@@ -8,4 +8,8 @@ wget "https://github.com/pedromxavier/QUBO-notebooks/releases/${TAG}/download/sy
 tar -xzf sysimage.tar.gz # sysimage.so, Project.toml, Manifest.toml
 ```
 
-SHA256: `${SHA_256}`
+### SHA256
+
+```text
+${SHA_256}
+```

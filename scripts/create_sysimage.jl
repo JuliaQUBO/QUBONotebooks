@@ -8,36 +8,36 @@ mkpath(dirname(SYSIMAGE_PATH))
 
 const PACKAGES = [
     # Misc
-    "Graphs",
-    "Karnak",
-    "SpecialFunctions",
+    # "Graphs",
+    # "Karnak",
+    # "SpecialFunctions",
 
     # GAMA
-    "BinaryWrappers",
-    "lib4ti2_jll",
+    # "BinaryWrappers",
+    # "lib4ti2_jll",
 
     # JuMP
-    "AmplNLWriter",
-    "Bonmin_jll",
-    "Cbc",
-    "Couenne_jll",
-    "GLPK",
-    "HiGHS",
-    "Ipopt",
-    "JuMP",
+    # "AmplNLWriter",
+    # "Bonmin_jll",
+    # "Cbc",
+    # "Couenne_jll",
+    # "GLPK",
+    # "HiGHS",
+    # "Ipopt",
+    # "JuMP",
 
     # QUBO
-    "QUBO",
+    # "QUBO",
     # "DWave",     # These use PythonCall!
     # "DWaveNeal",
 
     # Visualization
     "Plots",
-    "Measures",
+    # "Measures",
     # "PythonCall",
     # "PythonPlot",
-    "StatsBase",
-    "StatsPlots",
+    # "StatsBase",
+    # "StatsPlots",
 ]
 
 PackageCompiler.create_sysimage(

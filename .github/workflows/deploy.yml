@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     if: ${{ !(github.event_name == 'push') || contains(github.event.head_commit.message, '[deploy]') }}
-    name: Julia ${{ matrix.julia-version }}, @ ${{ matrix.os }}/${{ matrix.arch }}/${{ github.event_name }}
+    name: Julia ${{ matrix.julia-version }} @ ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
