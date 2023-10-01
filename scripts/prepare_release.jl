@@ -77,6 +77,7 @@ end
 function main()
     write_next_tag()
     copy_project()
+    copy_manifest()
     build_tarball()
 
     return nothing

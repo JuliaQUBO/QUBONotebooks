@@ -33,6 +33,8 @@ function install-colab-julia {
 
         # Install Packages & Create Kernel
         julia --project=/content -e '
+            ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
+
             import Pkg;
 
             @info "Instantiating Project...";
@@ -65,7 +67,7 @@ function install-colab-julia {
 }
 
 if [[ $# -eq 0 ]]; then
-    install-colab-julia "1.8.5" 2
+    install-colab-julia "1.9.3" 2
 elif [[ $# -eq 1 ]]; then
     install-colab-julia "$1" 2
 else
