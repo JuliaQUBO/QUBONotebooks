@@ -28,13 +28,13 @@ const PACKAGES = [
 
     # QUBO
     "QUBO",
-    "DWave",     # These use PythonCall!
-    "DWaveNeal",
+    # "DWave",     # These use PythonCall!
+    # "DWaveNeal",
 
     # Visualization
     # "Plots",
     "Measures",
-    "PythonCall",
+    # "PythonCall",
     # "PythonPlot",
     "StatsBase",
     # "StatsPlots",
