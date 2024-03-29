@@ -2,8 +2,8 @@ name: Create & Deploy Sysimage
 
 on:
   workflow_dispatch:
-  push:
-    branches: '**'
+  # push:
+  #   branches: '**'
 
 jobs:
   deploy:
