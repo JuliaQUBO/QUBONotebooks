@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - julia-version: '1.9.3'
+          - julia-version: '1.10.2'
             os: ubuntu-22.04
             arch: x64
     env:
@@ -27,10 +27,7 @@ jobs:
         version: ${{ matrix.julia-version }}
         arch: ${{ matrix.arch }}
     - name: Create Sysimage
-      run: |
-        julia -e 'using InteractiveUtils; versioninfo()'
-        julia --project=notebooks -e 'using Pkg; Pkg.instantiate()'
-        julia --project=scripts --threads=auto ./scripts/create_sysimage.jl
+      run: make sysimage
 
     - name: Store latest release info
       run: gh release view > "$GITHUB_WORKSPACE/last.tag"

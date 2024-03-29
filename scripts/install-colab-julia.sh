@@ -20,7 +20,7 @@ function install-colab-julia {
         # Remove Tarball
         rm /tmp/julia.tar.gz
 
-        SYSIMAGE_URL="https://github.com/pedromxavier/QUBO-notebooks/releases/latest/download/sysimage.tar.gz"
+        SYSIMAGE_URL="https://github.com/SECQUOIA/QUBONotebooks/releases/latest/download/sysimage.tar.gz"
 
         # Get Sysimage & Project.toml for installing aditional packages
         wget -nv $SYSIMAGE_URL -O /tmp/sysimage.tar.gz
@@ -67,7 +67,7 @@ function install-colab-julia {
 }
 
 if [[ $# -eq 0 ]]; then
-    install-colab-julia "1.9.3" 2
+    install-colab-julia "1.10.2" 2
 elif [[ $# -eq 1 ]]; then
     install-colab-julia "$1" 2
 else
