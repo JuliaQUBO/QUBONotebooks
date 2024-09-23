@@ -30,6 +30,6 @@
 
 ## Table of contents
 
-1. [Linear and Integer Programming](notebooks/1-LP_IP.ipynb)
-2. [Quadratic Unconstrained Binary Optimization](notebooks/2-QUBO.ipynb)
-3. [Graver Augmented Multiseed Algorithm](notebooks/3-GAMA.ipynb)
+1. [Mathematical Programming](notebooks_jl/1-LP_IP.ipynb)
+2. [Quadratic Unconstrained Binary Optimization](notebooks_jl/2-QUBO.ipynb)
+3. [Graver Augmented Multiseed Algorithm](notebooks_jl/3-GAMA.ipynb)
