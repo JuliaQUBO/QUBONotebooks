@@ -29,3 +29,5 @@ Manifest.toml
 # Distribution
 sysimage
 dist
+
+**/.ipynb_checkpoints/
