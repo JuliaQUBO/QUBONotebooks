@@ -1,11 +1,11 @@
 # QUBO-notebooks
 
 <div align="center">
-  <a href="https://github.com/psrnergy/QUBO.jl">
-    <img width="400px" src="https://raw.githubusercontent.com/psrenergy/QUBO.jl/master/docs/src/assets/logo.svg" alt="QUBO.jl" />
+  <a href="https://github.com/JuliaQUBO/QUBO.jl">
+    <img width="400px" src="https://raw.githubusercontent.com/JuliaQUBO/QUBO.jl/main/docs/src/assets/logo.svg" alt="QUBO.jl" />
   </a>
   <br>
-  <span>Quantum Integer Programming Notebooks using <a href="https://jump.dev">JuMP</a> and <a href="https://github.com/psrnergy/QUBO.jl">QUBO.jl</a>.</span>
+  <span>Quantum Integer Programming Notebooks using <a href="https://jump.dev">JuMP</a> and <a href="https://github.com/JuliaQUBO/QUBO.jl">QUBO.jl</a>.</span>
   <br>
   <br>
   <a href="https://bernalde.github.io">David E. Bernal Neira</a>
