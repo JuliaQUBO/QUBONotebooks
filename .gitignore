@@ -26,8 +26,18 @@ Manifest.toml
 # PythonCall
 .CondaPkg
 
+# Local Python/Jupyter verification environments and outputs
+__pycache__/
+*.pyc
+.venv/
+.uv-cache/
+.nbverify/
+
 # Distribution
 sysimage
 dist
+
+# Local Julia package state used by verification targets
+.julia-depot/
 
 **/.ipynb_checkpoints/

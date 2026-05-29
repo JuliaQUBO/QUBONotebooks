@@ -1,0 +1,38 @@
+[project]
+name = "qubonotebooks"
+version = "0.1.0"
+description = "Notebook verification environments for QUBONotebooks."
+requires-python = ">=3.10,<3.13"
+dependencies = []
+
+[dependency-groups]
+docs = [
+    "ipykernel>=6,<7",
+    "nbconvert>=7,<8",
+]
+mathprog = [
+    "highspy>=1.11,<2",
+    "idaes-pse>=2.9,<3",
+    "matplotlib>=3.8,<4",
+    "numpy>=1.26,<3",
+    "pyomo>=6.9,<7",
+    "pyscipopt>=5.6,<6",
+    "scipy>=1.13,<2",
+]
+qubo = [
+    "dimod>=0.12,<1",
+    "dwave-neal>=0.6,<1",
+    "dwave-ocean-sdk>=9,<10",
+    "dwavebinarycsp[maxgap,mip]>=0.3,<1",
+    "highspy>=1.11,<2",
+    "matplotlib>=3.8,<4",
+    "networkx>=3.3,<4",
+    "numpy>=1.26,<3",
+    "pandas>=2.2,<3",
+    "pyomo>=6.9,<7",
+    "scipy>=1.13,<2",
+]
+
+[tool.uv]
+package = false
+default-groups = ["docs"]
