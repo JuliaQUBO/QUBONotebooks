@@ -14,6 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_NOTEBOOKS = (
     Path("notebooks_py/2-QUBO_python.ipynb"),
+    Path("notebooks_py/3-GAMA_python.ipynb"),
 )
 TIMEOUT_ENV = "QUBONOTEBOOKS_NOTEBOOK_TIMEOUT"
 PYTHON_KERNEL_NAME = "qubonotebooks-python-local"
