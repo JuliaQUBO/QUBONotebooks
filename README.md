@@ -33,3 +33,28 @@
 1. [Linear and Integer Programming](notebooks/1-LP_IP.ipynb)
 2. [Quadratic Unconstrained Binary Optimization](notebooks/2-QUBO.ipynb)
 3. [Graver Augmented Multiseed Algorithm](notebooks/3-GAMA.ipynb)
+
+## Local verification
+
+Python dependency groups are managed with [`uv`](https://docs.astral.sh/uv/).
+The portable notebook execution target currently covers the Python QUBO
+notebook and writes executed copies to `.nbverify/`:
+
+```bash
+make verify-qubo-python
+```
+
+For a narrower check, run the Python unit tests and Julia link tests:
+
+```bash
+make test-python
+make test-julia
+```
+
+The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`
+and `UV_GROUP_FLAGS`. Some notebooks still require external solver binaries
+until the remaining QuIP notebook fixes are migrated.
+
+```bash
+make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"
+```

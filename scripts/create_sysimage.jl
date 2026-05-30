@@ -1,7 +1,7 @@
 using Pkg; Pkg.instantiate()
 using PackageCompiler, Libdl
 
-const NOTEBOOKS_DIR = joinpath(@__DIR__, "..", "notebooks")
+const NOTEBOOKS_DIR = joinpath(@__DIR__, "..", "notebooks_jl")
 const SYSIMAGE_PATH = joinpath(@__DIR__, "..", "sysimage", "sysimage.$(Libdl.dlext)")
 
 mkpath(dirname(SYSIMAGE_PATH))
