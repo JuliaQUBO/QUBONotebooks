@@ -183,7 +183,6 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn("verify-gama-python:", makefile)
         self.assertIn("verify-dwave-python:", makefile)
         self.assertIn("verify-benchmarking-python:", makefile)
-        self.assertIn("verify-qci-python:", makefile)
         self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
         self.assertIn("./scripts/verify_notebooks.py", makefile)
         self.assertIn("--project=./notebooks_jl", makefile)

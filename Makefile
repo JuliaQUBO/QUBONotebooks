@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-dwave-python verify-benchmarking-python verify-qci-python
+.PHONY: test sysimage test-python test-julia verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-dwave-python verify-benchmarking-python
 
 PYTHON ?= python3
 UV ?= uv
@@ -12,8 +12,6 @@ GAMA_PYTHON_NOTEBOOK ?= notebooks_py/3-GAMA_python.ipynb
 PORTABLE_PYTHON_NOTEBOOKS ?= $(QUBO_PYTHON_NOTEBOOK) $(GAMA_PYTHON_NOTEBOOK)
 DWAVE_PYTHON_NOTEBOOK ?= notebooks_py/4-DWAVE_python.ipynb
 BENCHMARKING_PYTHON_NOTEBOOK ?= notebooks_py/5-Benchmarking_python.ipynb
-QCI_PYTHON_NOTEBOOK ?= notebooks_py/6-QCi_python.ipynb
-QCI_UV_GROUP_FLAGS ?= --group docs --group mathprog
 NOTEBOOKS ?= $(PORTABLE_PYTHON_NOTEBOOKS)
 
 test:
@@ -56,7 +54,3 @@ verify-dwave-python:
 
 verify-benchmarking-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qubo" NOTEBOOKS="$(BENCHMARKING_PYTHON_NOTEBOOK)"
-
-verify-qci-python:
-	@echo "The QCi notebook requires QCi API credentials and the QCi Python package stack before execution."
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(QCI_UV_GROUP_FLAGS)" NOTEBOOKS="$(QCI_PYTHON_NOTEBOOK)"
