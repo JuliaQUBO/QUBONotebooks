@@ -2118,6 +2118,7 @@ qubo = [
     { name = "pyomo" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "sympy" },
 ]
 
 [package.metadata]
@@ -2148,6 +2149,7 @@ qubo = [
     { name = "pandas", specifier = ">=2.2,<3" },
     { name = "pyomo", specifier = ">=6.9,<7" },
     { name = "scipy", specifier = ">=1.13,<2" },
+    { name = "sympy", specifier = ">=1.13,<2" },
 ]
 
 [[package]]

@@ -11,11 +11,21 @@ from unittest.mock import Mock, patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
+GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
+GAMA_DATA_FILES = (
+    REPO_ROOT / "notebooks_data" / "3-GAMA_example4_coefficients.csv",
+    REPO_ROOT / "notebooks_data" / "3-GAMA_example4_feasible_starts.csv",
+)
 SPEC = importlib.util.spec_from_file_location("verify_notebooks", MODULE_PATH)
 assert SPEC is not None
 assert SPEC.loader is not None
 verify_notebooks = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify_notebooks)
+
+
+def notebook_source(path: Path) -> str:
+    notebook = json.loads(path.read_text())
+    return "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
 
 
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):
@@ -67,10 +77,13 @@ class JuliaExecutableTests(unittest.TestCase):
 
 
 class NotebookClassificationTests(unittest.TestCase):
-    def test_default_notebook_is_portable_today(self) -> None:
+    def test_default_notebooks_are_portable_today(self) -> None:
         self.assertEqual(
             verify_notebooks.DEFAULT_NOTEBOOKS,
-            (Path("notebooks_py/2-QUBO_python.ipynb"),),
+            (
+                Path("notebooks_py/2-QUBO_python.ipynb"),
+                Path("notebooks_py/3-GAMA_python.ipynb"),
+            ),
         )
 
     def test_classifies_supported_notebook_paths(self) -> None:
@@ -165,7 +178,13 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn("test-python:", makefile)
         self.assertIn("test-julia:", makefile)
         self.assertIn("verify-notebooks:", makefile)
+        self.assertIn("verify-python-portable:", makefile)
         self.assertIn("verify-qubo-python:", makefile)
+        self.assertIn("verify-gama-python:", makefile)
+        self.assertIn("verify-dwave-python:", makefile)
+        self.assertIn("verify-benchmarking-python:", makefile)
+        self.assertIn("verify-qci-python:", makefile)
+        self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
         self.assertIn("./scripts/verify_notebooks.py", makefile)
         self.assertIn("--project=./notebooks_jl", makefile)
         self.assertIn("$(UV) sync --locked", makefile)
@@ -179,3 +198,25 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn('"notebooks_jl"', prepare_release)
         self.assertNotIn('"notebooks"', create_sysimage)
         self.assertNotIn('"notebooks"', prepare_release)
+
+
+class GamaNotebookTests(unittest.TestCase):
+    def test_gama_notebook_has_portable_py4ti2_fallback(self) -> None:
+        source = notebook_source(GAMA_NOTEBOOK_PATH)
+
+        self.assertIn("HAS_PY4TI2", source)
+        self.assertIn("load_precomputed_graver_basis", source)
+        self.assertIn("notebooks_py/graver.npy", source)
+        self.assertIn("3-GAMA_example4_feasible_starts.csv", source)
+        self.assertIn("np.random.default_rng(271828)", source)
+
+        for path in GAMA_DATA_FILES:
+            self.assertTrue(path.is_file(), f"{path} should be committed")
+
+    def test_gama_notebook_source_outputs_are_cleared(self) -> None:
+        notebook = json.loads(GAMA_NOTEBOOK_PATH.read_text())
+
+        for cell in notebook["cells"]:
+            if cell.get("cell_type") == "code":
+                self.assertIsNone(cell.get("execution_count"))
+                self.assertEqual(cell.get("outputs", []), [])
