@@ -1,4 +1,4 @@
-.PHONY: sysimage test-python test-julia verify-notebooks verify-qubo-python
+.PHONY: test sysimage test-python test-julia verify-notebooks verify-qubo-python
 
 PYTHON ?= python3
 UV ?= uv
@@ -8,6 +8,12 @@ JULIA ?= julia
 JULIA_DEPOT_PATH ?= $(CURDIR)/.julia-depot:$(HOME)/.julia
 JULIA_PKG_PRECOMPILE_AUTO ?= 0
 NOTEBOOKS ?= notebooks_py/2-QUBO_python.ipynb
+
+test:
+	@if git grep -nE '(github\.com|raw\.githubusercontent\.com)/(psrenergy|psrnergy)/QUBO\.jl' -- '*.md' '*.ipynb' '*.yml' '*.yaml'; then \
+		echo "Found legacy QUBO.jl repository links"; \
+		exit 1; \
+	fi
 
 sysimage:
 	$(JULIA) -e 'using InteractiveUtils; versioninfo()'
