@@ -168,3 +168,14 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn("verify-qubo-python:", makefile)
         self.assertIn("./scripts/verify_notebooks.py", makefile)
         self.assertIn("--project=./notebooks_jl", makefile)
+        self.assertIn("$(UV) sync --locked", makefile)
+        self.assertIn("$(UV) run --locked", makefile)
+
+    def test_sysimage_scripts_use_current_julia_notebook_project(self) -> None:
+        create_sysimage = (REPO_ROOT / "scripts" / "create_sysimage.jl").read_text()
+        prepare_release = (REPO_ROOT / "scripts" / "prepare_release.jl").read_text()
+
+        self.assertIn('"notebooks_jl"', create_sysimage)
+        self.assertIn('"notebooks_jl"', prepare_release)
+        self.assertNotIn('"notebooks"', create_sysimage)
+        self.assertNotIn('"notebooks"', prepare_release)

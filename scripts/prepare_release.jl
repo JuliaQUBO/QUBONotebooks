@@ -40,14 +40,14 @@ end
 
 function copy_project()
     cp(
-        joinpath(WORKSPACE, "notebooks", "Project.toml"),
+        joinpath(WORKSPACE, "notebooks_jl", "Project.toml"),
         joinpath(WORKSPACE, "sysimage", "Project.toml")
     )
 end
 
 function copy_manifest()
     cp(
-        joinpath(WORKSPACE, "notebooks", "Manifest.toml"),
+        joinpath(WORKSPACE, "notebooks_jl", "Manifest.toml"),
         joinpath(WORKSPACE, "sysimage", "Manifest.toml")
     )
 end

@@ -22,8 +22,8 @@ test-julia:
 	$(JULIA) --startup-file=no test/runtests.jl
 
 verify-notebooks:
-	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) sync $(UV_GROUP_FLAGS)
-	UV_CACHE_DIR=$(UV_CACHE_DIR) JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(UV) run $(UV_GROUP_FLAGS) python ./scripts/verify_notebooks.py $(NOTEBOOKS)
+	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) sync --locked $(UV_GROUP_FLAGS)
+	UV_CACHE_DIR=$(UV_CACHE_DIR) JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(UV) run --locked $(UV_GROUP_FLAGS) python ./scripts/verify_notebooks.py $(NOTEBOOKS)
 
 verify-qubo-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qubo" NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb"
