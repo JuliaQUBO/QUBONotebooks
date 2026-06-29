@@ -12,6 +12,8 @@ from unittest.mock import Mock, patch
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
 GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
+DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
+DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
 GAMA_DATA_FILES = (
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_coefficients.csv",
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_feasible_starts.csv",
@@ -219,3 +221,77 @@ class GamaNotebookTests(unittest.TestCase):
             if cell.get("cell_type") == "code":
                 self.assertIsNone(cell.get("execution_count"))
                 self.assertEqual(cell.get("outputs", []), [])
+
+
+class DWaveNotebookTests(unittest.TestCase):
+    def test_julia_topology_section_uses_current_sampler_topology(self) -> None:
+        source = notebook_source(DWAVE_JULIA_NOTEBOOK_PATH)
+
+        self.assertIn('solver=Dict("qpu" => true)', source)
+        self.assertIn('sampler.properties["topology"]', source)
+        self.assertIn("sampler.to_networkx_graph()", source)
+        self.assertIn("pyconvert(String, sampler.solver.id)", source)
+        self.assertIn('if !haskey(ENV, "DWAVE_API_TOKEN")', source)
+        self.assertIn("import Cairo, Fontconfig", source)
+        self.assertIn("QUBOTools.solution(unsafe_backend(qubo_model).model)", source)
+        self.assertNotIn("Graphs.grpah", source)
+        self.assertNotIn("DW_2000Q_6", source)
+        self.assertNotIn("Advantage_system1.1", source)
+        self.assertNotIn("Advantage_system4.1", source)
+        self.assertNotIn("DWave.dwave_networkx.chimera_graph", source)
+        self.assertNotIn("DWave.dwave_networkx.pegasus_graph", source)
+        self.assertNotIn('ENV["DWAVE_API_TOKEN"] = "<YOUR_KEY_HERE>";', source)
+        self.assertNotIn("QUBOTools.sampleset", source)
+
+    def test_python_topology_section_uses_current_sampler_topology(self) -> None:
+        source = notebook_source(DWAVE_PYTHON_NOTEBOOK_PATH)
+
+        self.assertIn('DWaveSampler(solver={"qpu": True})', source)
+        self.assertIn('qpu.properties["topology"]', source)
+        self.assertIn("qpu.to_networkx_graph()", source)
+        self.assertIn("EmbeddingComposite(qpu)", source)
+        self.assertIn('topology_type == "chimera"', source)
+        self.assertIn('topology_type == "pegasus"', source)
+        self.assertIn('topology_type == "zephyr"', source)
+        self.assertNotIn('qpu.solver.id == "DW_2000Q_6"', source)
+        self.assertNotIn("dnx.chimera_graph", source)
+        self.assertNotIn("dnx.pegasus_graph", source)
+
+    def test_live_dwave_outputs_are_refreshed_without_duplicate_julia_plot_formats(self) -> None:
+        julia_notebook = json.loads(DWAVE_JULIA_NOTEBOOK_PATH.read_text())
+        python_notebook = json.loads(DWAVE_PYTHON_NOTEBOOK_PATH.read_text())
+
+        julia_markers = (
+            "DWave.dwave_system.DWaveSampler",
+            "function draw_topology",
+        )
+        python_markers = (
+            'qpu = DWaveSampler(solver={"qpu": True})',
+            "EmbeddingComposite(qpu)",
+        )
+
+        julia_cells = [
+            cell
+            for cell in julia_notebook["cells"]
+            if any(marker in "".join(cell.get("source", [])) for marker in julia_markers)
+        ]
+        python_cells = [
+            cell
+            for cell in python_notebook["cells"]
+            if any(marker in "".join(cell.get("source", [])) for marker in python_markers)
+        ]
+
+        self.assertEqual(len(julia_cells), len(julia_markers))
+        self.assertEqual(len(python_cells), len(python_markers))
+
+        for cell in julia_cells + python_cells:
+            self.assertIsNotNone(cell.get("execution_count"))
+
+        self.assertTrue(julia_cells[1].get("outputs"))
+        self.assertTrue(python_cells[0].get("outputs"))
+
+        for cell in julia_notebook["cells"]:
+            for output in cell.get("outputs", []):
+                data = output.get("data", {})
+                if "image/png" in data:
+                    self.assertEqual(set(data), {"image/png"})
