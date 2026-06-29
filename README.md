@@ -65,12 +65,13 @@ make verify-gama-python
 ```
 
 The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`
-and `UV_GROUP_FLAGS`. Separate targets exist for notebooks that require
+and `UV_GROUP_FLAGS`. The portable QUBO/GAMA dependency group is intentionally
+separate from the D-Wave Ocean stack, which is only installed by
+`make verify-dwave-python`. Separate targets exist for notebooks that require
 external solver credentials or longer-running jobs; those targets are not part
 of the default portable subset. The QCi notebook does not yet have a locked
 local make target because `eqc-models==0.19.0` requires `networkx<3`, which
-conflicts with the D-Wave Ocean stack used by the QUBO verification
-environment.
+conflicts with the D-Wave Ocean stack.
 
 ```bash
 make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"

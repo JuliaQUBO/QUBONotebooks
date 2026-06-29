@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  verify:
+    name: Python 3.12 / Julia 1.10
+    runs-on: ubuntu-22.04
+    env:
+      UV_CACHE_DIR: .uv-cache
+      JULIA_DEPOT_PATH: ${{ github.workspace }}/.julia-depot
+      JULIA_PKG_PRECOMPILE_AUTO: "0"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: "1.10.11"
+
+      - uses: julia-actions/cache@v3
+
+      - name: Install system solvers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glpk-utils
+
+      - name: Check Python lockfile
+        run: uv lock --check
+
+      - name: Link checks
+        run: make test
+
+      - name: Python unit tests
+        run: make test-python PYTHON="uv run --locked --group docs python"
+
+      - name: Julia link tests
+        run: make test-julia
+
+      - name: Portable Python notebooks
+        run: make verify-python-portable

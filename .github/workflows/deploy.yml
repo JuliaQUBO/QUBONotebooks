@@ -14,15 +14,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - julia-version: '1.10.2'
+          - julia-version: '1.10.11'
             os: ubuntu-22.04
             arch: x64
     env:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-    - uses: actions/checkout@v3
-    - uses: julia-actions/setup-julia@v1
+    - uses: actions/checkout@v7
+    - uses: julia-actions/setup-julia@v3
       with:
         version: ${{ matrix.julia-version }}
         arch: ${{ matrix.arch }}

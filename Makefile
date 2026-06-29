@@ -4,6 +4,9 @@ PYTHON ?= python3
 UV ?= uv
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
 UV_GROUP_FLAGS ?= --group docs --group qubo
+PORTABLE_UV_GROUP_FLAGS ?= --group docs --group qubo
+DWAVE_UV_GROUP_FLAGS ?= --group docs --group qubo --group dwave
+BENCHMARKING_UV_GROUP_FLAGS ?= --group docs --group qubo
 JULIA ?= julia
 JULIA_DEPOT_PATH ?= $(CURDIR)/.julia-depot:$(HOME)/.julia
 JULIA_PKG_PRECOMPILE_AUTO ?= 0
@@ -41,16 +44,16 @@ verify-notebooks:
 	UV_CACHE_DIR=$(UV_CACHE_DIR) JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(UV) run --locked $(UV_GROUP_FLAGS) python ./scripts/verify_notebooks.py $(NOTEBOOKS)
 
 verify-python-portable:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qubo" NOTEBOOKS="$(PORTABLE_PYTHON_NOTEBOOKS)"
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(PORTABLE_PYTHON_NOTEBOOKS)"
 
 verify-qubo-python:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qubo" NOTEBOOKS="$(QUBO_PYTHON_NOTEBOOK)"
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(QUBO_PYTHON_NOTEBOOK)"
 
 verify-gama-python:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qubo" NOTEBOOKS="$(GAMA_PYTHON_NOTEBOOK)"
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(GAMA_PYTHON_NOTEBOOK)"
 
 verify-dwave-python:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qubo" NOTEBOOKS="$(DWAVE_PYTHON_NOTEBOOK)"
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(DWAVE_UV_GROUP_FLAGS)" NOTEBOOKS="$(DWAVE_PYTHON_NOTEBOOK)"
 
 verify-benchmarking-python:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qubo" NOTEBOOKS="$(BENCHMARKING_PYTHON_NOTEBOOK)"
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(BENCHMARKING_UV_GROUP_FLAGS)" NOTEBOOKS="$(BENCHMARKING_PYTHON_NOTEBOOK)"
