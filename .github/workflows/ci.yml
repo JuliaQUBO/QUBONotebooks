@@ -33,6 +33,11 @@ jobs:
 
       - uses: julia-actions/cache@v3
 
+      - name: Install system solvers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glpk-utils
+
       - name: Check Python lockfile
         run: uv lock --check
 
