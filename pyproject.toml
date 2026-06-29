@@ -7,7 +7,7 @@ dependencies = []
 
 [dependency-groups]
 docs = [
-    "ipykernel>=6,<7",
+    "ipykernel>=7.3.0,<8",
     "nbconvert>=7,<8",
 ]
 mathprog = [
@@ -16,13 +16,13 @@ mathprog = [
     "matplotlib>=3.8,<4",
     "numpy>=1.26,<3",
     "pyomo>=6.9,<7",
-    "pyscipopt>=5.6,<6",
+    "pyscipopt>=6.2.1,<7",
     "scipy>=1.13,<2",
 ]
 qubo = [
     "dimod>=0.12,<1",
     "dwave-neal>=0.6,<1",
-    "dwavebinarycsp[maxgap,mip]>=0.3,<1",
+    "dwavebinarycsp[maxgap,mip]>=0.3.1,<1",
     "highspy>=1.11,<2",
     "matplotlib>=3.8,<4",
     "networkx>=3.3,<4",
