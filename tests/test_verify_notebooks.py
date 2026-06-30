@@ -14,6 +14,10 @@ MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
 GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
 DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
 DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
+NOTEBOOK_DIRS = (
+    REPO_ROOT / "notebooks_jl",
+    REPO_ROOT / "notebooks_py",
+)
 GAMA_DATA_FILES = (
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_coefficients.csv",
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_feasible_starts.csv",
@@ -39,6 +43,21 @@ def notebook_cell_source(path: Path, marker: str) -> str:
             return source
 
     raise AssertionError(f"Could not find notebook cell containing {marker!r}")
+
+
+def notebook_paths() -> list[Path]:
+    return sorted(path for directory in NOTEBOOK_DIRS for path in directory.glob("*.ipynb"))
+
+
+class NotebookSourceSafetyTests(unittest.TestCase):
+    def test_notebooks_do_not_use_jump_unsafe_backend(self) -> None:
+        offenders = [
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in notebook_paths()
+            if "unsafe_backend" in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
 
 
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):
@@ -251,7 +270,7 @@ class DWaveNotebookTests(unittest.TestCase):
             source.index("using Plots"),
         )
         self.assertIn('if !haskey(ENV, "DWAVE_API_TOKEN")', source)
-        self.assertIn("QUBOTools.solution(unsafe_backend(qubo_model).model)", source)
+        self.assertIn("QUBOTools.solution(QUBOTools.backend(qubo_model))", source)
         self.assertIn('repo-rev = "v0.7.6"', (REPO_ROOT / "notebooks_jl" / "Manifest.toml").read_text())
         self.assertNotIn("networkx_edges", source)
         self.assertNotIn("graph_from_edges", source)
@@ -298,7 +317,7 @@ class DWaveNotebookTests(unittest.TestCase):
         julia_source = notebook_cell_source(DWAVE_JULIA_NOTEBOOK_PATH, "qpu_solution = QUBOTools.solution")
         python_source = notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "plot_enumerate(DWaveSamples")
 
-        self.assertIn("QUBOTools.solution(unsafe_backend(qubo_model).model)", julia_source)
+        self.assertIn("QUBOTools.solution(QUBOTools.backend(qubo_model))", julia_source)
         self.assertIn("QUBOTools.EnergyDistributionPlot(qpu_solution)", julia_source)
         self.assertIn("QUBOTools.EnergyFrequencyPlot(qpu_solution)", julia_source)
         self.assertIn("display(plot(QUBOTools.EnergyDistributionPlot", julia_source)
