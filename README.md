@@ -37,11 +37,11 @@ long benchmark runs.
 
 | Topic | Julia notebook | Python notebook | Local verification status |
 | --- | --- | --- | --- |
-| Linear and Integer Programming | [notebooks_jl/1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) | [notebooks_py/1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | Requires local LP/NLP/MINLP solver binaries. |
+| Linear and Integer Programming | [notebooks_jl/1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) | [notebooks_py/1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | Julia notebook includes Colab setup through the shared sysimage; local execution requires LP/NLP/MINLP solver binaries. |
 | QUBO and Ising | [notebooks_jl/2-QUBO.ipynb](notebooks_jl/2-QUBO.ipynb) | [notebooks_py/2-QUBO_python.ipynb](notebooks_py/2-QUBO_python.ipynb) | Julia notebook includes Colab setup through the shared sysimage; Python notebook is portable and covered by `make verify-qubo-python`. |
 | Graver Augmented Multiseed Algorithm | [notebooks_jl/3-GAMA.ipynb](notebooks_jl/3-GAMA.ipynb) | [notebooks_py/3-GAMA_python.ipynb](notebooks_py/3-GAMA_python.ipynb) | Julia notebook includes Colab setup through the shared sysimage; Python notebook is portable and covered by `make verify-gama-python`. |
-| D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Requires D-Wave solver access for quantum annealer cells. |
-| Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Long-running benchmark notebook with generated artifacts. |
+| D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes Colab setup through the shared sysimage; quantum annealer cells require D-Wave solver access. |
+| Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes Colab setup through the shared sysimage; benchmark runs are long-running and generate artifacts. |
 | QCi | Not available | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | Requires QCi API credentials and the QCi Python stack. |
 
 ## Local verification
@@ -72,8 +72,8 @@ external solver credentials or longer-running jobs; those targets are not part
 of the default portable subset. The QCi notebook does not yet have a locked
 local make target because `eqc-models==0.19.0` requires `networkx<3`, which
 conflicts with the D-Wave Ocean stack.
-The Julia QUBO and GAMA notebooks use `scripts/install-colab-julia.sh` in Colab
-to install Julia and the latest precompiled QUBONotebooks sysimage.
+The Julia notebooks use `scripts/install-colab-julia.sh` in Colab to install
+Julia and the latest precompiled QUBONotebooks sysimage.
 
 ```bash
 make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"

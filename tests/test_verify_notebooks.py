@@ -17,8 +17,11 @@ GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
 DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
 DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
 JULIA_COLAB_NOTEBOOK_PATHS = (
-    QUBO_JULIA_NOTEBOOK_PATH,
-    GAMA_JULIA_NOTEBOOK_PATH,
+    REPO_ROOT / "notebooks_jl" / "1-MathProg.ipynb",
+    REPO_ROOT / "notebooks_jl" / "2-QUBO.ipynb",
+    REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb",
+    REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb",
+    REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb",
 )
 COLAB_JULIA_INSTALLER = (
     'bash <(curl -s "https://raw.githubusercontent.com/JuliaQUBO/QUBONotebooks/main/'
@@ -299,19 +302,21 @@ class RepositoryCommandTests(unittest.TestCase):
 
 
 class JuliaColabSetupTests(unittest.TestCase):
-    def test_julia_qubo_and_gama_notebooks_install_colab_julia_before_activation(self) -> None:
+    def test_all_julia_notebooks_install_colab_julia_before_activation(self) -> None:
         for path in JULIA_COLAB_NOTEBOOK_PATHS:
             with self.subTest(path=path.relative_to(REPO_ROOT).as_posix()):
                 cells = notebook_cell_sources(path)
-                install_index = next(
+                install_indexes = [
                     i for i, source in enumerate(cells) if COLAB_JULIA_INSTALLER in source
-                )
-                activate_index = next(
+                ]
+                activate_indexes = [
                     i for i, source in enumerate(cells) if "Pkg.activate(@__DIR__)" in source
-                )
+                ]
 
-                self.assertLess(install_index, activate_index)
-                self.assertIn("precompiled QUBONotebooks sysimage", cells[install_index - 1])
+                self.assertEqual([2], install_indexes)
+                self.assertTrue(activate_indexes)
+                self.assertLess(install_indexes[0], min(activate_indexes))
+                self.assertIn("precompiled QUBONotebooks sysimage", cells[install_indexes[0] - 1])
 
 
 class GamaNotebookTests(unittest.TestCase):
