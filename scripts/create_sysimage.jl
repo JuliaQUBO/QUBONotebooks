@@ -10,11 +10,13 @@ const PACKAGES = [
     # Misc
     "Graphs",
     "Karnak",
+    "Luxor",
     "SpecialFunctions",
 
     # GAMA
     "BinaryWrappers",
     "lib4ti2_jll",
+    "NPZ",
 
     # JuMP
     "AmplNLWriter",
@@ -27,17 +29,16 @@ const PACKAGES = [
     "JuMP",
 
     # QUBO
+    "DWave",
+    "PythonCall",
     "QUBO",
-    # "DWave",     # These use PythonCall!
-    # "DWaveNeal",
 
     # Visualization
-    # "Plots",
     "Measures",
-    # "PythonCall",
+    "Plots",
     # "PythonPlot",
     "StatsBase",
-    # "StatsPlots",
+    "StatsPlots",
 ]
 
 PackageCompiler.create_sysimage(

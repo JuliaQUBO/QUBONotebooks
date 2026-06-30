@@ -11,9 +11,19 @@ from unittest.mock import Mock, patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
+QUBO_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "2-QUBO.ipynb"
+GAMA_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb"
 GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
 DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
 DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
+JULIA_COLAB_NOTEBOOK_PATHS = (
+    QUBO_JULIA_NOTEBOOK_PATH,
+    GAMA_JULIA_NOTEBOOK_PATH,
+)
+COLAB_JULIA_INSTALLER = (
+    'bash <(curl -s "https://raw.githubusercontent.com/JuliaQUBO/QUBONotebooks/main/'
+    'scripts/install-colab-julia.sh")'
+)
 NOTEBOOK_DIRS = (
     REPO_ROOT / "notebooks_jl",
     REPO_ROOT / "notebooks_py",
@@ -43,6 +53,11 @@ def notebook_cell_source(path: Path, marker: str) -> str:
             return source
 
     raise AssertionError(f"Could not find notebook cell containing {marker!r}")
+
+
+def notebook_cell_sources(path: Path) -> list[str]:
+    notebook = json.loads(path.read_text())
+    return ["".join(cell.get("source", [])) for cell in notebook["cells"]]
 
 
 def notebook_paths() -> list[Path]:
@@ -229,6 +244,58 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn('"notebooks_jl"', prepare_release)
         self.assertNotIn('"notebooks"', create_sysimage)
         self.assertNotIn('"notebooks"', prepare_release)
+
+    def test_colab_installer_default_matches_sysimage_julia_version(self) -> None:
+        install_script = (REPO_ROOT / "scripts" / "install-colab-julia.sh").read_text()
+        deploy_workflow = (REPO_ROOT / ".github" / "workflows" / "deploy.yml").read_text()
+        notebook_manifest = (REPO_ROOT / "notebooks_jl" / "Manifest.toml").read_text()
+        expected_version = "1.10.11"
+
+        self.assertIn(f'install-colab-julia "{expected_version}" 2', install_script)
+        self.assertIn(f"julia-version: '{expected_version}'", deploy_workflow)
+        self.assertIn(f'julia_version = "{expected_version}"', notebook_manifest)
+
+    def test_sysimage_includes_julia_qubo_and_gama_runtime_packages(self) -> None:
+        create_sysimage = (REPO_ROOT / "scripts" / "create_sysimage.jl").read_text()
+        package_lines = {line.strip() for line in create_sysimage.splitlines()}
+
+        expected_packages = {
+            '"BinaryWrappers",',
+            '"DWave",',
+            '"Graphs",',
+            '"JuMP",',
+            '"Karnak",',
+            '"lib4ti2_jll",',
+            '"Luxor",',
+            '"Measures",',
+            '"NPZ",',
+            '"Plots",',
+            '"PythonCall",',
+            '"QUBO",',
+            '"StatsBase",',
+            '"StatsPlots",',
+        }
+
+        self.assertTrue(
+            expected_packages.issubset(package_lines),
+            expected_packages - package_lines,
+        )
+
+
+class JuliaColabSetupTests(unittest.TestCase):
+    def test_julia_qubo_and_gama_notebooks_install_colab_julia_before_activation(self) -> None:
+        for path in JULIA_COLAB_NOTEBOOK_PATHS:
+            with self.subTest(path=path.relative_to(REPO_ROOT).as_posix()):
+                cells = notebook_cell_sources(path)
+                install_index = next(
+                    i for i, source in enumerate(cells) if COLAB_JULIA_INSTALLER in source
+                )
+                activate_index = next(
+                    i for i, source in enumerate(cells) if "Pkg.activate(@__DIR__)" in source
+                )
+
+                self.assertLess(install_index, activate_index)
+                self.assertIn("precompiled QUBONotebooks sysimage", cells[install_index - 1])
 
 
 class GamaNotebookTests(unittest.TestCase):
