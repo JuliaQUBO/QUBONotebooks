@@ -14,6 +14,10 @@ MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
 GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
 DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
 DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
+NOTEBOOK_DIRS = (
+    REPO_ROOT / "notebooks_jl",
+    REPO_ROOT / "notebooks_py",
+)
 GAMA_DATA_FILES = (
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_coefficients.csv",
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_feasible_starts.csv",
@@ -28,6 +32,32 @@ SPEC.loader.exec_module(verify_notebooks)
 def notebook_source(path: Path) -> str:
     notebook = json.loads(path.read_text())
     return "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
+
+
+def notebook_cell_source(path: Path, marker: str) -> str:
+    notebook = json.loads(path.read_text())
+
+    for cell in notebook["cells"]:
+        source = "".join(cell.get("source", []))
+        if marker in source:
+            return source
+
+    raise AssertionError(f"Could not find notebook cell containing {marker!r}")
+
+
+def notebook_paths() -> list[Path]:
+    return sorted(path for directory in NOTEBOOK_DIRS for path in directory.glob("*.ipynb"))
+
+
+class NotebookSourceSafetyTests(unittest.TestCase):
+    def test_notebooks_do_not_use_jump_unsafe_backend(self) -> None:
+        offenders = [
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in notebook_paths()
+            if "unsafe_backend" in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
 
 
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):
@@ -228,12 +258,27 @@ class DWaveNotebookTests(unittest.TestCase):
         source = notebook_source(DWAVE_JULIA_NOTEBOOK_PATH)
 
         self.assertIn('solver=Dict("qpu" => true)', source)
-        self.assertIn('sampler.properties["topology"]', source)
-        self.assertIn("sampler.to_networkx_graph()", source)
-        self.assertIn("pyconvert(String, sampler.solver.id)", source)
+        self.assertIn('set_optimizer_attribute(qubo_model, "return_embedding", true)', source)
+        self.assertIn("DWave.WorkingGraph(sampler)", source)
+        self.assertIn("DWave.WorkingGraph(QUBOTools.metadata(sampleset))", source)
+        self.assertIn("DWave.embedding(sampleset)", source)
+        self.assertIn("DWave.draw_topology(arch", source)
+        self.assertIn("DWave.draw_embedding(sampleset", source)
+        self.assertIn('DWave.PythonCall.pyimport("matplotlib")', source)
+        self.assertLess(
+            source.index('DWave.PythonCall.pyimport("matplotlib")'),
+            source.index("using Plots"),
+        )
         self.assertIn('if !haskey(ENV, "DWAVE_API_TOKEN")', source)
-        self.assertIn("import Cairo, Fontconfig", source)
-        self.assertIn("QUBOTools.solution(unsafe_backend(qubo_model).model)", source)
+        self.assertIn("QUBOTools.solution(QUBOTools.backend(qubo_model))", source)
+        self.assertIn('repo-rev = "v0.7.6"', (REPO_ROOT / "notebooks_jl" / "Manifest.toml").read_text())
+        self.assertNotIn("networkx_edges", source)
+        self.assertNotIn("graph_from_edges", source)
+        self.assertNotIn("graph_layout_subset", source)
+        self.assertNotIn("sampler.to_networkx_graph()", source)
+        self.assertNotIn("import PythonCall: pyconvert, pyimport", source)
+        self.assertNotIn("using GraphPlot", source)
+        self.assertNotIn("gplot(", source)
         self.assertNotIn("Graphs.grpah", source)
         self.assertNotIn("DW_2000Q_6", source)
         self.assertNotIn("Advantage_system1.1", source)
@@ -257,13 +302,41 @@ class DWaveNotebookTests(unittest.TestCase):
         self.assertNotIn("dnx.chimera_graph", source)
         self.assertNotIn("dnx.pegasus_graph", source)
 
+    def test_julia_embedding_plot_overlays_embedding_on_full_topology(self) -> None:
+        source = notebook_cell_source(DWAVE_JULIA_NOTEBOOK_PATH, "function draw_embedding")
+
+        self.assertIn("DWave.embedding(sampleset)", source)
+        self.assertIn("DWave.WorkingGraph(QUBOTools.metadata(sampleset))", source)
+        self.assertIn("DWave.draw_embedding(sampleset; node_size=2)", source)
+        self.assertIn("$(length(arch.nodes))-qubit working graph", source)
+        self.assertNotIn("graph_layout_subset", source)
+        self.assertNotIn("nodefillc = fill", source)
+        self.assertNotIn("gplot(", source)
+
+    def test_julia_quantum_annealer_output_analysis_matches_python_views(self) -> None:
+        julia_source = notebook_cell_source(DWAVE_JULIA_NOTEBOOK_PATH, "qpu_solution = QUBOTools.solution")
+        python_source = notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "plot_enumerate(DWaveSamples")
+
+        self.assertIn("QUBOTools.solution(QUBOTools.backend(qubo_model))", julia_source)
+        self.assertIn("QUBOTools.EnergyDistributionPlot(qpu_solution)", julia_source)
+        self.assertIn("QUBOTools.EnergyFrequencyPlot(qpu_solution)", julia_source)
+        self.assertIn("display(plot(QUBOTools.EnergyDistributionPlot", julia_source)
+        self.assertLess(
+            julia_source.index("QUBOTools.EnergyDistributionPlot(qpu_solution)"),
+            julia_source.index("QUBOTools.EnergyFrequencyPlot(qpu_solution)"),
+        )
+        self.assertIn("plot_enumerate(DWaveSamples", python_source)
+        self.assertIn("plot_energies(DWaveSamples", python_source)
+
     def test_live_dwave_outputs_are_refreshed_without_duplicate_julia_plot_formats(self) -> None:
         julia_notebook = json.loads(DWAVE_JULIA_NOTEBOOK_PATH.read_text())
         python_notebook = json.loads(DWAVE_PYTHON_NOTEBOOK_PATH.read_text())
 
         julia_markers = (
             "DWave.dwave_system.DWaveSampler",
+            "qpu_solution = QUBOTools.solution",
             "function draw_topology",
+            "function draw_embedding",
         )
         python_markers = (
             'qpu = DWaveSampler(solver={"qpu": True})',
@@ -287,7 +360,14 @@ class DWaveNotebookTests(unittest.TestCase):
         for cell in julia_cells + python_cells:
             self.assertIsNotNone(cell.get("execution_count"))
 
-        self.assertTrue(julia_cells[1].get("outputs"))
+        analysis_image_outputs = [
+            output
+            for output in julia_cells[1].get("outputs", [])
+            if "image/png" in output.get("data", {})
+        ]
+        self.assertGreaterEqual(len(analysis_image_outputs), 2)
+        self.assertTrue(julia_cells[2].get("outputs"))
+        self.assertTrue(julia_cells[3].get("outputs"))
         self.assertTrue(python_cells[0].get("outputs"))
 
         for cell in julia_notebook["cells"]:
