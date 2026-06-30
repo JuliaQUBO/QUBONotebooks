@@ -30,6 +30,17 @@ def notebook_source(path: Path) -> str:
     return "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
 
 
+def notebook_cell_source(path: Path, marker: str) -> str:
+    notebook = json.loads(path.read_text())
+
+    for cell in notebook["cells"]:
+        source = "".join(cell.get("source", []))
+        if marker in source:
+            return source
+
+    raise AssertionError(f"Could not find notebook cell containing {marker!r}")
+
+
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):
     def test_uses_default_timeout_when_env_is_unset(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
@@ -262,6 +273,21 @@ class DWaveNotebookTests(unittest.TestCase):
         self.assertNotIn('qpu.solver.id == "DW_2000Q_6"', source)
         self.assertNotIn("dnx.chimera_graph", source)
         self.assertNotIn("dnx.pegasus_graph", source)
+
+    def test_julia_embedding_plot_overlays_embedding_on_full_topology(self) -> None:
+        source = notebook_cell_source(DWAVE_JULIA_NOTEBOOK_PATH, "function draw_embedding")
+
+        self.assertIn("nodefillc = fill", source)
+        self.assertIn("nodesize = fill", source)
+        self.assertIn("edgestrokec = fill", source)
+        self.assertIn("edgelinewidth = fill", source)
+        self.assertIn("embedded_node_set", source)
+        self.assertIn("node_color_by_node", source)
+        self.assertIn("u_color == v_color ? u_color", source)
+        self.assertIn("$(nv(graph))-qubit working graph", source)
+        self.assertIn('background_color="#ffffff"', source)
+        self.assertIn("plot_size=(18cm, 18cm)", source)
+        self.assertNotIn("graph_layout_subset", source)
 
     def test_live_dwave_outputs_are_refreshed_without_duplicate_julia_plot_formats(self) -> None:
         julia_notebook = json.loads(DWAVE_JULIA_NOTEBOOK_PATH.read_text())
