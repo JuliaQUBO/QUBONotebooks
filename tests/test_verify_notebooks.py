@@ -255,6 +255,22 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn(f"julia-version: '{expected_version}'", deploy_workflow)
         self.assertIn(f'julia_version = "{expected_version}"', notebook_manifest)
 
+    def test_sysimage_build_and_colab_kernel_use_matching_depot_path(self) -> None:
+        install_script = (REPO_ROOT / "scripts" / "install-colab-julia.sh").read_text()
+        deploy_workflow = (REPO_ROOT / ".github" / "workflows" / "deploy.yml").read_text()
+        release_notes = (REPO_ROOT / ".github" / "workflows" / "NOTES.md").read_text()
+
+        self.assertIn(
+            "JULIA_DEPOT_PATH: /content/.julia-depot:/home/runner/.julia",
+            deploy_workflow,
+        )
+        self.assertIn("sudo mkdir -p /content/.julia-depot", deploy_workflow)
+        self.assertIn('COLAB_JULIA_DEPOT="/content/.julia-depot"', install_script)
+        self.assertIn('export JULIA_DEPOT_PATH="$COLAB_JULIA_DEPOT:', install_script)
+        self.assertIn('"JULIA_DEPOT_PATH"=>ENV["JULIA_DEPOT_PATH"]', install_script)
+        self.assertIn("tar -xzf sysimage.tar.gz -C /content", release_notes)
+        self.assertIn('export JULIA_DEPOT_PATH="/content/.julia-depot:', release_notes)
+
     def test_sysimage_includes_julia_qubo_and_gama_runtime_packages(self) -> None:
         create_sysimage = (REPO_ROOT / "scripts" / "create_sysimage.jl").read_text()
         package_lines = {line.strip() for line in create_sysimage.splitlines()}

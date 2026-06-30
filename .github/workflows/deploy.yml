@@ -20,12 +20,18 @@ jobs:
     env:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      JULIA_DEPOT_PATH: /content/.julia-depot:/home/runner/.julia
+      JULIA_PKG_PRECOMPILE_AUTO: 0
     steps:
     - uses: actions/checkout@v7
     - uses: julia-actions/setup-julia@v3
       with:
         version: ${{ matrix.julia-version }}
         arch: ${{ matrix.arch }}
+    - name: Prepare Colab-compatible Julia depot
+      run: |
+        sudo mkdir -p /content/.julia-depot
+        sudo chown -R "$USER":"$USER" /content
     - name: Create Sysimage
       run: make sysimage
 

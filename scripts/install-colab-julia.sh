@@ -5,6 +5,7 @@ function install-colab-julia {
 
     JULIA_VERSION="$1" # any version ≥ 0.7.0
     JULIA_NUM_THREADS="$2"
+    COLAB_JULIA_DEPOT="/content/.julia-depot"
 
     if [ -z `which julia` ]; then
         # Install Julia
@@ -31,6 +32,10 @@ function install-colab-julia {
         # Remove Tarball
         rm /tmp/sysimage.tar.gz
 
+        # Match the depot path used to build the sysimage. PythonCall-backed
+        # packages load runtime helper files relative to their compiled paths.
+        export JULIA_DEPOT_PATH="$COLAB_JULIA_DEPOT:${JULIA_DEPOT_PATH:-$HOME/.julia}"
+
         # Install Packages & Create Kernel
         julia --project=/content -e '
             ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
@@ -51,7 +56,11 @@ function install-colab-julia {
             IJulia.installkernel(
                 "QUBO.jl Julia",
                 "--project=/content", "--sysimage=/content/sysimage.so";
-                env = Dict("JULIA_NUM_THREADS"=>"'"$JULIA_NUM_THREADS"'")
+                env = Dict(
+                    "JULIA_NUM_THREADS"=>"'"$JULIA_NUM_THREADS"'",
+                    "JULIA_DEPOT_PATH"=>ENV["JULIA_DEPOT_PATH"],
+                    "JULIA_PKG_PRECOMPILE_AUTO"=>"0",
+                )
             );
         '
 
