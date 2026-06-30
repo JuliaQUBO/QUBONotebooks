@@ -228,12 +228,18 @@ class DWaveNotebookTests(unittest.TestCase):
         source = notebook_source(DWAVE_JULIA_NOTEBOOK_PATH)
 
         self.assertIn('solver=Dict("qpu" => true)', source)
-        self.assertIn('sampler.properties["topology"]', source)
-        self.assertIn("sampler.to_networkx_graph()", source)
-        self.assertIn("pyconvert(String, sampler.solver.id)", source)
+        self.assertIn('set_optimizer_attribute(qubo_model, "return_embedding", true)', source)
+        self.assertIn("DWave.WorkingGraph(sampler)", source)
+        self.assertIn("DWave.WorkingGraph(QUBOTools.metadata(sampleset))", source)
+        self.assertIn("DWave.embedding(sampleset)", source)
+        self.assertIn("QUBOTools.layout(arch)", source)
         self.assertIn('if !haskey(ENV, "DWAVE_API_TOKEN")', source)
         self.assertIn("import Cairo, Fontconfig", source)
         self.assertIn("QUBOTools.solution(unsafe_backend(qubo_model).model)", source)
+        self.assertNotIn("networkx_edges", source)
+        self.assertNotIn("graph_from_edges", source)
+        self.assertNotIn("sampler.to_networkx_graph()", source)
+        self.assertNotIn("import PythonCall: pyconvert, pyimport", source)
         self.assertNotIn("Graphs.grpah", source)
         self.assertNotIn("DW_2000Q_6", source)
         self.assertNotIn("Advantage_system1.1", source)
@@ -264,6 +270,7 @@ class DWaveNotebookTests(unittest.TestCase):
         julia_markers = (
             "DWave.dwave_system.DWaveSampler",
             "function draw_topology",
+            "function draw_embedding",
         )
         python_markers = (
             'qpu = DWaveSampler(solver={"qpu": True})',
@@ -288,6 +295,7 @@ class DWaveNotebookTests(unittest.TestCase):
             self.assertIsNotNone(cell.get("execution_count"))
 
         self.assertTrue(julia_cells[1].get("outputs"))
+        self.assertTrue(julia_cells[2].get("outputs"))
         self.assertTrue(python_cells[0].get("outputs"))
 
         for cell in julia_notebook["cells"]:
