@@ -294,12 +294,28 @@ class DWaveNotebookTests(unittest.TestCase):
         self.assertNotIn("nodefillc = fill", source)
         self.assertNotIn("gplot(", source)
 
+    def test_julia_quantum_annealer_output_analysis_matches_python_views(self) -> None:
+        julia_source = notebook_cell_source(DWAVE_JULIA_NOTEBOOK_PATH, "qpu_solution = QUBOTools.solution")
+        python_source = notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "plot_enumerate(DWaveSamples")
+
+        self.assertIn("QUBOTools.solution(unsafe_backend(qubo_model).model)", julia_source)
+        self.assertIn("QUBOTools.EnergyDistributionPlot(qpu_solution)", julia_source)
+        self.assertIn("QUBOTools.EnergyFrequencyPlot(qpu_solution)", julia_source)
+        self.assertIn("display(plot(QUBOTools.EnergyDistributionPlot", julia_source)
+        self.assertLess(
+            julia_source.index("QUBOTools.EnergyDistributionPlot(qpu_solution)"),
+            julia_source.index("QUBOTools.EnergyFrequencyPlot(qpu_solution)"),
+        )
+        self.assertIn("plot_enumerate(DWaveSamples", python_source)
+        self.assertIn("plot_energies(DWaveSamples", python_source)
+
     def test_live_dwave_outputs_are_refreshed_without_duplicate_julia_plot_formats(self) -> None:
         julia_notebook = json.loads(DWAVE_JULIA_NOTEBOOK_PATH.read_text())
         python_notebook = json.loads(DWAVE_PYTHON_NOTEBOOK_PATH.read_text())
 
         julia_markers = (
             "DWave.dwave_system.DWaveSampler",
+            "qpu_solution = QUBOTools.solution",
             "function draw_topology",
             "function draw_embedding",
         )
@@ -325,8 +341,14 @@ class DWaveNotebookTests(unittest.TestCase):
         for cell in julia_cells + python_cells:
             self.assertIsNotNone(cell.get("execution_count"))
 
-        self.assertTrue(julia_cells[1].get("outputs"))
+        analysis_image_outputs = [
+            output
+            for output in julia_cells[1].get("outputs", [])
+            if "image/png" in output.get("data", {})
+        ]
+        self.assertGreaterEqual(len(analysis_image_outputs), 2)
         self.assertTrue(julia_cells[2].get("outputs"))
+        self.assertTrue(julia_cells[3].get("outputs"))
         self.assertTrue(python_cells[0].get("outputs"))
 
         for cell in julia_notebook["cells"]:
