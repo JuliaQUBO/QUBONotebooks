@@ -1,11 +1,10 @@
-.PHONY: test sysimage test-python test-julia verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-dwave-python verify-benchmarking-python
+.PHONY: test sysimage test-python test-julia verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python
 
 PYTHON ?= python3
 UV ?= uv
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
 UV_GROUP_FLAGS ?= --group docs --group qubo
 PORTABLE_UV_GROUP_FLAGS ?= --group docs --group qubo
-DWAVE_UV_GROUP_FLAGS ?= --group docs --group qubo --group dwave
 BENCHMARKING_UV_GROUP_FLAGS ?= --group docs --group qubo
 JULIA ?= julia
 JULIA_DEPOT_PATH ?= $(CURDIR)/.julia-depot:$(HOME)/.julia
@@ -51,9 +50,6 @@ verify-qubo-python:
 
 verify-gama-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(GAMA_PYTHON_NOTEBOOK)"
-
-verify-dwave-python:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(DWAVE_UV_GROUP_FLAGS)" NOTEBOOKS="$(DWAVE_PYTHON_NOTEBOOK)"
 
 verify-benchmarking-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(BENCHMARKING_UV_GROUP_FLAGS)" NOTEBOOKS="$(BENCHMARKING_PYTHON_NOTEBOOK)"
