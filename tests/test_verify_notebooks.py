@@ -231,13 +231,21 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn("verify-python-portable:", makefile)
         self.assertIn("verify-qubo-python:", makefile)
         self.assertIn("verify-gama-python:", makefile)
-        self.assertIn("verify-dwave-python:", makefile)
         self.assertIn("verify-benchmarking-python:", makefile)
         self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
         self.assertIn("./scripts/verify_notebooks.py", makefile)
         self.assertIn("--project=./notebooks_jl", makefile)
         self.assertIn("$(UV) sync --locked", makefile)
         self.assertIn("$(UV) run --locked", makefile)
+
+    def test_locked_python_environment_excludes_unpatched_diskcache_path(self) -> None:
+        pyproject = (REPO_ROOT / "pyproject.toml").read_text()
+        lock = (REPO_ROOT / "uv.lock").read_text()
+
+        self.assertNotIn("dwave-ocean-sdk", pyproject)
+        self.assertNotIn("dwave-ocean-sdk", lock)
+        self.assertNotIn('name = "diskcache"', lock)
+        self.assertIn("GHSA-w8v5-vhqr-4h9v", (REPO_ROOT / "README.md").read_text())
 
     def test_sysimage_scripts_use_current_julia_notebook_project(self) -> None:
         create_sysimage = (REPO_ROOT / "scripts" / "create_sysimage.jl").read_text()
