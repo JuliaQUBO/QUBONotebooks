@@ -120,16 +120,24 @@ class BenchmarkingNotebookScopeTests(unittest.TestCase):
         self.assertIn(definition, source)
         self.assertLess(source.index(definition), source.index(first_use))
 
-    def test_julia_min_median_index_is_global_before_loop_assignment(self) -> None:
+    def test_julia_min_median_index_is_computed_without_global_scope_escape(self) -> None:
         source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
 
-        definition = "min_median_index = 1"
-        loop_assignment = "min_median_tts_val, min_median_index = findmin"
+        helper_definition = (
+            "function min_median_ttt(all_results, instances, boot, schedule)"
+        )
+        summary_lookup = "primary_median_summary = median_summary_by_schedule[primary_schedule]"
+        definition = "min_median_index = primary_median_summary.min_median_index"
         later_use = "min_median_sweep = sweeps[min_median_index]"
 
-        self.assertIn("global min_median_index", source)
-        self.assertLess(source.index(definition), source.index(loop_assignment))
-        self.assertLess(source.index(definition), source.index(later_use))
+        self.assertIn(helper_definition, source)
+        self.assertIn(summary_lookup, source)
+        self.assertIn(definition, source)
+        self.assertNotIn("global min_median_index", source)
+        self.assertNotIn("min_median_index = 1", source)
+        self.assertLess(source.index(helper_definition), source.index(summary_lookup))
+        self.assertLess(source.index(summary_lookup), source.index(definition))
+        self.assertLess(source.index(definition), source.index(later_use, source.index(definition)))
 
 
 class QUBOJuliaNotebookTests(unittest.TestCase):
