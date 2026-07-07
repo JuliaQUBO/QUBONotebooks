@@ -17,6 +17,7 @@ GAMA_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb"
 GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
 DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
 DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
+BENCHMARKING_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb"
 JULIA_COLAB_NOTEBOOK_PATHS = (
     REPO_ROOT / "notebooks_jl" / "1-MathProg.ipynb",
     REPO_ROOT / "notebooks_jl" / "2-QUBO.ipynb",
@@ -77,6 +78,31 @@ class NotebookSourceSafetyTests(unittest.TestCase):
         ]
 
         self.assertEqual([], offenders)
+
+
+class BenchmarkingNotebookArchiveTests(unittest.TestCase):
+    def test_raw_results_zip_is_extracted_with_zipfile(self) -> None:
+        source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "use_raw_data")
+
+        self.assertIn("ZipFile.Reader(zip_name)", source)
+        self.assertIn("for f in zr.files", source)
+        self.assertIn("relpath(file_path, destination)", source)
+        self.assertIn("Refusing to extract", source)
+        self.assertIn("write(file_path, read(f))", source)
+        self.assertNotIn("gzip", source)
+        self.assertNotIn("run(`", source)
+
+    def test_results_archive_is_written_with_zipfile(self) -> None:
+        source = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "# zip the results folder",
+        )
+
+        self.assertIn('joinpath(pickle_path, "results.zip")', source)
+        self.assertIn("ZipFile.Writer(zip_name)", source)
+        self.assertIn("ZipFile.addfile(w, file_name)", source)
+        self.assertIn("write(f, read(file_path))", source)
+        self.assertNotIn("zip(pickle_path", source)
 
 
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):
