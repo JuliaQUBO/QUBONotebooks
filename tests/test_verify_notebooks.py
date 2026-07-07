@@ -105,6 +105,41 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         self.assertNotIn("zip(pickle_path", source)
 
 
+class QUBOJuliaNotebookTests(unittest.TestCase):
+    def test_ising_ilp_objective_keeps_linear_and_quadratic_terms_separate(self) -> None:
+        source = notebook_cell_source(QUBO_JULIA_NOTEBOOK_PATH, "ising_ilp_model = Model()")
+
+        self.assertIn("@variable(ising_ilp_model, x[1:n], Bin)", source)
+        self.assertIn("@variable(ising_ilp_model, y[1:n, 1:n], Bin)", source)
+        self.assertIn("sum(L[i] * x[i] for i in 1:n)", source)
+        self.assertIn("sum(Q[i,j] * y[i,j] for i in 1:n, j in 1:n if i != j)", source)
+        self.assertNotIn("i == j ? x[i] : y[i,j]", source)
+
+    def test_ising_ilp_solution_is_checked_against_exact_sampler(self) -> None:
+        source = notebook_cell_source(QUBO_JULIA_NOTEBOOK_PATH, "ising_ilp_x = round")
+
+        self.assertIn("ising_ilp_s = 2 .* ising_ilp_x .- 1", source)
+        self.assertIn("@assert ising_ilp_s == ising_s", source)
+        self.assertIn(
+            "@assert isapprox(objective_value(ising_ilp_model), objective_value(ising_model); atol = 1e-6)",
+            source,
+        )
+
+    def test_ising_ilp_markdown_documents_substitution_and_correct_result(self) -> None:
+        substitution = notebook_cell_source(
+            QUBO_JULIA_NOTEBOOK_PATH,
+            "Before rebuilding the Ising model as a binary ILP",
+        )
+        result = notebook_cell_source(QUBO_JULIA_NOTEBOOK_PATH, "The corrected ILP solution")
+
+        self.assertIn("$s = 2x - 1$", substitution)
+        self.assertIn("linear vector $L$", substitution)
+        self.assertIn("strictly off-diagonal quadratic matrix $Q$", substitution)
+        self.assertIn("$x = [0,0,0,0,0,0,0,0,1,0,0]$", result)
+        self.assertIn("$s = [-1,-1,-1,-1,-1,-1,-1,-1,+1,-1,-1]$", result)
+        self.assertIn("objective value $5.0$", result)
+
+
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):
     def test_uses_default_timeout_when_env_is_unset(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
