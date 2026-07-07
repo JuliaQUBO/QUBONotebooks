@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
 QUBO_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "2-QUBO.ipynb"
+QUBO_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "2-QUBO_python.ipynb"
 GAMA_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb"
 GAMA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "3-GAMA_python.ipynb"
 DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
@@ -247,6 +248,15 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertNotIn('name = "diskcache"', lock)
         self.assertIn("GHSA-w8v5-vhqr-4h9v", (REPO_ROOT / "README.md").read_text())
 
+    def test_qubo_dependency_group_includes_notebook_runtime_packages(self) -> None:
+        pyproject = (REPO_ROOT / "pyproject.toml").read_text()
+        qubo_group = pyproject[
+            pyproject.index("qubo = [") : pyproject.index("\n]\n\n[tool.uv]")
+        ]
+
+        self.assertIn('"dimod>=0.12,<1"', qubo_group)
+        self.assertIn('"dwave-neal>=0.6,<1"', qubo_group)
+
     def test_sysimage_scripts_use_current_julia_notebook_project(self) -> None:
         create_sysimage = (REPO_ROOT / "scripts" / "create_sysimage.jl").read_text()
         prepare_release = (REPO_ROOT / "scripts" / "prepare_release.jl").read_text()
@@ -325,6 +335,26 @@ class JuliaColabSetupTests(unittest.TestCase):
                 self.assertTrue(activate_indexes)
                 self.assertLess(install_indexes[0], min(activate_indexes))
                 self.assertIn("precompiled QUBONotebooks sysimage", cells[install_indexes[0] - 1])
+
+
+class PythonNotebookDependencySetupTests(unittest.TestCase):
+    def test_qubo_colab_install_includes_scipy_before_imports(self) -> None:
+        cells = notebook_cell_sources(QUBO_NOTEBOOK_PATH)
+        install_cell = notebook_cell_source(QUBO_NOTEBOOK_PATH, "!pip install -q pyomo")
+        import_cell = notebook_cell_source(QUBO_NOTEBOOK_PATH, "from scipy.special import gamma")
+
+        self.assertIn("!pip install dimod scipy", install_cell)
+        self.assertLess(cells.index(install_cell), cells.index(import_cell))
+
+    def test_gama_installs_missing_dimod_and_neal_outside_colab(self) -> None:
+        install_cell = notebook_cell_source(GAMA_NOTEBOOK_PATH, "subprocess.check_call")
+
+        self.assertIn("try:\n    import dimod\n    import neal", install_cell)
+        self.assertIn(
+            '[sys.executable, "-m", "pip", "install", "dimod", "dwave-neal"]',
+            install_cell,
+        )
+        self.assertNotIn("if IN_COLAB", install_cell)
 
 
 class GamaNotebookTests(unittest.TestCase):
