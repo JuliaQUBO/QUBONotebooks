@@ -404,17 +404,24 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
     def test_mathprog_pins_stable_idaes_and_guards_solver_use(self) -> None:
         source = notebook_source(MATHPROG_NOTEBOOK_PATH)
         install_cell = notebook_cell_source(MATHPROG_NOTEBOOK_PATH, "idaes-pse==2.12.0")
+        ipopt_cell = notebook_cell_source(MATHPROG_NOTEBOOK_PATH, "configure IPOPT")
         bonmin_cell = notebook_cell_source(MATHPROG_NOTEBOOK_PATH, "# Define the solver BONMIN")
         couenne_cell = notebook_cell_source(MATHPROG_NOTEBOOK_PATH, "# Define the solver COUENNE")
 
         self.assertNotIn("idaes-pse --pre", source)
         self.assertNotIn(".available()", source)
+        self.assertNotIn("Re-run the IDAES install cell", source)
         self.assertIn("!pip install idaes-pse==2.12.0", install_cell)
+        self.assertIn("Install IDAES solver extensions", install_cell)
         self.assertIn("for solver_name in ['ipopt', 'bonmin', 'couenne']:", install_cell)
+        self.assertIn("Check the install output above", install_cell)
         self.assertIn("solver.available(exception_flag=False)", install_cell)
         self.assertIn("opt_ipopt.available(exception_flag=False)", install_cell)
+        self.assertIn("IDAES solver setup cell", ipopt_cell)
         self.assertIn("opt_bonmin.available(exception_flag=False)", bonmin_cell)
+        self.assertIn("IDAES solver setup cell", bonmin_cell)
         self.assertIn("opt_couenne.available(exception_flag=False)", couenne_cell)
+        self.assertIn("IDAES solver setup cell", couenne_cell)
 
     def test_qci_pins_stable_idaes_and_guards_solver_use(self) -> None:
         source = notebook_source(QCI_NOTEBOOK_PATH)
@@ -425,12 +432,18 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
 
         self.assertNotIn("idaes-pse --pre", source)
         self.assertNotIn(".available()", source)
+        self.assertNotIn("Re-run the IDAES install cell", source)
         self.assertIn("!pip install idaes-pse==2.12.0", install_cell)
+        self.assertIn("Install IDAES solver extensions", install_cell)
         self.assertIn("for solver_name in ['ipopt', 'bonmin', 'cbc']:", install_cell)
+        self.assertIn("Check the install output above", install_cell)
         self.assertIn("solver.available(exception_flag=False)", install_cell)
         self.assertIn("IPOPT not found", ipopt_cell)
+        self.assertIn("IDAES solver setup cell", ipopt_cell)
         self.assertIn("BONMIN not found", bonmin_cell)
+        self.assertIn("IDAES solver setup cell", bonmin_cell)
         self.assertIn("CBC not found", cbc_cell)
+        self.assertIn("IDAES solver setup cell", cbc_cell)
 
     def test_qubo_colab_install_includes_scipy_before_imports(self) -> None:
         cells = notebook_cell_sources(QUBO_NOTEBOOK_PATH)
