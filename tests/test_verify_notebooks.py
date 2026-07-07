@@ -86,6 +86,16 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
 
 class BenchmarkingNotebookArchiveTests(unittest.TestCase):
+    def test_python_results_zip_uses_local_cache_path(self) -> None:
+        source = notebook_cell_source(BENCHMARKING_PYTHON_NOTEBOOK_PATH, "bundled_zip")
+
+        self.assertIn("pickle_path = current_path / 'results'", source)
+        self.assertIn("zip_name = pickle_path / 'results.zip'", source)
+        self.assertIn("bundled_zip = current_path / 'results.zip'", source)
+        self.assertIn("shutil.copyfile(bundled_zip, zip_name)", source)
+        self.assertIn("urlretrieve(", source)
+        self.assertNotIn("/content/results/results.zip", source)
+
     def test_raw_results_zip_is_extracted_with_zipfile(self) -> None:
         source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "use_raw_data")
 
@@ -108,6 +118,66 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         self.assertIn("ZipFile.addfile(w, file_name)", source)
         self.assertIn("write(f, read(file_path))", source)
         self.assertNotIn("zip(pickle_path", source)
+
+    def test_julia_solution_cache_uses_current_bqpjson_format(self) -> None:
+        source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
+
+        self.assertIn("QUBOTools.Format{:bqpjson}", source)
+        self.assertIn("fmt[:version]", source)
+        self.assertNotIn("QUBOTools.BQPJSON", source)
+        self.assertNotIn("fmt.version", source)
+
+    def test_julia_solution_cache_reuses_json_solution_files(self) -> None:
+        source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
+
+        self.assertIn(
+            '"solutions_$(total_reads)_$(sweep)_$(schedule).json"',
+            source,
+        )
+        self.assertIn("if isfile(solution_name) && !overwrite_pickles", source)
+        self.assertIn("if isfile(sol_filename) && !overwrite_pickles", source)
+        self.assertIn("QUBOTools.read_solution(solution_name)", source)
+        self.assertIn("QUBOTools.read_solution(sol_filename)", source)
+        self.assertNotIn('"$(instance)_$(schedule)_$(sweep).p"', source)
+
+    def test_julia_solution_cache_round_trips_sampleset_metadata(self) -> None:
+        reader = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "function QUBOTools.read_solution",
+        )
+        writer = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "function QUBOTools.write_solution",
+        )
+
+        self.assertIn("QUBOTools.Sample{Float64, Int}[]", reader)
+        self.assertIn("QUBOTools.SampleSet{Float64, Int}", reader)
+        self.assertIn("metadata = metadata", reader)
+        self.assertIn("domain = :spin", reader)
+        self.assertIn("metadata = QUBOTools.metadata(sol)", writer)
+        self.assertIn('"metadata"        => metadata', writer)
+        self.assertNotIn("Fallback", reader + writer)
+        self.assertNotIn("cite_start", reader + writer)
+        self.assertNotIn("Try using", reader + writer)
+
+    def test_julia_multi_instance_results_cache_restores_key_types(self) -> None:
+        source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "restore_all_results")
+
+        self.assertIn("if isfile(all_results_name) && !use_raw_data", source)
+        self.assertIn("restore_all_results(JSON.parsefile(all_results_name))", source)
+        self.assertIn("parse(Int, string(k)) => restore_instance_results(v)", source)
+        self.assertIn(":ttt => restore_boot_schedule_dict", source)
+        self.assertIn(":min_energy => restore_schedule_dict", source)
+
+    def test_julia_results_zip_skips_zip32_overflow(self) -> None:
+        source = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "archive_size_limit = typemax(UInt32)",
+        )
+
+        self.assertIn("archive_size_bytes > archive_size_limit", source)
+        self.assertIn("Skipping results.zip archive", source)
+        self.assertIn("ZIP64", source)
 
 
 class BenchmarkingNotebookScopeTests(unittest.TestCase):
