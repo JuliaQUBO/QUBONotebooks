@@ -408,12 +408,13 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         couenne_cell = notebook_cell_source(MATHPROG_NOTEBOOK_PATH, "# Define the solver COUENNE")
 
         self.assertNotIn("idaes-pse --pre", source)
+        self.assertNotIn(".available()", source)
         self.assertIn("!pip install idaes-pse==2.12.0", install_cell)
         self.assertIn("for solver_name in ['ipopt', 'bonmin', 'couenne']:", install_cell)
-        self.assertIn("solver.available()", install_cell)
-        self.assertIn("opt_ipopt.available()", install_cell)
-        self.assertIn("opt_bonmin.available()", bonmin_cell)
-        self.assertIn("opt_couenne.available()", couenne_cell)
+        self.assertIn("solver.available(exception_flag=False)", install_cell)
+        self.assertIn("opt_ipopt.available(exception_flag=False)", install_cell)
+        self.assertIn("opt_bonmin.available(exception_flag=False)", bonmin_cell)
+        self.assertIn("opt_couenne.available(exception_flag=False)", couenne_cell)
 
     def test_qci_pins_stable_idaes_and_guards_solver_use(self) -> None:
         source = notebook_source(QCI_NOTEBOOK_PATH)
@@ -423,9 +424,10 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         cbc_cell = notebook_cell_source(QCI_NOTEBOOK_PATH, "Constrained_Linear_Integer_Program")
 
         self.assertNotIn("idaes-pse --pre", source)
+        self.assertNotIn(".available()", source)
         self.assertIn("!pip install idaes-pse==2.12.0", install_cell)
         self.assertIn("for solver_name in ['ipopt', 'bonmin', 'cbc']:", install_cell)
-        self.assertIn("solver.available()", install_cell)
+        self.assertIn("solver.available(exception_flag=False)", install_cell)
         self.assertIn("IPOPT not found", ipopt_cell)
         self.assertIn("BONMIN not found", bonmin_cell)
         self.assertIn("CBC not found", cbc_cell)
