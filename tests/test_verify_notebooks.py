@@ -20,6 +20,9 @@ DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
 MATHPROG_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "1-MathProg_python.ipynb"
 QCI_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "6-QCi_python.ipynb"
 BENCHMARKING_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb"
+BENCHMARKING_PYTHON_NOTEBOOK_PATH = (
+    REPO_ROOT / "notebooks_py" / "5-Benchmarking_python.ipynb"
+)
 JULIA_COLAB_NOTEBOOK_PATHS = (
     REPO_ROOT / "notebooks_jl" / "1-MathProg.ipynb",
     REPO_ROOT / "notebooks_jl" / "2-QUBO.ipynb",
@@ -105,6 +108,28 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         self.assertIn("ZipFile.addfile(w, file_name)", source)
         self.assertIn("write(f, read(file_path))", source)
         self.assertNotIn("zip(pickle_path", source)
+
+
+class BenchmarkingNotebookScopeTests(unittest.TestCase):
+    def test_python_min_sweep_is_defined_before_first_use(self) -> None:
+        source = notebook_source(BENCHMARKING_PYTHON_NOTEBOOK_PATH)
+
+        definition = "min_sweep = sweeps[int(np.nanargmin(tts_for_min_sweep))]"
+        first_use = "num=min_sweep"
+
+        self.assertIn(definition, source)
+        self.assertLess(source.index(definition), source.index(first_use))
+
+    def test_julia_min_median_index_is_global_before_loop_assignment(self) -> None:
+        source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
+
+        definition = "min_median_index = 1"
+        loop_assignment = "min_median_tts_val, min_median_index = findmin"
+        later_use = "min_median_sweep = sweeps[min_median_index]"
+
+        self.assertIn("global min_median_index", source)
+        self.assertLess(source.index(definition), source.index(loop_assignment))
+        self.assertLess(source.index(definition), source.index(later_use))
 
 
 class QUBOJuliaNotebookTests(unittest.TestCase):
