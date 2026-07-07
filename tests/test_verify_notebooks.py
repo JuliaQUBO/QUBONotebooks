@@ -140,6 +140,16 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         self.assertIn("QUBOTools.read_solution(sol_filename)", source)
         self.assertNotIn('"$(instance)_$(schedule)_$(sweep).p"', source)
 
+    def test_julia_solution_cache_documents_filename_schemes(self) -> None:
+        source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
+
+        self.assertIn("Single-instance cache: the key includes total_reads", source)
+        self.assertIn("Reuse the single-instance cache from the sweep study above", source)
+        self.assertIn("Per-instance cache: the key includes instance", source)
+        self.assertIn("Per-instance sweep cache for ensemble timing", source)
+        self.assertIn("Benchmark-instance cache: this key includes instance", source)
+        self.assertIn("Per-instance approx-ratio cache", source)
+
     def test_julia_solution_cache_round_trips_sampleset_metadata(self) -> None:
         reader = notebook_cell_source(
             BENCHMARKING_JULIA_NOTEBOOK_PATH,
