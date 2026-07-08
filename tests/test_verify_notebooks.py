@@ -699,6 +699,34 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertIn("CBC not found", cbc_cell)
         self.assertIn("IDAES solver setup cell", cbc_cell)
 
+    def test_qci_constrained_polynomial_model_solves_wrapped_model(self) -> None:
+        source = notebook_source(QCI_NOTEBOOK_PATH)
+        model_cell = notebook_cell_source(
+            QCI_NOTEBOOK_PATH, "constraint_model = ScalarConstrainedPolynomialModel"
+        )
+        result_cell = notebook_cell_source(QCI_NOTEBOOK_PATH, "best_objective_value")
+
+        self.assertIn("from eqc_models.base.operators import Polynomial", source)
+        self.assertIn(
+            "class ScalarConstrainedPolynomialModel(ConstrainedPolynomialModel)",
+            source,
+        )
+        self.assertIn("return float(np.asarray(value).reshape(-1)[0])", source)
+        self.assertIn(
+            "ConstrainedPolynomialModel wraps the QUBO with explicit constraints",
+            model_cell,
+        )
+        self.assertIn(
+            "constraint_model = ScalarConstrainedPolynomialModel",
+            model_cell,
+        )
+        self.assertIn("response = solver.solve(constraint_model", model_cell)
+        self.assertNotIn("response = solver.solve(model", model_cell)
+        self.assertIn(
+            "constraint_model.offset * constraint_model.penalty_multiplier",
+            result_cell,
+        )
+
     def test_qubo_colab_install_includes_scipy_before_imports(self) -> None:
         cells = notebook_cell_sources(QUBO_NOTEBOOK_PATH)
         install_cell = notebook_cell_source(QUBO_NOTEBOOK_PATH, "!pip install -q pyomo")
