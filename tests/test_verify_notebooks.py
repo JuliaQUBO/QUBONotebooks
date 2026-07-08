@@ -70,6 +70,15 @@ def notebook_cell_source(path: Path, marker: str) -> str:
     raise AssertionError(f"Could not find notebook cell containing {marker!r}")
 
 
+def notebook_function_source(path: Path, function_name: str) -> str:
+    cell_source = notebook_cell_source(path, f"def {function_name}(")
+    function_start = cell_source.index(f"def {function_name}(")
+    next_function = cell_source.find("\ndef ", function_start + 1)
+    if next_function == -1:
+        return cell_source[function_start:]
+    return cell_source[function_start:next_function]
+
+
 def notebook_cell_sources(path: Path) -> list[str]:
     notebook = json.loads(path.read_text())
     return ["".join(cell.get("source", [])) for cell in notebook["cells"]]
@@ -88,6 +97,31 @@ class NotebookSourceSafetyTests(unittest.TestCase):
         ]
 
         self.assertEqual([], offenders)
+
+
+class PythonPlotSamplesNotebookTests(unittest.TestCase):
+    def assert_plot_samples_uses_initialized_energies(self, path: Path) -> None:
+        cell_source = notebook_cell_source(path, "def plot_samples")
+        function_source = notebook_function_source(path, "plot_samples")
+
+        self.assertNotIn("results.vartype == 'Vartype.BINARY'", cell_source)
+        self.assertIn("results.vartype == dimod.BINARY", cell_source)
+        self.assertIn(
+            "energies = [datum.energy for datum in results.data(",
+            function_source,
+        )
+        self.assertLess(
+            function_source.index("energies = [datum.energy"),
+            function_source.index("if results.vartype"),
+        )
+
+    def test_qubo_python_plot_samples_uses_initialized_energies(self) -> None:
+        self.assert_plot_samples_uses_initialized_energies(QUBO_NOTEBOOK_PATH)
+
+    def test_benchmarking_python_plot_samples_uses_initialized_energies(self) -> None:
+        self.assert_plot_samples_uses_initialized_energies(
+            BENCHMARKING_PYTHON_NOTEBOOK_PATH
+        )
 
 
 class BenchmarkingNotebookArchiveTests(unittest.TestCase):
