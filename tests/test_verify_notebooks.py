@@ -848,6 +848,7 @@ class DWaveNotebookTests(unittest.TestCase):
         source = notebook_source(DWAVE_PYTHON_NOTEBOOK_PATH)
 
         self.assertIn('DWaveSampler(token=api_token, solver={"qpu": True})', source)
+        self.assertIn('DWaveSampler(solver={"qpu": True})', source)
         self.assertIn('qpu.properties["topology"]', source)
         self.assertIn("qpu.to_networkx_graph()", source)
         self.assertIn("EmbeddingComposite(qpu)", source)
@@ -871,9 +872,11 @@ class DWaveNotebookTests(unittest.TestCase):
 
         self.assertIn('userdata.get("DWAVE_API_TOKEN")', python_source)
         self.assertIn('api_token = os.environ.get("DWAVE_API_TOKEN", "")', python_source)
+        self.assertIn('os.environ["DWAVE_API_TOKEN"] = api_token', python_source)
+        self.assertIn("!dwave ping", python_source)
+        self.assertIn("Skipping `dwave ping` because DWAVE_API_TOKEN is not set", python_source)
         self.assertIn("DWavesampler = neal.SimulatedAnnealingSampler()", python_source)
         self.assertNotIn("!dwave setup", python_source)
-        self.assertNotIn("!dwave ping", python_source)
 
         self.assertIn('api_token = get(ENV, "DWAVE_API_TOKEN", "")', julia_source)
         self.assertIn("DWave.Neal.Optimizer", julia_source)
