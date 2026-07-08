@@ -219,9 +219,16 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         self.assertIn("function export_all_results(raw)", source)
         self.assertIn('"tts"           => export_schedule_boot_dict(raw[:ttt])', source)
         self.assertIn('"ttsci"         => export_schedule_boot_dict(raw[:tttci])', source)
-        self.assertIn(':ttt => restore_metric_dict(metric_raw(raw, "ttt", "tts"))', source)
         self.assertIn(
-            ':tttci => restore_metric_dict(metric_raw(raw, "tttci", "ttsci"))',
+            ':ttt => restore_metric_dict(metric_raw(raw, "ttt", "tts"), default_sweep_count)',
+            source,
+        )
+        self.assertIn(
+            ':tttci => restore_metric_dict(metric_raw(raw, "tttci", "ttsci"), default_sweep_count)',
+            source,
+        )
+        self.assertIn(
+            "restore_all_results(JSON.parsefile(all_results_name), default_sweeps)",
             source,
         )
         self.assertIn("JSON.print(io, export_all_results(all_results))", source)
@@ -281,17 +288,36 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "restore_all_results")
 
         self.assertIn("if isfile(all_results_name) && !use_raw_data", source)
-        self.assertIn("restore_all_results(JSON.parsefile(all_results_name))", source)
-        self.assertIn("parse(Int, string(k)) => restore_instance_results(v)", source)
-        self.assertIn("function has_numeric_keys(raw)", source)
-        self.assertIn("function unwrap_default_sweep(raw)", source)
-        self.assertIn("function restore_schedule_boot_dict(raw)", source)
-        self.assertIn(":ttt => restore_metric_dict(metric_raw(raw, \"ttt\", \"tts\"))", source)
         self.assertIn(
-            ":tttci => restore_metric_dict(metric_raw(raw, \"tttci\", \"ttsci\"))",
+            "restore_all_results(JSON.parsefile(all_results_name), default_sweeps)",
             source,
         )
-        self.assertIn(":min_energy => restore_schedule_dict", source)
+        self.assertIn(
+            "parse(Int, string(k)) => restore_instance_results(v, default_sweep_count)",
+            source,
+        )
+        self.assertIn("function has_numeric_keys(raw)", source)
+        self.assertIn(
+            "function unwrap_default_sweep(raw, default_sweep_count)",
+            source,
+        )
+        self.assertIn("string(default_sweep_count)", source)
+        self.assertIn(
+            "function restore_schedule_boot_dict(raw, default_sweep_count)",
+            source,
+        )
+        self.assertIn(
+            ":ttt => restore_metric_dict(metric_raw(raw, \"ttt\", \"tts\"), default_sweep_count)",
+            source,
+        )
+        self.assertIn(
+            ":tttci => restore_metric_dict(metric_raw(raw, \"tttci\", \"ttsci\"), default_sweep_count)",
+            source,
+        )
+        self.assertIn(
+            ":min_energy => restore_schedule_dict(raw[\"min_energy\"], default_sweep_count)",
+            source,
+        )
 
     def test_julia_results_zip_skips_zip32_overflow(self) -> None:
         source = notebook_cell_source(
