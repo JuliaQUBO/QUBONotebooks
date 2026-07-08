@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -22,6 +23,10 @@ QCI_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "6-QCi_python.ipynb"
 BENCHMARKING_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb"
 BENCHMARKING_PYTHON_NOTEBOOK_PATH = (
     REPO_ROOT / "notebooks_py" / "5-Benchmarking_python.ipynb"
+)
+BENCHMARKING_RESULTS_ARCHIVES = (
+    REPO_ROOT / "notebooks_py" / "results.zip",
+    REPO_ROOT / "notebooks_jl" / "results.zip",
 )
 JULIA_COLAB_NOTEBOOK_PATHS = (
     REPO_ROOT / "notebooks_jl" / "1-MathProg.ipynb",
@@ -115,14 +120,111 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
     def test_results_archive_is_written_with_zipfile(self) -> None:
         source = notebook_cell_source(
             BENCHMARKING_JULIA_NOTEBOOK_PATH,
-            "# zip the results folder",
+            "# zip the processed benchmark summaries",
         )
 
         self.assertIn('joinpath(pickle_path, "results.zip")', source)
+        self.assertIn("processed_result_file_names", source)
+        self.assertIn('file_name == "all_results.json"', source)
+        self.assertIn('startswith(file_name, "results_")', source)
+        self.assertIn('endswith(file_name, ".json")', source)
         self.assertIn("ZipFile.Writer(zip_name)", source)
         self.assertIn("ZipFile.addfile(w, file_name)", source)
         self.assertIn("write(f, read(file_path))", source)
+        self.assertNotIn("solutions_", source)
         self.assertNotIn("zip(pickle_path", source)
+
+    def test_committed_results_archives_use_shared_json_cache(self) -> None:
+        expected_names = ["all_results.json", "results_42.json"]
+
+        for archive_path in BENCHMARKING_RESULTS_ARCHIVES:
+            with self.subTest(archive=archive_path.relative_to(REPO_ROOT).as_posix()):
+                self.assertTrue(archive_path.is_file())
+
+                with zipfile.ZipFile(archive_path) as archive:
+                    self.assertEqual(expected_names, sorted(archive.namelist()))
+                    all_results = json.loads(archive.read("all_results.json"))
+                    single_results = json.loads(archive.read("results_42.json"))
+
+                self.assertIn("tts", single_results)
+                self.assertIn("ttsci", single_results)
+                self.assertNotIn("ttt", single_results)
+                self.assertNotIn("tttci", single_results)
+
+                first_instance = all_results[sorted(all_results, key=int)[0]]
+                self.assertIn("tts", first_instance)
+                self.assertIn("ttsci", first_instance)
+                self.assertNotIn("ttt", first_instance)
+                self.assertNotIn("tttci", first_instance)
+
+    def test_python_processed_results_cache_uses_shared_json_schema(self) -> None:
+        source = notebook_source(BENCHMARKING_PYTHON_NOTEBOOK_PATH)
+
+        self.assertIn("import json", source)
+        self.assertIn("def benchmark_cache_to_json(value):", source)
+        self.assertIn("def benchmark_cache_from_json(value):", source)
+        self.assertIn("return 'Infinity' if value > 0 else '-Infinity'", source)
+        self.assertIn("return np.inf", source)
+        self.assertIn("def normalize_single_results_cache(results):", source)
+        self.assertIn("results['tts'] = results.pop('ttt')", source)
+        self.assertIn("def boot_schedule_to_schedule_boot(boot_schedule):", source)
+        self.assertIn(
+            "def load_benchmark_cache(path, layout, default_sweep_count=None):",
+            source,
+        )
+        self.assertIn(
+            "raise ValueError('default_sweep_count is required for all-results caches')",
+            source,
+        )
+        self.assertIn(
+            "json.dump(benchmark_cache_to_json(data), file, allow_nan=False)",
+            source,
+        )
+        self.assertIn(
+            'results_json_name = "results_" + str(instance) + ".json"',
+            source,
+        )
+        self.assertIn(
+            "loaded_results = load_benchmark_cache(results_json_name, layout='single')",
+            source,
+        )
+        self.assertIn("save_benchmark_cache(results_json_name, loaded_results)", source)
+        self.assertIn(
+            'all_results_json_name = os.path.join(pickle_path, "all_results.json")',
+            source,
+        )
+        self.assertIn(
+            "loaded_all_results = load_benchmark_cache(all_results_json_name, layout='all', default_sweep_count=default_sweeps)",
+            source,
+        )
+        self.assertIn(
+            "loaded_all_results = normalize_all_results_cache(pickle.load(open(all_results_name, \"rb\")), default_sweeps)",
+            source,
+        )
+        self.assertIn("save_benchmark_cache(all_results_json_name, all_results)", source)
+
+    def test_julia_processed_results_cache_uses_python_compatible_json_schema(
+        self,
+    ) -> None:
+        source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
+
+        self.assertIn("function benchmark_cache_to_json(value)", source)
+        self.assertIn("return \"Infinity\"", source)
+        self.assertIn("return Inf", source)
+        self.assertIn("function export_summary_results(raw)", source)
+        self.assertIn('"tts"           => benchmark_cache_to_json(raw[:ttt])', source)
+        self.assertIn('"ttsci"         => benchmark_cache_to_json(raw[:tttci])', source)
+        self.assertIn("JSON.print(io, export_summary_results(results))", source)
+        self.assertIn('key_aliases = Dict("tts" => "ttt", "ttsci" => "tttci")', source)
+        self.assertIn("function export_all_results(raw)", source)
+        self.assertIn('"tts"           => export_schedule_boot_dict(raw[:ttt])', source)
+        self.assertIn('"ttsci"         => export_schedule_boot_dict(raw[:tttci])', source)
+        self.assertIn(':ttt => restore_metric_dict(metric_raw(raw, "ttt", "tts"))', source)
+        self.assertIn(
+            ':tttci => restore_metric_dict(metric_raw(raw, "tttci", "ttsci"))',
+            source,
+        )
+        self.assertIn("JSON.print(io, export_all_results(all_results))", source)
 
     def test_julia_solution_cache_uses_current_bqpjson_format(self) -> None:
         source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
@@ -181,7 +283,14 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         self.assertIn("if isfile(all_results_name) && !use_raw_data", source)
         self.assertIn("restore_all_results(JSON.parsefile(all_results_name))", source)
         self.assertIn("parse(Int, string(k)) => restore_instance_results(v)", source)
-        self.assertIn(":ttt => restore_boot_schedule_dict", source)
+        self.assertIn("function has_numeric_keys(raw)", source)
+        self.assertIn("function unwrap_default_sweep(raw)", source)
+        self.assertIn("function restore_schedule_boot_dict(raw)", source)
+        self.assertIn(":ttt => restore_metric_dict(metric_raw(raw, \"ttt\", \"tts\"))", source)
+        self.assertIn(
+            ":tttci => restore_metric_dict(metric_raw(raw, \"tttci\", \"ttsci\"))",
+            source,
+        )
         self.assertIn(":min_energy => restore_schedule_dict", source)
 
     def test_julia_results_zip_skips_zip32_overflow(self) -> None:
@@ -192,6 +301,7 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
 
         self.assertIn("archive_size_bytes > archive_size_limit", source)
         self.assertIn("Skipping results.zip archive", source)
+        self.assertIn("processed result set", source)
         self.assertIn("ZIP64", source)
 
 
