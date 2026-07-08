@@ -36,6 +36,7 @@ stale_repository_links = [
     "AlbertLee125/QUBONotebooks",
     "SECQUOIA/QUBONotebooks",
 ]
+gama_notebook_path = joinpath(repo_root, "notebooks_jl", "3-GAMA.ipynb")
 
 @testset "QUBO.jl repository links" begin
     for file in files_with_qubo_links
@@ -84,4 +85,25 @@ end
 
     release_notes = read(joinpath(repo_root, ".github", "workflows", "NOTES.md"), String)
     @test occursin("https://github.com/JuliaQUBO/QUBONotebooks/releases/", release_notes)
+end
+
+@testset "Julia GAMA notebook execution guards" begin
+    contents = replace(read(gama_notebook_path, String), "\r\n" => "\n")
+
+    @test occursin("const ε_default = 0.01", contents)
+    @test occursin("function f(x; μ=μ_default, σ=σ_default, ε=ε_default)", contents)
+    @test occursin("ε = ε_default", contents)
+    @test !occursin("μ = rand(n)", contents)
+    @test !occursin("σ = rand(n) .* μ", contents)
+
+    @test occursin("GRAVER_BASIS_URL", contents)
+    @test occursin("https://github.com/JuliaQUBO/QUBONotebooks/raw/main/notebooks_jl/graver.npy", contents)
+    @test occursin("Downloads.download(GRAVER_BASIS_URL, download_path)", contents)
+    @test isfile(joinpath(repo_root, "notebooks_jl", "graver.npy"))
+
+    @test !occursin("using JuMP, DWave, LinearAlgebra", contents)
+    @test occursin("const HAS_DWAVE = try", contents)
+    @test occursin("function load_precomputed_feasible_starts()", contents)
+    @test occursin("DWave.jl is unavailable; loaded", contents)
+    @test isfile(joinpath(repo_root, "notebooks_data", "3-GAMA_example4_feasible_starts.csv"))
 end
