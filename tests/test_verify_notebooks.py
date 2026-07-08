@@ -124,6 +124,37 @@ class PythonPlotSamplesNotebookTests(unittest.TestCase):
         )
 
 
+class QUBOPythonGraphColoringTests(unittest.TestCase):
+    def test_graph_coloring_uses_manual_dimod_bqm(self) -> None:
+        source = notebook_source(QUBO_NOTEBOOK_PATH)
+        bqm_source = notebook_cell_source(
+            QUBO_NOTEBOOK_PATH,
+            "def build_graph_coloring_bqm",
+        )
+
+        self.assertNotIn("dwavebinarycsp", source)
+        self.assertIn("dimod.BinaryQuadraticModel", bqm_source)
+        self.assertIn("bqm.offset += exactly_one_penalty", bqm_source)
+        self.assertIn("bqm.add_linear(variable, -exactly_one_penalty)", bqm_source)
+        self.assertIn("2 * exactly_one_penalty", bqm_source)
+        self.assertIn("edge_penalty", bqm_source)
+
+    def test_graph_coloring_validates_samples_without_csp_package(self) -> None:
+        validator_source = notebook_cell_source(
+            QUBO_NOTEBOOK_PATH,
+            "def is_valid_coloring",
+        )
+        sampling_source = notebook_cell_source(QUBO_NOTEBOOK_PATH, "sample = None")
+
+        self.assertIn("len(selected) != 1", validator_source)
+        self.assertIn(
+            "sample[color_var(v, color)] and sample[color_var(u, color)]",
+            validator_source,
+        )
+        self.assertIn("is_valid_coloring(datum.sample)", sampling_source)
+        self.assertNotIn("csp.check", sampling_source)
+
+
 class BenchmarkingNotebookArchiveTests(unittest.TestCase):
     def test_python_results_zip_uses_local_cache_path(self) -> None:
         source = notebook_cell_source(BENCHMARKING_PYTHON_NOTEBOOK_PATH, "bundled_zip")
@@ -596,6 +627,8 @@ class RepositoryCommandTests(unittest.TestCase):
 
         self.assertNotIn("dwave-ocean-sdk", pyproject)
         self.assertNotIn("dwave-ocean-sdk", lock)
+        self.assertNotIn("dwavebinarycsp", pyproject)
+        self.assertNotIn("dwavebinarycsp", lock)
         self.assertNotIn('name = "diskcache"', lock)
         self.assertIn("GHSA-w8v5-vhqr-4h9v", (REPO_ROOT / "README.md").read_text())
 

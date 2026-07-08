@@ -364,21 +364,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dwavebinarycsp"
-version = "0.3.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dimod" },
-    { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "penaltymodel" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/8b/18e3c027be5fc58bfb39c57686332e8b1c39a080386132aef2e8548467a5/dwavebinarycsp-0.3.1.tar.gz", hash = "sha256:7af07cd269809db94dbb4bee9b9cee437e9199fb42be6f2fcf68971a6f01bdbe", size = 29301, upload-time = "2024-11-27T23:00:40.227Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/fa/2b5616a53e0eabc194db45d5e1f5feea1ecf32aa4732af4c8892d15c8f21/dwavebinarycsp-0.3.1-py3-none-any.whl", hash = "sha256:a4a0f3d7f69fc43397467842d7056ac940ab3848ec55a8e2e412f464c864aadd", size = 35387, upload-time = "2024-11-27T23:00:39.002Z" },
-]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -506,15 +491,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/23/77/9a07df7181834cfb61dafa5594e5eedc78369797c6487806bd3221d20667/highspy-1.15.1-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:dd9ee8e139e7260ec1306a48e30f1bd7937d9cfb8cb201d25da10e1099e5129b", size = 6636717, upload-time = "2026-07-02T12:02:18.72Z" },
     { url = "https://files.pythonhosted.org/packages/9a/25/5083d8e3d5cf5ff5edf5bcc03e3f693630ab59142c9d0a0bcbb2d315c50e/highspy-1.15.1-cp312-cp312-win32.whl", hash = "sha256:01c6585e83938ecf4139248b074b2ee736816d63716a20dc608b1d2fc9637b66", size = 2306753, upload-time = "2026-07-02T12:02:20.837Z" },
     { url = "https://files.pythonhosted.org/packages/d4/01/05521ca6b38e34e68d707888c378d3bcac34e62715b739e7c0c9b9887993/highspy-1.15.1-cp312-cp312-win_amd64.whl", hash = "sha256:8c548165270608a40147a7ea6d985fd62a65fabf0f075b3c0c59ea910b724223", size = 2711114, upload-time = "2026-07-02T12:02:22.621Z" },
-]
-
-[[package]]
-name = "homebase"
-version = "1.0.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a5/fa/55afcae0026285dc51792e5959b3667a246fd5cb82e97211f2267d52b3ac/homebase-1.0.1.tar.gz", hash = "sha256:9ee008df4298b420852d815e6df488822229c4bd8d571bcd0a454e04232c635e", size = 11848, upload-time = "2018-07-30T22:48:52.764Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/ad/e0080c35bd177682d5118a95bc2e7c1ac0541394b4ffce5e9554b6a077f9/homebase-1.0.1-py2.py3-none-any.whl", hash = "sha256:d64c97f60a8ddd94ce8702bac65ed5d1996aca01a17d1e53e6ad5149e2f8b5b5", size = 11307, upload-time = "2018-07-30T22:48:51.551Z" },
 ]
 
 [[package]]
@@ -1214,27 +1190,6 @@ wheels = [
 ]
 
 [[package]]
-name = "penaltymodel"
-version = "1.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dimod" },
-    { name = "homebase" },
-    { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "numpy", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
-    { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/02/f6/3af591b63fca93de731711f8c985e5b7f5ef97de28e334ffeec413c31c82/penaltymodel-1.3.0.tar.gz", hash = "sha256:34af628916420218b16a8ceca608abbf8530b731fe05902392a3a3bceee395d0", size = 32231, upload-time = "2025-08-26T16:27:26.769Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2a/16/501a538776abb83ef02243e937fb7b196a7377e49bb474798ca8bc5a58a6/penaltymodel-1.3.0-py3-none-any.whl", hash = "sha256:543f596a5c1fb602d18355c46349e8ccb2842b335de86958d7525de0d993eda9", size = 36133, upload-time = "2025-08-26T16:27:25.868Z" },
-]
-
-[[package]]
 name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1649,7 +1604,6 @@ mathprog = [
 qubo = [
     { name = "dimod" },
     { name = "dwave-neal" },
-    { name = "dwavebinarycsp" },
     { name = "highspy" },
     { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "matplotlib", version = "3.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1685,7 +1639,6 @@ mathprog = [
 qubo = [
     { name = "dimod", specifier = ">=0.12,<1" },
     { name = "dwave-neal", specifier = ">=0.6,<1" },
-    { name = "dwavebinarycsp", extras = ["maxgap", "mip"], specifier = ">=0.3.1,<1" },
     { name = "highspy", specifier = ">=1.15.1,<2" },
     { name = "matplotlib", specifier = ">=3.8,<4" },
     { name = "networkx", specifier = ">=3.3,<4" },

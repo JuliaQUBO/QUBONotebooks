@@ -22,7 +22,6 @@ mathprog = [
 qubo = [
     "dimod>=0.12,<1",
     "dwave-neal>=0.6,<1",
-    "dwavebinarycsp[maxgap,mip]>=0.3.1,<1",
     "highspy>=1.15.1,<2",
     "matplotlib>=3.8,<4",
     "networkx>=3.3,<4",
