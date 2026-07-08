@@ -99,11 +99,16 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
     def test_raw_results_zip_is_extracted_with_zipfile(self) -> None:
         source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "use_raw_data")
 
+        self.assertIn('bundled_zip = joinpath(@__DIR__, "results.zip")', source)
+        self.assertIn("cp(bundled_zip, zip_name; force = true)", source)
+        self.assertIn("extract_results_archive = isfile(zip_name)", source)
+        self.assertIn("if extract_results_archive", source)
         self.assertIn("ZipFile.Reader(zip_name)", source)
         self.assertIn("for f in zr.files", source)
         self.assertIn("relpath(file_path, destination)", source)
         self.assertIn("Refusing to extract", source)
         self.assertIn("write(file_path, read(f))", source)
+        self.assertNotIn("if isfile(zip_name) && use_raw_data", source)
         self.assertNotIn("gzip", source)
         self.assertNotIn("run(`", source)
 
