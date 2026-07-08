@@ -727,7 +727,10 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertIn("Check the install output above", install_cell)
         self.assertIn("solver.available(exception_flag=False)", install_cell)
         self.assertIn('api_token = os.environ.get("QCI_TOKEN", "")', source)
-        self.assertIn("Set the QCI_TOKEN environment variable", source)
+        self.assertIn('userdata.get("QCI_TOKEN")', source)
+        self.assertIn("### QCI API token", source)
+        self.assertIn("Set the QCI_TOKEN environment variable or Colab Secret", source)
+        self.assertIn("The Dirac cloud examples require a QCI token", source)
         self.assertNotIn('api_token = ""', source)
         self.assertIn("IPOPT not found", ipopt_cell)
         self.assertIn("IDAES solver setup cell", ipopt_cell)
@@ -821,7 +824,8 @@ class DWaveNotebookTests(unittest.TestCase):
             source.index('DWave.PythonCall.pyimport("matplotlib")'),
             source.index("using Plots"),
         )
-        self.assertIn('if !haskey(ENV, "DWAVE_API_TOKEN")', source)
+        self.assertIn('api_token = get(ENV, "DWAVE_API_TOKEN", "")', source)
+        self.assertIn("DWave.Neal.Optimizer (SimulatedAnnealingSampler)", source)
         self.assertIn("QUBOTools.solution(QUBOTools.backend(qubo_model))", source)
         self.assertIn('repo-rev = "v0.7.6"', (REPO_ROOT / "notebooks_jl" / "Manifest.toml").read_text())
         self.assertNotIn("networkx_edges", source)
@@ -843,6 +847,7 @@ class DWaveNotebookTests(unittest.TestCase):
     def test_python_topology_section_uses_current_sampler_topology(self) -> None:
         source = notebook_source(DWAVE_PYTHON_NOTEBOOK_PATH)
 
+        self.assertIn('DWaveSampler(token=api_token, solver={"qpu": True})', source)
         self.assertIn('DWaveSampler(solver={"qpu": True})', source)
         self.assertIn('qpu.properties["topology"]', source)
         self.assertIn("qpu.to_networkx_graph()", source)
@@ -853,6 +858,30 @@ class DWaveNotebookTests(unittest.TestCase):
         self.assertNotIn('qpu.solver.id == "DW_2000Q_6"', source)
         self.assertNotIn("dnx.chimera_graph", source)
         self.assertNotIn("dnx.pegasus_graph", source)
+
+    def test_dwave_notebooks_explain_leap_token_setup_and_fallbacks(self) -> None:
+        python_source = notebook_source(DWAVE_PYTHON_NOTEBOOK_PATH)
+        julia_source = notebook_source(DWAVE_JULIA_NOTEBOOK_PATH)
+
+        for source in (python_source, julia_source):
+            self.assertIn("https://cloud.dwavesys.com/leap/", source)
+            self.assertIn("DWAVE_API_TOKEN", source)
+            self.assertIn("Leap dashboard", source)
+            self.assertIn("SimulatedAnnealingSampler", source)
+            self.assertNotIn('ENV["DWAVE_API_TOKEN"] = "<YOUR_KEY_HERE>"', source)
+
+        self.assertIn('userdata.get("DWAVE_API_TOKEN")', python_source)
+        self.assertIn('api_token = os.environ.get("DWAVE_API_TOKEN", "")', python_source)
+        self.assertIn('os.environ["DWAVE_API_TOKEN"] = api_token', python_source)
+        self.assertIn("!dwave ping", python_source)
+        self.assertIn("Skipping `dwave ping` because DWAVE_API_TOKEN is not set", python_source)
+        self.assertIn("DWavesampler = neal.SimulatedAnnealingSampler()", python_source)
+        self.assertNotIn("!dwave setup", python_source)
+
+        self.assertIn('api_token = get(ENV, "DWAVE_API_TOKEN", "")', julia_source)
+        self.assertIn("DWave.Neal.Optimizer", julia_source)
+        self.assertIn("Skipping D-Wave QPU topology plot", julia_source)
+        self.assertIn("Skipping D-Wave QPU embedding plot", julia_source)
 
     def test_julia_embedding_plot_overlays_embedding_on_full_topology(self) -> None:
         source = notebook_cell_source(DWAVE_JULIA_NOTEBOOK_PATH, "function draw_embedding")
@@ -891,7 +920,7 @@ class DWaveNotebookTests(unittest.TestCase):
             "function draw_embedding",
         )
         python_markers = (
-            'qpu = DWaveSampler(solver={"qpu": True})',
+            'qpu = DWaveSampler(token=api_token, solver={"qpu": True})',
             "EmbeddingComposite(qpu)",
         )
 
