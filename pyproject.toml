@@ -11,7 +11,7 @@ docs = [
     "nbconvert>=7,<8",
 ]
 mathprog = [
-    "highspy>=1.11,<2",
+    "highspy>=1.15.1,<2",
     "idaes-pse>=2.9,<3",
     "matplotlib>=3.8,<4",
     "numpy>=1.26,<3",
@@ -23,7 +23,7 @@ qubo = [
     "dimod>=0.12,<1",
     "dwave-neal>=0.6,<1",
     "dwavebinarycsp[maxgap,mip]>=0.3.1,<1",
-    "highspy>=1.11,<2",
+    "highspy>=1.15.1,<2",
     "matplotlib>=3.8,<4",
     "networkx>=3.3,<4",
     "numpy>=1.26,<3",
