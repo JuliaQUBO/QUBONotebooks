@@ -166,6 +166,15 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
         self.assertIn("urlretrieve(", source)
         self.assertNotIn("/content/results/results.zip", source)
 
+    def test_python_results_zip_warns_before_expensive_regeneration(self) -> None:
+        source = notebook_cell_source(
+            BENCHMARKING_PYTHON_NOTEBOOK_PATH,
+            "precomputed benchmark cache",
+        )
+
+        self.assertIn("approximately 3 hours of local computation", source)
+        self.assertIn("Run the next cell to download", source)
+
     def test_raw_results_zip_is_extracted_with_zipfile(self) -> None:
         source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "use_raw_data")
 
