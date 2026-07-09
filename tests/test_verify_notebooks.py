@@ -842,6 +842,19 @@ class GamaNotebookTests(unittest.TestCase):
         self.assertEqual((1, (4.0, 2)), greedy([(5.0, 0), (4.0, 2), (3.0, 1)]))
         self.assertEqual((1, (4.0, 0)), greedy([(5.0, 0), (4.0, 0)]))
 
+    def test_gama_greedy_short_circuits_on_first_improving_candidate(self) -> None:
+        function_source = notebook_function_source(GAMA_NOTEBOOK_PATH, "greedy")
+        namespace: dict[str, object] = {}
+
+        exec(function_source, namespace)
+        greedy = namespace["greedy"]
+
+        def candidates():
+            yield (5.0, 2)
+            raise AssertionError("greedy() evaluated candidates after the first improvement")
+
+        self.assertEqual((0, (5.0, 2)), greedy(candidates()))
+
     def test_gama_notebook_has_portable_py4ti2_fallback(self) -> None:
         source = notebook_source(GAMA_NOTEBOOK_PATH)
 
