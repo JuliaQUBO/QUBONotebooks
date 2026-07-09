@@ -88,7 +88,13 @@ end
 end
 
 @testset "Julia GAMA notebook execution guards" begin
-    contents = replace(read(gama_notebook_path, String), "\r\n" => "\n")
+    contents = replace(
+        read(gama_notebook_path, String),
+        "\r\n" => "\n",
+        "\\u03b5" => "ε",
+        "\\u03bc" => "μ",
+        "\\u03c3" => "σ",
+    )
 
     @test occursin("const ε_default = 0.01", contents)
     @test occursin("function f(x; μ=μ_default, σ=σ_default, ε=ε_default)", contents)
@@ -106,4 +112,7 @@ end
     @test occursin("function load_precomputed_feasible_starts()", contents)
     @test occursin("DWave.jl is unavailable; loaded", contents)
     @test isfile(joinpath(repo_root, "notebooks_data", "3-GAMA_example4_feasible_starts.csv"))
+
+    @test occursin("gprev = fill(typemin(Int), n)", contents)
+    @test !occursin("gprev = Vector{Int}(undef, n)", contents)
 end

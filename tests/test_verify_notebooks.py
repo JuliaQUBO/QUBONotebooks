@@ -98,6 +98,15 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
         self.assertEqual([], offenders)
 
+    def test_julia_qubo_color_plot_qualifies_jump_backend(self) -> None:
+        source = notebook_cell_source(
+            QUBO_JULIA_NOTEBOOK_PATH,
+            "EnergyFrequencyPlot(QUBOTools.solution(JuMP.backend",
+        )
+
+        self.assertIn("JuMP.backend(color_model).optimizer", source)
+        self.assertNotIn("solution(backend(color_model)", source)
+
 
 class PythonPlotSamplesNotebookTests(unittest.TestCase):
     def assert_plot_samples_uses_initialized_energies(self, path: Path) -> None:
@@ -275,6 +284,25 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
             "loaded_all_results = normalize_all_results_cache(pickle.load(open(all_results_name, \"rb\")), default_sweeps)",
             source,
         )
+        self.assertIn("all_results[instance]['t'][schedule] = times", source)
+        self.assertIn(
+            "all_results[instance]['min_energy'][schedule] = min_energy",
+            source,
+        )
+        self.assertIn(
+            "all_results[instance]['random_energy'][schedule] = random_energy",
+            source,
+        )
+        self.assertIn(
+            "min_energy = all_results[instance]['min_energy'][schedule]",
+            source,
+        )
+        self.assertIn(
+            "random_energy = all_results[instance]['random_energy'][schedule]",
+            source,
+        )
+        self.assertNotIn("['min_energy'][schedule][default_sweeps]", source)
+        self.assertNotIn("['random_energy'][schedule][default_sweeps]", source)
         self.assertIn("save_benchmark_cache(all_results_json_name, all_results)", source)
 
     def test_julia_processed_results_cache_uses_python_compatible_json_schema(
@@ -392,6 +420,28 @@ class BenchmarkingNotebookArchiveTests(unittest.TestCase):
             ":min_energy => restore_schedule_dict(raw[\"min_energy\"], default_sweep_count)",
             source,
         )
+
+    def test_julia_cached_single_instance_plots_use_available_schedule(self) -> None:
+        performance_plot = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "title_str = \"Simulated annealing Performance Ratio of Ising $(benchmark_instance)",
+        )
+        runtime_plot = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "title_str = \"Simulated annealing expected total runtime",
+        )
+        adapted_runtime_plot = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "function plot_ttt_grid_adapted",
+        )
+
+        for source in (performance_plot, runtime_plot, adapted_runtime_plot):
+            self.assertIn("schedules_to_plot = [primary_schedule]", source)
+
+        self.assertIn("for schedule in schedules_to_plot", performance_plot)
+        self.assertIn("for schedule in schedules_to_plot", runtime_plot)
+        self.assertIn("schedules_to_plot,", adapted_runtime_plot)
+        self.assertNotIn("    schedules, \n    results;", adapted_runtime_plot)
 
     def test_julia_results_zip_skips_zip32_overflow(self) -> None:
         source = notebook_cell_source(
@@ -829,6 +879,32 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
 
 
 class GamaNotebookTests(unittest.TestCase):
+    def test_gama_greedy_rejects_empty_candidate_sets(self) -> None:
+        function_source = notebook_function_source(GAMA_NOTEBOOK_PATH, "greedy")
+        namespace: dict[str, object] = {}
+
+        exec(function_source, namespace)
+        greedy = namespace["greedy"]
+
+        with self.assertRaisesRegex(ValueError, "empty candidate set"):
+            greedy([])
+
+        self.assertEqual((1, (4.0, 2)), greedy([(5.0, 0), (4.0, 2), (3.0, 1)]))
+        self.assertEqual((1, (4.0, 0)), greedy([(5.0, 0), (4.0, 0)]))
+
+    def test_gama_greedy_short_circuits_on_first_improving_candidate(self) -> None:
+        function_source = notebook_function_source(GAMA_NOTEBOOK_PATH, "greedy")
+        namespace: dict[str, object] = {}
+
+        exec(function_source, namespace)
+        greedy = namespace["greedy"]
+
+        def candidates():
+            yield (5.0, 2)
+            raise AssertionError("greedy() evaluated candidates after the first improvement")
+
+        self.assertEqual((0, (5.0, 2)), greedy(candidates()))
+
     def test_gama_notebook_has_portable_py4ti2_fallback(self) -> None:
         source = notebook_source(GAMA_NOTEBOOK_PATH)
 
@@ -841,13 +917,17 @@ class GamaNotebookTests(unittest.TestCase):
         for path in GAMA_DATA_FILES:
             self.assertTrue(path.is_file(), f"{path} should be committed")
 
-    def test_gama_notebook_source_outputs_are_cleared(self) -> None:
+    def test_gama_notebook_outputs_are_refreshed(self) -> None:
         notebook = json.loads(GAMA_NOTEBOOK_PATH.read_text())
+        code_cells = [
+            cell for cell in notebook["cells"] if cell.get("cell_type") == "code"
+        ]
 
-        for cell in notebook["cells"]:
-            if cell.get("cell_type") == "code":
-                self.assertIsNone(cell.get("execution_count"))
-                self.assertEqual(cell.get("outputs", []), [])
+        self.assertTrue(code_cells)
+        self.assertTrue(
+            all(cell.get("execution_count") is not None for cell in code_cells)
+        )
+        self.assertGreater(sum(bool(cell.get("outputs", [])) for cell in code_cells), 0)
 
 
 class DWaveNotebookTests(unittest.TestCase):
