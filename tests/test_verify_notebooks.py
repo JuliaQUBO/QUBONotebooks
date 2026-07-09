@@ -484,6 +484,61 @@ class BenchmarkingNotebookScopeTests(unittest.TestCase):
         self.assertLess(source.index(summary_lookup), source.index(definition))
         self.assertLess(source.index(definition), source.index(later_use, source.index(definition)))
 
+    def test_julia_ising_model_spin_variable_does_not_shadow_success_probability(
+        self,
+    ) -> None:
+        source = notebook_source(BENCHMARKING_JULIA_NOTEBOOK_PATH)
+        model_cell = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "ising_model = Model()",
+        )
+        solve_cell = notebook_cell_source(
+            BENCHMARKING_JULIA_NOTEBOOK_PATH,
+            "set_optimizer(ising_model, DWave.Neal.Optimizer)",
+        )
+
+        self.assertIn("@variable(ising_model, s_var[1:11], Spin)", model_cell)
+        self.assertIn(
+            "@objective(ising_model, Min, s_var' * J * s_var + h' * s_var + β)",
+            model_cell,
+        )
+        self.assertIn("ising_s = round.(Int, value.(s_var))", solve_cell)
+        self.assertNotIn("@variable(ising_model, s[1:11], Spin)", source)
+        self.assertNotIn("value.(s))", solve_cell)
+
+    def test_julia_benchmarking_results_cell_has_fresh_execution_output(self) -> None:
+        notebook = json.loads(BENCHMARKING_JULIA_NOTEBOOK_PATH.read_text())
+        code_cells = [
+            cell for cell in notebook["cells"] if cell.get("cell_type") == "code"
+        ]
+        execution_counts = [cell.get("execution_count") for cell in code_cells]
+
+        self.assertEqual(
+            list(range(1, len(code_cells) + 1)),
+            execution_counts,
+        )
+
+        results_cells = [
+            (index, cell)
+            for index, cell in enumerate(notebook["cells"])
+            if cell.get("cell_type") == "code"
+            and "success_probability = 0.99" in "".join(cell.get("source", []))
+            and "results = Dict{Symbol,Any}" in "".join(cell.get("source", []))
+        ]
+        plot_cells = [
+            index
+            for index, cell in enumerate(notebook["cells"])
+            if cell.get("cell_type") == "code"
+            and "function plot_progress" in "".join(cell.get("source", []))
+        ]
+
+        self.assertEqual(1, len(results_cells))
+        self.assertEqual(1, len(plot_cells))
+
+        results_index, results_cell = results_cells[0]
+        self.assertLess(results_index, plot_cells[0])
+        self.assertTrue(results_cell.get("outputs"))
+
 
 class QUBOJuliaNotebookTests(unittest.TestCase):
     def test_ising_ilp_objective_keeps_linear_and_quadratic_terms_separate(self) -> None:
