@@ -88,7 +88,13 @@ end
 end
 
 @testset "Julia GAMA notebook execution guards" begin
-    contents = replace(read(gama_notebook_path, String), "\r\n" => "\n")
+    contents = replace(
+        read(gama_notebook_path, String),
+        "\r\n" => "\n",
+        "\\u03b5" => "ε",
+        "\\u03bc" => "μ",
+        "\\u03c3" => "σ",
+    )
 
     @test occursin("const ε_default = 0.01", contents)
     @test occursin("function f(x; μ=μ_default, σ=σ_default, ε=ε_default)", contents)
