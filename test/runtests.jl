@@ -106,4 +106,7 @@ end
     @test occursin("function load_precomputed_feasible_starts()", contents)
     @test occursin("DWave.jl is unavailable; loaded", contents)
     @test isfile(joinpath(repo_root, "notebooks_data", "3-GAMA_example4_feasible_starts.csv"))
+
+    @test occursin("gprev = fill(typemin(Int), n)", contents)
+    @test !occursin("gprev = Vector{Int}(undef, n)", contents)
 end
