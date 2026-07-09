@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import tempfile
 import unittest
 import zipfile
@@ -43,6 +44,7 @@ NOTEBOOK_DIRS = (
     REPO_ROOT / "notebooks_jl",
     REPO_ROOT / "notebooks_py",
 )
+NOTEBOOK_REFERENCE_HEADING = re.compile(r"^#+\s+references\b", re.IGNORECASE)
 GAMA_DATA_FILES = (
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_coefficients.csv",
     REPO_ROOT / "notebooks_data" / "3-GAMA_example4_feasible_starts.csv",
@@ -84,8 +86,24 @@ def notebook_cell_sources(path: Path) -> list[str]:
     return ["".join(cell.get("source", [])) for cell in notebook["cells"]]
 
 
+def notebook_cells(path: Path) -> list[dict]:
+    notebook = json.loads(path.read_text())
+    return notebook["cells"]
+
+
 def notebook_paths() -> list[Path]:
     return sorted(path for directory in NOTEBOOK_DIRS for path in directory.glob("*.ipynb"))
+
+
+def notebook_first_heading(cell: dict) -> str:
+    source = "".join(cell.get("source", []))
+
+    for line in source.splitlines():
+        stripped = line.strip()
+        if stripped:
+            return stripped
+
+    return ""
 
 
 class NotebookSourceSafetyTests(unittest.TestCase):
@@ -106,6 +124,57 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
         self.assertIn("JuMP.backend(color_model).optimizer", source)
         self.assertNotIn("solution(backend(color_model)", source)
+
+
+class NotebookPedagogyCellTests(unittest.TestCase):
+    def test_learning_objectives_and_prerequisites_are_top_cells(self) -> None:
+        for path in notebook_paths():
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                cells = notebook_cells(path)
+
+                self.assertEqual("## Learning objectives", notebook_first_heading(cells[1]))
+                self.assertEqual("## Prerequisites", notebook_first_heading(cells[2]))
+                self.assertIn(
+                    "By the end of this notebook you will be able to:",
+                    "".join(cells[1].get("source", [])),
+                )
+                self.assertIn(
+                    "**Prior notebooks:**",
+                    "".join(cells[2].get("source", [])),
+                )
+
+    def test_summaries_close_learning_content(self) -> None:
+        for path in notebook_paths():
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                cells = notebook_cells(path)
+                summary_indices = [
+                    index
+                    for index, cell in enumerate(cells)
+                    if notebook_first_heading(cell) in {"## Summary", "## Conclusion"}
+                ]
+                reference_indices = [
+                    index
+                    for index, cell in enumerate(cells)
+                    if NOTEBOOK_REFERENCE_HEADING.match(notebook_first_heading(cell))
+                ]
+
+                self.assertEqual(1, len(summary_indices))
+                summary_index = summary_indices[0]
+                summary_source = "".join(cells[summary_index].get("source", []))
+
+                self.assertIn("**Learning objectives met:**", summary_source)
+                self.assertIn("**Next steps:**", summary_source)
+                self.assertIn("**Further reading:**", summary_source)
+                further_reading = summary_source.split("**Further reading:**", 1)[1]
+                further_reading_items = [
+                    line for line in further_reading.splitlines() if line.startswith("- ")
+                ]
+                self.assertGreaterEqual(len(further_reading_items), 2)
+
+                if reference_indices:
+                    self.assertEqual(reference_indices[0] - 1, summary_index)
+                else:
+                    self.assertEqual(len(cells) - 1, summary_index)
 
 
 class PythonPlotSamplesNotebookTests(unittest.TestCase):
@@ -829,7 +898,7 @@ class JuliaColabSetupTests(unittest.TestCase):
                     i for i, source in enumerate(cells) if "Pkg.activate(@__DIR__)" in source
                 ]
 
-                self.assertEqual([2], install_indexes)
+                self.assertEqual(1, len(install_indexes))
                 self.assertTrue(activate_indexes)
                 self.assertLess(install_indexes[0], min(activate_indexes))
                 self.assertIn("precompiled QUBONotebooks sysimage", cells[install_indexes[0] - 1])
