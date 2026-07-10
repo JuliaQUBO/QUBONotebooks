@@ -48,6 +48,9 @@ jobs:
       - name: Link checks
         run: make test
 
+      - name: Notebook output hygiene
+        run: make check-notebook-output-hygiene
+
       - name: Python unit tests
         run: make test-python PYTHON="uv run --locked --group docs python"
 

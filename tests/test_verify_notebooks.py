@@ -431,6 +431,35 @@ class NotebookMaintenanceIssueTests(unittest.TestCase):
 
 
 class NotebookPedagogyCellTests(unittest.TestCase):
+    def test_each_notebook_has_three_exercise_checkpoints(self) -> None:
+        for path in notebook_paths():
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                cells = notebook_cells(path)
+                exercise_cells = [
+                    cell
+                    for cell in cells
+                    if cell.get("cell_type") == "code"
+                    and "# EXERCISE" in "".join(cell.get("source", []))
+                ]
+                solution_cells = [
+                    cell
+                    for cell in cells
+                    if cell.get("cell_type") == "code"
+                    and "# SOLUTION (hidden in workshop version):"
+                    in "".join(cell.get("source", []))
+                ]
+
+                self.assertGreaterEqual(len(exercise_cells), 3)
+                self.assertGreaterEqual(len(solution_cells), 3)
+                self.assertTrue(
+                    all(
+                        {"hide-cell", "solution"}.issubset(
+                            set(cell.get("metadata", {}).get("tags", []))
+                        )
+                        for cell in solution_cells[:3]
+                    )
+                )
+
     def test_setup_learning_objectives_and_prerequisites_are_top_cells(self) -> None:
         for path in notebook_paths():
             with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
@@ -1138,16 +1167,27 @@ class RepositoryCommandTests(unittest.TestCase):
 
         self.assertIn("test-python:", makefile)
         self.assertIn("test-julia:", makefile)
+        self.assertIn("check-notebook-output-hygiene:", makefile)
+        self.assertIn("clear-notebook-outputs:", makefile)
         self.assertIn("verify-notebooks:", makefile)
         self.assertIn("verify-python-portable:", makefile)
         self.assertIn("verify-qubo-python:", makefile)
         self.assertIn("verify-gama-python:", makefile)
         self.assertIn("verify-benchmarking-python:", makefile)
         self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
+        self.assertIn("ClearOutputPreprocessor.enabled=True", makefile)
+        self.assertIn("purdue-internship", makefile)
+        self.assertIn("QUBONotebooksFork", makefile)
         self.assertIn("./scripts/verify_notebooks.py", makefile)
         self.assertIn("--project=./notebooks_jl", makefile)
         self.assertIn("$(UV) sync --locked", makefile)
         self.assertIn("$(UV) run --locked", makefile)
+
+    def test_ci_runs_notebook_output_hygiene_check(self) -> None:
+        ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text()
+
+        self.assertIn("Notebook output hygiene", ci_workflow)
+        self.assertIn("make check-notebook-output-hygiene", ci_workflow)
 
     def test_locked_python_environment_excludes_unpatched_diskcache_path(self) -> None:
         pyproject = (REPO_ROOT / "pyproject.toml").read_text()
@@ -1414,8 +1454,12 @@ class GamaNotebookTests(unittest.TestCase):
         substantive_cells = [
             cell
             for cell in code_cells
-            if not "".join(cell.get("source", [])).startswith(
-                ("try:", "from pathlib import Path")
+            if not (
+                (source := "".join(cell.get("source", []))).startswith(
+                    ("try:", "from pathlib import Path")
+                )
+                or "# EXERCISE" in source
+                or "# SOLUTION (hidden in workshop version):" in source
             )
         ]
 
@@ -1473,7 +1517,11 @@ class DWaveNotebookTests(unittest.TestCase):
         self.assertIn('topology_type == "chimera"', source)
         self.assertIn('topology_type == "pegasus"', source)
         self.assertIn('topology_type == "zephyr"', source)
+        self.assertIn("def draw_topology_graph(", source)
+        self.assertIn("def draw_embedding_graph(", source)
         self.assertNotIn('qpu.solver.id == "DW_2000Q_6"', source)
+        self.assertNotIn("dwave_networkx", source)
+        self.assertNotIn("dnx.", source)
         self.assertNotIn("dnx.chimera_graph", source)
         self.assertNotIn("dnx.pegasus_graph", source)
 
