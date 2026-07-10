@@ -151,6 +151,33 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
         self.assertEqual([], offenders)
 
+    def test_notebook_outputs_do_not_contain_python_invalid_escape_warnings(self) -> None:
+        offenders = [
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in notebook_paths()
+            if "SyntaxWarning: invalid escape sequence" in notebook_output_text(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_julia_notebooks_filter_python_invalid_escape_warnings(self) -> None:
+        filter_text = "ignore:invalid escape sequence:SyntaxWarning"
+        dwave_import_markers = ("using DWave", "import DWave", "@eval using DWave")
+
+        for path in JULIA_COLAB_NOTEBOOK_PATHS:
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                source = notebook_source(path)
+
+                self.assertIn(filter_text, source)
+
+                dwave_import_indexes = [
+                    source.index(marker)
+                    for marker in dwave_import_markers
+                    if marker in source
+                ]
+                if dwave_import_indexes:
+                    self.assertLess(source.index(filter_text), min(dwave_import_indexes))
+
 
 class QUBONotebookConsistencyTests(unittest.TestCase):
     def test_julia_qubo_problem_statement_uses_julia_indices(self) -> None:
