@@ -151,6 +151,33 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
         self.assertEqual([], offenders)
 
+    def test_notebook_outputs_do_not_contain_python_invalid_escape_warnings(self) -> None:
+        offenders = [
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in notebook_paths()
+            if "SyntaxWarning: invalid escape sequence" in notebook_output_text(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_julia_notebooks_filter_python_invalid_escape_warnings(self) -> None:
+        filter_text = "ignore:invalid escape sequence:SyntaxWarning"
+        dwave_import_markers = ("using DWave", "import DWave", "@eval using DWave")
+
+        for path in JULIA_COLAB_NOTEBOOK_PATHS:
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                source = notebook_source(path)
+
+                self.assertIn(filter_text, source)
+
+                dwave_import_indexes = [
+                    source.index(marker)
+                    for marker in dwave_import_markers
+                    if marker in source
+                ]
+                if dwave_import_indexes:
+                    self.assertLess(source.index(filter_text), min(dwave_import_indexes))
+
 
 class QUBONotebookConsistencyTests(unittest.TestCase):
     def test_julia_qubo_problem_statement_uses_julia_indices(self) -> None:
@@ -431,6 +458,48 @@ class NotebookMaintenanceIssueTests(unittest.TestCase):
 
 
 class NotebookPedagogyCellTests(unittest.TestCase):
+    def test_each_notebook_has_three_exercise_checkpoints(self) -> None:
+        for path in notebook_paths():
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                cells = notebook_cells(path)
+                exercise_cells = [
+                    cell
+                    for cell in cells
+                    if cell.get("cell_type") == "code"
+                    and "# EXERCISE" in "".join(cell.get("source", []))
+                ]
+                solution_cells = [
+                    cell
+                    for cell in cells
+                    if cell.get("cell_type") == "code"
+                    and "# SOLUTION (hidden in workshop version):"
+                    in "".join(cell.get("source", []))
+                ]
+
+                self.assertGreaterEqual(len(exercise_cells), 3)
+                self.assertGreaterEqual(len(solution_cells), 3)
+                self.assertTrue(
+                    all(
+                        {"hide-cell", "solution"}.issubset(
+                            set(cell.get("metadata", {}).get("tags", []))
+                        )
+                        for cell in solution_cells[:3]
+                    )
+                )
+                self.assertTrue(
+                    all(
+                        any(
+                            stripped
+                            and not stripped.startswith("#")
+                            for stripped in (
+                                line.strip()
+                                for line in "".join(cell.get("source", [])).splitlines()
+                            )
+                        )
+                        for cell in solution_cells
+                    )
+                )
+
     def test_setup_learning_objectives_and_prerequisites_are_top_cells(self) -> None:
         for path in notebook_paths():
             with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
@@ -952,6 +1021,18 @@ class BenchmarkingNotebookScopeTests(unittest.TestCase):
 
 
 class QUBOJuliaNotebookTests(unittest.TestCase):
+    def test_graph_coloring_constraint_container_is_not_displayed(self) -> None:
+        source = notebook_cell_source(
+            QUBO_JULIA_NOTEBOOK_PATH,
+            "@constraint(color_model, neigh",
+        )
+
+        self.assertIn(
+            "@constraint(color_model, neigh[(i,j) ∈ E, k=1:3], c[i, k] * c[j,k] == 0);",
+            source,
+        )
+        self.assertNotIn("InvalidConstraintRef", notebook_output_text(QUBO_JULIA_NOTEBOOK_PATH))
+
     def test_ising_ilp_objective_keeps_linear_and_quadratic_terms_separate(self) -> None:
         source = notebook_cell_source(QUBO_JULIA_NOTEBOOK_PATH, "ising_ilp_model = Model()")
 
@@ -1138,16 +1219,29 @@ class RepositoryCommandTests(unittest.TestCase):
 
         self.assertIn("test-python:", makefile)
         self.assertIn("test-julia:", makefile)
+        self.assertIn("check-notebook-output-hygiene:", makefile)
+        self.assertIn("clear-notebook-outputs:", makefile)
         self.assertIn("verify-notebooks:", makefile)
         self.assertIn("verify-python-portable:", makefile)
         self.assertIn("verify-qubo-python:", makefile)
         self.assertIn("verify-gama-python:", makefile)
         self.assertIn("verify-benchmarking-python:", makefile)
         self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
+        self.assertIn("ClearOutputPreprocessor.enabled=True", makefile)
+        self.assertIn("git grep -lE", makefile)
+        self.assertNotIn("git grep -nE 'C:", makefile)
+        self.assertIn("purdue-internship", makefile)
+        self.assertIn("QUBONotebooksFork", makefile)
         self.assertIn("./scripts/verify_notebooks.py", makefile)
         self.assertIn("--project=./notebooks_jl", makefile)
         self.assertIn("$(UV) sync --locked", makefile)
         self.assertIn("$(UV) run --locked", makefile)
+
+    def test_ci_runs_notebook_output_hygiene_check(self) -> None:
+        ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text()
+
+        self.assertIn("Notebook output hygiene", ci_workflow)
+        self.assertIn("make check-notebook-output-hygiene", ci_workflow)
 
     def test_locked_python_environment_excludes_unpatched_diskcache_path(self) -> None:
         pyproject = (REPO_ROOT / "pyproject.toml").read_text()
@@ -1414,8 +1508,12 @@ class GamaNotebookTests(unittest.TestCase):
         substantive_cells = [
             cell
             for cell in code_cells
-            if not "".join(cell.get("source", [])).startswith(
-                ("try:", "from pathlib import Path")
+            if not (
+                (source := "".join(cell.get("source", []))).startswith(
+                    ("try:", "from pathlib import Path")
+                )
+                or "# EXERCISE" in source
+                or "# SOLUTION (hidden in workshop version):" in source
             )
         ]
 
@@ -1473,7 +1571,12 @@ class DWaveNotebookTests(unittest.TestCase):
         self.assertIn('topology_type == "chimera"', source)
         self.assertIn('topology_type == "pegasus"', source)
         self.assertIn('topology_type == "zephyr"', source)
+        self.assertIn("def draw_topology_graph(", source)
+        self.assertIn("def draw_embedding_graph(", source)
+        self.assertIn("Pegasus QPU topology (schematic layout)", source)
         self.assertNotIn('qpu.solver.id == "DW_2000Q_6"', source)
+        self.assertNotIn("dwave_networkx", source)
+        self.assertNotIn("dnx.", source)
         self.assertNotIn("dnx.chimera_graph", source)
         self.assertNotIn("dnx.pegasus_graph", source)
 

@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python
+.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python
 
 PYTHON ?= python3
 UV ?= uv
@@ -15,6 +15,7 @@ PORTABLE_PYTHON_NOTEBOOKS ?= $(QUBO_PYTHON_NOTEBOOK) $(GAMA_PYTHON_NOTEBOOK)
 DWAVE_PYTHON_NOTEBOOK ?= notebooks_py/4-DWAVE_python.ipynb
 BENCHMARKING_PYTHON_NOTEBOOK ?= notebooks_py/5-Benchmarking_python.ipynb
 NOTEBOOKS ?= $(PORTABLE_PYTHON_NOTEBOOKS)
+NOTEBOOK_FILES ?= notebooks_jl/*.ipynb notebooks_py/*.ipynb
 
 test:
 	@if git grep -nE '(github\.com|raw\.githubusercontent\.com)/(psrenergy|psrnergy)/QUBO\.jl' -- '*.md' '*.ipynb' '*.yml' '*.yaml'; then \
@@ -37,6 +38,15 @@ test-python:
 
 test-julia:
 	$(JULIA) --startup-file=no test/runtests.jl
+
+check-notebook-output-hygiene:
+	@if git grep -lE 'C:\\\\Users|AppData|purdue-internship|QUBONotebooksFork|home/azain' -- $(NOTEBOOK_FILES); then \
+		echo "Found stale or personal notebook output paths"; \
+		exit 1; \
+	fi
+
+clear-notebook-outputs:
+	$(PYTHON) -m jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace $(NOTEBOOK_FILES)
 
 verify-notebooks:
 	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) sync --locked $(UV_GROUP_FLAGS)
