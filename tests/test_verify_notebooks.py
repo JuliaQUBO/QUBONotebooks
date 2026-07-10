@@ -459,6 +459,19 @@ class NotebookPedagogyCellTests(unittest.TestCase):
                         for cell in solution_cells[:3]
                     )
                 )
+                self.assertTrue(
+                    all(
+                        any(
+                            stripped
+                            and not stripped.startswith("#")
+                            for stripped in (
+                                line.strip()
+                                for line in "".join(cell.get("source", [])).splitlines()
+                            )
+                        )
+                        for cell in solution_cells
+                    )
+                )
 
     def test_setup_learning_objectives_and_prerequisites_are_top_cells(self) -> None:
         for path in notebook_paths():
@@ -1176,6 +1189,8 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn("verify-benchmarking-python:", makefile)
         self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
         self.assertIn("ClearOutputPreprocessor.enabled=True", makefile)
+        self.assertIn("git grep -lE", makefile)
+        self.assertNotIn("git grep -nE 'C:", makefile)
         self.assertIn("purdue-internship", makefile)
         self.assertIn("QUBONotebooksFork", makefile)
         self.assertIn("./scripts/verify_notebooks.py", makefile)
@@ -1519,6 +1534,7 @@ class DWaveNotebookTests(unittest.TestCase):
         self.assertIn('topology_type == "zephyr"', source)
         self.assertIn("def draw_topology_graph(", source)
         self.assertIn("def draw_embedding_graph(", source)
+        self.assertIn("Pegasus QPU topology (schematic layout)", source)
         self.assertNotIn('qpu.solver.id == "DW_2000Q_6"', source)
         self.assertNotIn("dwave_networkx", source)
         self.assertNotIn("dnx.", source)

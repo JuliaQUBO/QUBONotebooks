@@ -40,7 +40,7 @@ test-julia:
 	$(JULIA) --startup-file=no test/runtests.jl
 
 check-notebook-output-hygiene:
-	@if git grep -nE 'C:\\\\Users|AppData|purdue-internship|QUBONotebooksFork|home/azain' -- $(NOTEBOOK_FILES); then \
+	@if git grep -lE 'C:\\\\Users|AppData|purdue-internship|QUBONotebooksFork|home/azain' -- $(NOTEBOOK_FILES); then \
 		echo "Found stale or personal notebook output paths"; \
 		exit 1; \
 	fi
