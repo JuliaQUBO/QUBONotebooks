@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
+MATHPROG_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "1-MathProg.ipynb"
 QUBO_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "2-QUBO.ipynb"
 QUBO_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "2-QUBO_python.ipynb"
 GAMA_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb"
@@ -214,6 +215,73 @@ class QUBONotebookConsistencyTests(unittest.TestCase):
             source,
         )
         self.assertNotIn("J = range", source)
+
+
+class NotebookTextAccuracyTests(unittest.TestCase):
+    def test_python_mathprog_objective_comment_matches_code(self) -> None:
+        source = notebook_source(MATHPROG_NOTEBOOK_PATH)
+
+        self.assertIn("# Objective: max 5.5*x1 + 2.1*x2", source)
+        self.assertIn("Z = 5.5*x1 + 2.1*x2", source)
+        self.assertNotIn("min 7.3x1", source)
+
+    def test_python_mathprog_feasible_region_removal_is_guarded(self) -> None:
+        source = notebook_source(MATHPROG_NOTEBOOK_PATH)
+
+        self.assertEqual(2, source.count("feas_reg.remove()"))
+        self.assertEqual(2, source.count("try:\n    feas_reg.remove()"))
+        self.assertEqual(
+            2,
+            source.count("except (ValueError, AttributeError, NameError):"),
+        )
+
+    def test_python_notebooks_do_not_have_reported_text_artifacts(self) -> None:
+        banned_strings = (
+            "Quantum annealiing",
+            "Binary Quandratic model",
+            "coefficeints",
+            "follwing",
+            "Qudratic",
+            "Offse term",
+            "# doctest: +SKIP",
+            "Julia's built-in data structures",
+        )
+        offenders = [
+            (path.relative_to(REPO_ROOT).as_posix(), text)
+            for path in (QUBO_NOTEBOOK_PATH, QCI_NOTEBOOK_PATH)
+            for text in banned_strings
+            if text in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_julia_notebooks_do_not_have_reported_text_artifacts(self) -> None:
+        banned_strings = (
+            "INCLP",
+            "colobar",
+            "yective function",
+            "Finally, for we will use Graphs.jl",
+        )
+        offenders = [
+            (path.relative_to(REPO_ROOT).as_posix(), text)
+            for path in (
+                MATHPROG_JULIA_NOTEBOOK_PATH,
+                QUBO_JULIA_NOTEBOOK_PATH,
+                GAMA_JULIA_NOTEBOOK_PATH,
+            )
+            for text in banned_strings
+            if text in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_julia_benchmarking_explains_ising_model_before_packages(self) -> None:
+        source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "## Ising model")
+
+        self.assertIn("binary spin variables", source)
+        self.assertIn("minimum-energy spin assignment", source)
+        self.assertIn("common benchmark for simulated annealing", source)
+        self.assertLess(source.index("binary spin variables"), source.index("JuMP"))
 
 
 class NotebookPedagogyCellTests(unittest.TestCase):
