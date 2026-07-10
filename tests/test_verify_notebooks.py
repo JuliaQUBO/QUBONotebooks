@@ -62,6 +62,14 @@ def notebook_source(path: Path) -> str:
     return "\n".join("".join(cell.get("source", [])) for cell in notebook["cells"])
 
 
+def notebook_output_text(path: Path) -> str:
+    notebook = json.loads(path.read_text())
+    return "\n".join(
+        json.dumps(cell.get("outputs", []), ensure_ascii=False)
+        for cell in notebook["cells"]
+    )
+
+
 def notebook_cell_source(path: Path, marker: str) -> str:
     notebook = json.loads(path.read_text())
 
@@ -125,6 +133,23 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
         self.assertIn("JuMP.backend(color_model).optimizer", source)
         self.assertNotIn("solution(backend(color_model)", source)
+
+    def test_notebook_outputs_do_not_contain_personal_paths(self) -> None:
+        personal_path_patterns = (
+            "C:\\Users",
+            "AppData",
+            "purdue-internship",
+            "QUBONotebooksFork",
+            "home/azain",
+        )
+        offenders = [
+            (path.relative_to(REPO_ROOT).as_posix(), pattern)
+            for path in notebook_paths()
+            for pattern in personal_path_patterns
+            if pattern in notebook_output_text(path)
+        ]
+
+        self.assertEqual([], offenders)
 
 
 class QUBONotebookConsistencyTests(unittest.TestCase):
@@ -222,7 +247,8 @@ class NotebookTextAccuracyTests(unittest.TestCase):
         source = notebook_source(MATHPROG_NOTEBOOK_PATH)
 
         self.assertIn("# Objective: max 5.5*x1 + 2.1*x2", source)
-        self.assertIn("Z = 5.5*x1 + 2.1*x2", source)
+        self.assertNotIn("Z = 5.5*x1 + 2.1*x2", source)
+        self.assertIn("objective_heatmap = np.fromfunction", source)
         self.assertNotIn("min 7.3x1", source)
 
     def test_python_mathprog_feasible_region_removal_is_guarded(self) -> None:
@@ -284,21 +310,167 @@ class NotebookTextAccuracyTests(unittest.TestCase):
         self.assertLess(source.index("binary spin variables"), source.index("JuMP"))
 
 
+class NotebookMaintenanceIssueTests(unittest.TestCase):
+    def test_student_facing_slide_placeholders_are_removed(self) -> None:
+        offenders = [
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in notebook_paths()
+            if "Let's go back to the slides" in notebook_source(path)
+            or " in the slides" in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_penalty_rationale_is_documented_before_rho_computation(self) -> None:
+        for path in (
+            QUBO_NOTEBOOK_PATH,
+            DWAVE_PYTHON_NOTEBOOK_PATH,
+            QCI_NOTEBOOK_PATH,
+            QUBO_JULIA_NOTEBOOK_PATH,
+            DWAVE_JULIA_NOTEBOOK_PATH,
+        ):
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                cells = notebook_cells(path)
+                sources = ["".join(cell.get("source", [])) for cell in cells]
+                explanation_index = next(
+                    index
+                    for index, source in enumerate(sources)
+                    if "### Penalty parameter rationale" in source
+                )
+                rho_index = next(
+                    index
+                    for index, cell in enumerate(cells)
+                    if cell.get("cell_type") == "code"
+                    and (
+                        "rho =" in "".join(cell.get("source", []))
+                        or "ρ =" in "".join(cell.get("source", []))
+                    )
+                )
+                explanation = sources[explanation_index]
+
+                self.assertLess(explanation_index, rho_index)
+                self.assertIn("rho = sum(abs(c)) + epsilon", explanation)
+                self.assertIn("Worked example", explanation)
+                self.assertIn("Glover, Kochenberger, and Du (2019)", explanation)
+
+    def test_python_benchmarking_uses_supported_dimod_graph_helper(self) -> None:
+        source = notebook_source(BENCHMARKING_PYTHON_NOTEBOOK_PATH)
+
+        self.assertIn("dimod.to_networkx_graph(model_ising)", source)
+        self.assertIn("dimod.to_networkx_graph(model_random)", source)
+        self.assertNotIn("model_ising.to_networkx_graph()", source)
+        self.assertNotIn("model_random.to_networkx_graph()", source)
+
+    def test_python_benchmarking_random_weights_match_documented_distribution(self) -> None:
+        source = notebook_source(BENCHMARKING_PYTHON_NOTEBOOK_PATH)
+
+        self.assertIn("J = 2 * np.random.rand(N, N) - 1", source)
+        self.assertIn("h = 2 * np.random.rand(N) - 1", source)
+        self.assertNotIn("J = np.random.rand(N,N)", source)
+        self.assertNotIn("h = np.random.rand(N)", source)
+
+    def test_python_benchmarking_long_run_warns_and_saves_partial_results(self) -> None:
+        source = notebook_source(BENCHMARKING_PYTHON_NOTEBOOK_PATH)
+
+        self.assertIn("Warning - long-running computation", source)
+        self.assertIn("20 instances x 320 sweep values x 1000 reads", source)
+        self.assertIn("from tqdm.auto import tqdm", source)
+        self.assertIn('for instance in tqdm(instances, desc="Instances"):', source)
+        self.assertIn(
+            "for sweep in tqdm(sweeps, desc=f\"Instance {instance} sweeps\", leave=False):",
+            source,
+        )
+        self.assertGreaterEqual(
+            source.count("save_benchmark_cache(all_results_json_name, all_results)"),
+            2,
+        )
+
+    def test_qci_small_qubo_uses_solver_free_enumeration(self) -> None:
+        source = notebook_source(QCI_NOTEBOOK_PATH)
+
+        self.assertIn("import itertools", source)
+        self.assertIn("itertools.product([0, 1], repeat=2)", source)
+        self.assertIn("simple_qubo_energy", source)
+        self.assertNotIn("pyo.SolverFactory('bonmin')", source)
+        self.assertNotIn('"bonmin"', source)
+        self.assertNotIn("'bonmin'", source)
+
+    def test_reported_unused_imports_are_removed(self) -> None:
+        checks = (
+            (MATHPROG_NOTEBOOK_PATH, "import sys"),
+            (QUBO_NOTEBOOK_PATH, "from scipy.special import gamma"),
+            (QUBO_NOTEBOOK_PATH, "import math"),
+            (QUBO_NOTEBOOK_PATH, "from itertools import chain"),
+            (QUBO_NOTEBOOK_PATH, "import time"),
+            (GAMA_NOTEBOOK_PATH, "from sympy import *"),
+            (DWAVE_PYTHON_NOTEBOOK_PATH, "from scipy.special import gamma"),
+            (QCI_NOTEBOOK_PATH, "from scipy.special import gamma"),
+        )
+
+        offenders = [
+            (path.relative_to(REPO_ROOT).as_posix(), text)
+            for path, text in checks
+            if text in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_julia_dwave_kernel_and_imports_match_series(self) -> None:
+        mathprog_metadata = json.loads(MATHPROG_JULIA_NOTEBOOK_PATH.read_text())[
+            "metadata"
+        ]["kernelspec"]
+        dwave_metadata = json.loads(DWAVE_JULIA_NOTEBOOK_PATH.read_text())[
+            "metadata"
+        ]["kernelspec"]
+        source = notebook_source(DWAVE_JULIA_NOTEBOOK_PATH)
+
+        self.assertEqual(mathprog_metadata, dwave_metadata)
+        self.assertEqual(1, source.count("using JuMP"))
+        self.assertEqual(1, source.count("using QUBO"))
+        self.assertEqual(1, source.count("using DWave"))
+
+
 class NotebookPedagogyCellTests(unittest.TestCase):
-    def test_learning_objectives_and_prerequisites_are_top_cells(self) -> None:
+    def test_setup_learning_objectives_and_prerequisites_are_top_cells(self) -> None:
         for path in notebook_paths():
             with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
                 cells = notebook_cells(path)
 
-                self.assertEqual("## Learning objectives", notebook_first_heading(cells[1]))
-                self.assertEqual("## Prerequisites", notebook_first_heading(cells[2]))
+                if path.parent.name == "notebooks_jl":
+                    pkg_indices = [
+                        index
+                        for index, cell in enumerate(cells)
+                        if cell.get("cell_type") == "code"
+                        and "Pkg.instantiate" in "".join(cell.get("source", []))
+                    ]
+                    self.assertEqual(1, len(pkg_indices))
+                    self.assertEqual("import Pkg", notebook_first_heading(cells[pkg_indices[0]]))
+                    learning_index = pkg_indices[0] + 1
+                    prerequisites_index = pkg_indices[0] + 2
+                else:
+                    learning_index = 2
+                    prerequisites_index = 3
+
+                self.assertEqual("## Setup", notebook_first_heading(cells[1]))
+                self.assertIn(
+                    "Local installation",
+                    "".join(cells[1].get("source", [])),
+                )
+                self.assertEqual(
+                    "## Learning objectives",
+                    notebook_first_heading(cells[learning_index]),
+                )
+                self.assertEqual(
+                    "## Prerequisites",
+                    notebook_first_heading(cells[prerequisites_index]),
+                )
                 self.assertIn(
                     "By the end of this notebook you will be able to:",
-                    "".join(cells[1].get("source", [])),
+                    "".join(cells[learning_index].get("source", [])),
                 )
                 self.assertIn(
                     "**Prior notebooks:**",
-                    "".join(cells[2].get("source", [])),
+                    "".join(cells[prerequisites_index].get("source", [])),
                 )
 
     def test_summaries_close_learning_content(self) -> None:
@@ -733,18 +905,8 @@ class BenchmarkingNotebookScopeTests(unittest.TestCase):
         self.assertNotIn("@variable(ising_model, s[1:11], Spin)", source)
         self.assertNotIn("value.(s))", solve_cell)
 
-    def test_julia_benchmarking_results_cell_has_fresh_execution_output(self) -> None:
+    def test_julia_benchmarking_expensive_outputs_are_not_committed(self) -> None:
         notebook = json.loads(BENCHMARKING_JULIA_NOTEBOOK_PATH.read_text())
-        code_cells = [
-            cell for cell in notebook["cells"] if cell.get("cell_type") == "code"
-        ]
-        execution_counts = [cell.get("execution_count") for cell in code_cells]
-
-        self.assertEqual(
-            list(range(1, len(code_cells) + 1)),
-            execution_counts,
-        )
-
         results_cells = [
             (index, cell)
             for index, cell in enumerate(notebook["cells"])
@@ -764,7 +926,29 @@ class BenchmarkingNotebookScopeTests(unittest.TestCase):
 
         results_index, results_cell = results_cells[0]
         self.assertLess(results_index, plot_cells[0])
-        self.assertTrue(results_cell.get("outputs"))
+        self.assertFalse(results_cell.get("outputs"))
+
+        expensive_cells = [
+            cell
+            for cell in notebook["cells"][plot_cells[0] :]
+            if cell.get("cell_type") == "code"
+            and any(
+                marker in "".join(cell.get("source", []))
+                for marker in (
+                    "function plot_progress",
+                    "title_str =",
+                    "Calculating optimal sweep",
+                    "plt = plot(",
+                    "plt_approx = plot(",
+                    "plt_total_reads = plot(",
+                )
+            )
+        ]
+
+        self.assertTrue(expensive_cells)
+        self.assertTrue(
+            all(not cell.get("outputs") for cell in expensive_cells)
+        )
 
 
 class QUBOJuliaNotebookTests(unittest.TestCase):
@@ -1092,7 +1276,7 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         source = notebook_source(QCI_NOTEBOOK_PATH)
         install_cell = notebook_cell_source(QCI_NOTEBOOK_PATH, "idaes-pse==2.12.0")
         ipopt_cell = notebook_cell_source(QCI_NOTEBOOK_PATH, "Simple_Quadratic_Program")
-        bonmin_cell = notebook_cell_source(QCI_NOTEBOOK_PATH, "Simple_QUBO")
+        enumeration_cell = notebook_cell_source(QCI_NOTEBOOK_PATH, "simple_qubo_energy")
         cbc_cell = notebook_cell_source(QCI_NOTEBOOK_PATH, "Constrained_Linear_Integer_Program")
 
         self.assertNotIn("idaes-pse --pre", source)
@@ -1100,7 +1284,8 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertNotIn("Re-run the IDAES install cell", source)
         self.assertIn("!pip install idaes-pse==2.12.0", install_cell)
         self.assertIn("Install IDAES solver extensions", install_cell)
-        self.assertIn("for solver_name in ['ipopt', 'bonmin', 'cbc']:", install_cell)
+        self.assertIn("for solver_name in ['ipopt', 'cbc']:", install_cell)
+        self.assertNotIn("bonmin", install_cell.lower())
         self.assertIn("Check the install output above", install_cell)
         self.assertIn("solver.available(exception_flag=False)", install_cell)
         self.assertIn('api_token = os.environ.get("QCI_TOKEN", "")', source)
@@ -1111,8 +1296,8 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertNotIn('api_token = ""', source)
         self.assertIn("IPOPT not found", ipopt_cell)
         self.assertIn("IDAES solver setup cell", ipopt_cell)
-        self.assertIn("BONMIN not found", bonmin_cell)
-        self.assertIn("IDAES solver setup cell", bonmin_cell)
+        self.assertIn("itertools.product([0, 1], repeat=2)", enumeration_cell)
+        self.assertNotIn("BONMIN not found", source)
         self.assertIn("CBC not found", cbc_cell)
         self.assertIn("IDAES solver setup cell", cbc_cell)
 
@@ -1147,9 +1332,12 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
     def test_qubo_colab_install_includes_scipy_before_imports(self) -> None:
         cells = notebook_cell_sources(QUBO_NOTEBOOK_PATH)
         install_cell = notebook_cell_source(QUBO_NOTEBOOK_PATH, "!pip install -q pyomo")
-        import_cell = notebook_cell_source(QUBO_NOTEBOOK_PATH, "from scipy.special import gamma")
+        import_cell = notebook_cell_source(QUBO_NOTEBOOK_PATH, "import networkx as nx")
 
-        self.assertIn("!pip install dimod scipy", install_cell)
+        self.assertIn("dimod", install_cell)
+        self.assertIn("scipy", install_cell)
+        self.assertIn("pandas", install_cell)
+        self.assertIn("networkx", install_cell)
         self.assertLess(cells.index(install_cell), cells.index(import_cell))
 
     def test_gama_installs_missing_dimod_and_neal_outside_colab(self) -> None:
@@ -1207,10 +1395,17 @@ class GamaNotebookTests(unittest.TestCase):
         code_cells = [
             cell for cell in notebook["cells"] if cell.get("cell_type") == "code"
         ]
+        substantive_cells = [
+            cell
+            for cell in code_cells
+            if not "".join(cell.get("source", [])).startswith(
+                ("try:", "from pathlib import Path")
+            )
+        ]
 
-        self.assertTrue(code_cells)
+        self.assertTrue(substantive_cells)
         self.assertTrue(
-            all(cell.get("execution_count") is not None for cell in code_cells)
+            all(cell.get("execution_count") is not None for cell in substantive_cells)
         )
         self.assertGreater(sum(bool(cell.get("outputs", [])) for cell in code_cells), 0)
 
