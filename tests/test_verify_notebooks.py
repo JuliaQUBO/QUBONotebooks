@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "verify_notebooks.py"
+MATHPROG_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "1-MathProg.ipynb"
 QUBO_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "2-QUBO.ipynb"
 QUBO_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "2-QUBO_python.ipynb"
 GAMA_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb"
@@ -124,6 +125,163 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
         self.assertIn("JuMP.backend(color_model).optimizer", source)
         self.assertNotIn("solution(backend(color_model)", source)
+
+
+class QUBONotebookConsistencyTests(unittest.TestCase):
+    def test_julia_qubo_problem_statement_uses_julia_indices(self) -> None:
+        source = notebook_cell_source(
+            QUBO_JULIA_NOTEBOOK_PATH,
+            "Suppose we want to solve the following problem via QUBO",
+        )
+
+        self.assertIn(
+            "2x_1+4x_2+4x_3+4x_4+4x_5+4x_6+"
+            "5x_7+4x_8+5x_9+6x_{10}+5x_{11}",
+            source,
+        )
+        self.assertNotIn("x_0", source)
+
+    def test_julia_qubo_documented_optima_match_problem_data(self) -> None:
+        rows = (
+            (1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1),
+            (0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1),
+            (0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1),
+        )
+        b = (1, 1, 1)
+        c = (2, 4, 4, 4, 4, 4, 5, 4, 5, 6, 5)
+        feasible_singletons = [
+            index
+            for index, column in enumerate(zip(*rows), start=1)
+            if column == b
+        ]
+        best_singletons = [
+            index
+            for index in feasible_singletons
+            if c[index - 1] == min(c[j - 1] for j in feasible_singletons)
+        ]
+        source = notebook_cell_source(
+            QUBO_JULIA_NOTEBOOK_PATH,
+            "optimal solution of this problem",
+        )
+
+        self.assertEqual([9, 11], best_singletons)
+        self.assertIn("$x_{9} = 1", source)
+        self.assertIn("$x_{11} = 1", source)
+        self.assertNotIn("$x_{10} = 1", source)
+
+    def test_ising_matrix_display_matches_coupling_definitions(self) -> None:
+        corrected_first_row = (
+            "0 & 0 & 0 & 24 & 24 & 24 & 0 & 24 & 24 & 24 & 24\\\\"
+        )
+        stale_first_row = (
+            "0 & 0 & 0 & 24 & 24 & 24 & 24 & 24 & 24 & 24 & 24\\\\"
+        )
+
+        for path in (QUBO_JULIA_NOTEBOOK_PATH, QUBO_NOTEBOOK_PATH):
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                source = notebook_cell_source(path, "J = \\begin{bmatrix}")
+
+                self.assertIn(corrected_first_row, source)
+                self.assertNotIn(stale_first_row, source)
+
+    def test_julia_qubo_cells_use_distinct_x_bindings(self) -> None:
+        source = notebook_source(QUBO_JULIA_NOTEBOOK_PATH)
+
+        self.assertIn(
+            '@variable(qubo_model, x_qubo[1:11], Bin, base_name = "x")',
+            source,
+        )
+        self.assertIn(
+            '@variable(qubo_ilp_model, x_qubo_ilp[1:11], Bin, base_name = "x")',
+            source,
+        )
+        self.assertIn(
+            '@variable(ising_ilp_model, x_ising_ilp[1:n], Bin, base_name = "x")',
+            source,
+        )
+        self.assertNotIn("x = qubo_model[:x]", source)
+        self.assertNotIn("value.(x))", source)
+
+    def test_python_pyomo_indices_do_not_overwrite_ising_couplings(self) -> None:
+        source = notebook_source(QUBO_NOTEBOOK_PATH)
+
+        self.assertIn("# Ising coupling matrix (J_{ij})\nJ = {(0, 3): 24.0", source)
+        self.assertIn(
+            "J_idx = range(len(h))  # Pyomo index set for Ising couplings",
+            source,
+        )
+        self.assertIn(
+            "model_ising_pyo.y = pyo.Var(I, J_idx, domain=pyo.Binary)",
+            source,
+        )
+        self.assertNotIn("J = range", source)
+
+
+class NotebookTextAccuracyTests(unittest.TestCase):
+    def test_python_mathprog_objective_comment_matches_code(self) -> None:
+        source = notebook_source(MATHPROG_NOTEBOOK_PATH)
+
+        self.assertIn("# Objective: max 5.5*x1 + 2.1*x2", source)
+        self.assertIn("Z = 5.5*x1 + 2.1*x2", source)
+        self.assertNotIn("min 7.3x1", source)
+
+    def test_python_mathprog_feasible_region_removal_is_guarded(self) -> None:
+        source = notebook_source(MATHPROG_NOTEBOOK_PATH)
+
+        self.assertEqual(2, source.count("feas_reg.remove()"))
+        self.assertEqual(2, source.count("try:\n    feas_reg.remove()"))
+        self.assertEqual(
+            2,
+            source.count("except (ValueError, AttributeError, NameError):"),
+        )
+
+    def test_python_notebooks_do_not_have_reported_text_artifacts(self) -> None:
+        banned_strings = (
+            "Quantum annealiing",
+            "Binary Quandratic model",
+            "coefficeints",
+            "follwing",
+            "Qudratic",
+            "Offse term",
+            "# doctest: +SKIP",
+            "Julia's built-in data structures",
+        )
+        offenders = [
+            (path.relative_to(REPO_ROOT).as_posix(), text)
+            for path in (QUBO_NOTEBOOK_PATH, QCI_NOTEBOOK_PATH)
+            for text in banned_strings
+            if text in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_julia_notebooks_do_not_have_reported_text_artifacts(self) -> None:
+        banned_strings = (
+            "INCLP",
+            "colobar",
+            "yective function",
+            "Finally, for we will use Graphs.jl",
+        )
+        offenders = [
+            (path.relative_to(REPO_ROOT).as_posix(), text)
+            for path in (
+                MATHPROG_JULIA_NOTEBOOK_PATH,
+                QUBO_JULIA_NOTEBOOK_PATH,
+                GAMA_JULIA_NOTEBOOK_PATH,
+            )
+            for text in banned_strings
+            if text in notebook_source(path)
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_julia_benchmarking_explains_ising_model_before_packages(self) -> None:
+        source = notebook_cell_source(BENCHMARKING_JULIA_NOTEBOOK_PATH, "## Ising model")
+
+        self.assertIn("binary spin variables", source)
+        self.assertIn("minimum-energy spin assignment", source)
+        self.assertIn("common benchmark for simulated annealing", source)
+        self.assertLess(source.index("binary spin variables"), source.index("JuMP"))
 
 
 class NotebookPedagogyCellTests(unittest.TestCase):
@@ -613,9 +771,12 @@ class QUBOJuliaNotebookTests(unittest.TestCase):
     def test_ising_ilp_objective_keeps_linear_and_quadratic_terms_separate(self) -> None:
         source = notebook_cell_source(QUBO_JULIA_NOTEBOOK_PATH, "ising_ilp_model = Model()")
 
-        self.assertIn("@variable(ising_ilp_model, x[1:n], Bin)", source)
+        self.assertIn(
+            '@variable(ising_ilp_model, x_ising_ilp[1:n], Bin, base_name = "x")',
+            source,
+        )
         self.assertIn("@variable(ising_ilp_model, y[1:n, 1:n], Bin)", source)
-        self.assertIn("sum(L[i] * x[i] for i in 1:n)", source)
+        self.assertIn("sum(L[i] * x_ising_ilp[i] for i in 1:n)", source)
         self.assertIn("sum(Q[i,j] * y[i,j] for i in 1:n, j in 1:n if i != j)", source)
         self.assertNotIn("i == j ? x[i] : y[i,j]", source)
 
