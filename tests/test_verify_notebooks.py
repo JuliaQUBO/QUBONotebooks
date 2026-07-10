@@ -994,6 +994,18 @@ class BenchmarkingNotebookScopeTests(unittest.TestCase):
 
 
 class QUBOJuliaNotebookTests(unittest.TestCase):
+    def test_graph_coloring_constraint_container_is_not_displayed(self) -> None:
+        source = notebook_cell_source(
+            QUBO_JULIA_NOTEBOOK_PATH,
+            "@constraint(color_model, neigh",
+        )
+
+        self.assertIn(
+            "@constraint(color_model, neigh[(i,j) ∈ E, k=1:3], c[i, k] * c[j,k] == 0);",
+            source,
+        )
+        self.assertNotIn("InvalidConstraintRef", notebook_output_text(QUBO_JULIA_NOTEBOOK_PATH))
+
     def test_ising_ilp_objective_keeps_linear_and_quadratic_terms_separate(self) -> None:
         source = notebook_cell_source(QUBO_JULIA_NOTEBOOK_PATH, "ising_ilp_model = Model()")
 
