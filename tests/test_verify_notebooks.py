@@ -1293,6 +1293,7 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertIn("### QCI API token", source)
         self.assertIn("Set the QCI_TOKEN environment variable or Colab Secret", source)
         self.assertIn("The Dirac cloud examples require a QCI token", source)
+        self.assertNotIn("QCI_API_TOKEN", source)
         self.assertNotIn('api_token = ""', source)
         self.assertIn("IPOPT not found", ipopt_cell)
         self.assertIn("IDAES solver setup cell", ipopt_cell)
@@ -1300,6 +1301,21 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertNotIn("BONMIN not found", source)
         self.assertIn("CBC not found", cbc_cell)
         self.assertIn("IDAES solver setup cell", cbc_cell)
+
+    def test_benchmarking_installs_progress_dependency(self) -> None:
+        pyproject = (REPO_ROOT / "pyproject.toml").read_text()
+        local_setup_cell = notebook_cell_source(
+            BENCHMARKING_PYTHON_NOTEBOOK_PATH,
+            "python -m pip install dimod dwave-neal",
+        )
+        colab_install_cell = notebook_cell_source(
+            BENCHMARKING_PYTHON_NOTEBOOK_PATH,
+            "!pip install -q pyomo dimod",
+        )
+
+        self.assertIn("tqdm", local_setup_cell)
+        self.assertIn("tqdm", colab_install_cell)
+        self.assertIn('"tqdm>=4.67,<5"', pyproject)
 
     def test_qci_constrained_polynomial_model_solves_wrapped_model(self) -> None:
         source = notebook_source(QCI_NOTEBOOK_PATH)
