@@ -613,10 +613,14 @@ class NotebookPythonJuliaParityTests(unittest.TestCase):
                 julia=julia_path.relative_to(REPO_ROOT).as_posix(),
                 python=python_path.relative_to(REPO_ROOT).as_posix(),
             ):
-                self.assertEqual(
-                    notebook_solution_output_texts(julia_path),
-                    notebook_solution_output_texts(python_path),
-                )
+                julia_outputs = notebook_solution_output_texts(julia_path)
+                python_outputs = notebook_solution_output_texts(python_path)
+
+                self.assertEqual(3, len(julia_outputs))
+                self.assertEqual(3, len(python_outputs))
+                self.assertTrue(all(output.strip() for output in julia_outputs))
+                self.assertTrue(all(output.strip() for output in python_outputs))
+                self.assertEqual(julia_outputs, python_outputs)
 
 
 class PythonPlotSamplesNotebookTests(unittest.TestCase):
