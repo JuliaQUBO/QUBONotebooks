@@ -100,6 +100,28 @@ def notebook_cells(path: Path) -> list[dict]:
     return notebook["cells"]
 
 
+def notebook_solution_output_texts(path: Path) -> list[str]:
+    outputs = []
+
+    for cell in notebook_cells(path):
+        source = "".join(cell.get("source", []))
+        if (
+            cell.get("cell_type") == "code"
+            and "# SOLUTION (hidden in workshop version):" in source
+        ):
+            stream_text = []
+            for output in cell.get("outputs", []):
+                if (
+                    output.get("output_type") == "stream"
+                    and output.get("name") == "stdout"
+                ):
+                    text = output.get("text", [])
+                    stream_text.append("".join(text) if isinstance(text, list) else text)
+            outputs.append("".join(stream_text))
+
+    return outputs
+
+
 def notebook_paths() -> list[Path]:
     return sorted(path for directory in NOTEBOOK_DIRS for path in directory.glob("*.ipynb"))
 
@@ -574,6 +596,31 @@ class NotebookPedagogyCellTests(unittest.TestCase):
                     self.assertEqual(reference_indices[0] - 1, summary_index)
                 else:
                     self.assertEqual(len(cells) - 1, summary_index)
+
+
+class NotebookPythonJuliaParityTests(unittest.TestCase):
+    def test_practice_checkpoint_outputs_match_language_pairs(self) -> None:
+        paired_notebooks = (
+            (MATHPROG_JULIA_NOTEBOOK_PATH, MATHPROG_NOTEBOOK_PATH),
+            (QUBO_JULIA_NOTEBOOK_PATH, QUBO_NOTEBOOK_PATH),
+            (GAMA_JULIA_NOTEBOOK_PATH, GAMA_NOTEBOOK_PATH),
+            (DWAVE_JULIA_NOTEBOOK_PATH, DWAVE_PYTHON_NOTEBOOK_PATH),
+            (BENCHMARKING_JULIA_NOTEBOOK_PATH, BENCHMARKING_PYTHON_NOTEBOOK_PATH),
+        )
+
+        for julia_path, python_path in paired_notebooks:
+            with self.subTest(
+                julia=julia_path.relative_to(REPO_ROOT).as_posix(),
+                python=python_path.relative_to(REPO_ROOT).as_posix(),
+            ):
+                julia_outputs = notebook_solution_output_texts(julia_path)
+                python_outputs = notebook_solution_output_texts(python_path)
+
+                self.assertEqual(3, len(julia_outputs))
+                self.assertEqual(3, len(python_outputs))
+                self.assertTrue(all(output.strip() for output in julia_outputs))
+                self.assertTrue(all(output.strip() for output in python_outputs))
+                self.assertEqual(julia_outputs, python_outputs)
 
 
 class PythonPlotSamplesNotebookTests(unittest.TestCase):
