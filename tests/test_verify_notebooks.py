@@ -37,10 +37,7 @@ JULIA_COLAB_NOTEBOOK_PATHS = (
     REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb",
     REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb",
 )
-COLAB_JULIA_INSTALLER = (
-    'bash <(curl -s "https://raw.githubusercontent.com/JuliaQUBO/QUBONotebooks/main/'
-    'scripts/install-colab-julia.sh")'
-)
+BOOTSTRAP_PATH = REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
 NOTEBOOK_DIRS = (
     REPO_ROOT / "notebooks_jl",
     REPO_ROOT / "notebooks_py",
@@ -1373,21 +1370,53 @@ class RepositoryCommandTests(unittest.TestCase):
 
 
 class JuliaColabSetupTests(unittest.TestCase):
-    def test_all_julia_notebooks_install_colab_julia_before_activation(self) -> None:
+    def test_all_julia_notebooks_use_native_colab_julia_bootstrap(self) -> None:
         for path in JULIA_COLAB_NOTEBOOK_PATHS:
             with self.subTest(path=path.relative_to(REPO_ROOT).as_posix()):
                 cells = notebook_cell_sources(path)
-                install_indexes = [
-                    i for i, source in enumerate(cells) if COLAB_JULIA_INSTALLER in source
+                setup_indexes = [
+                    i
+                    for i, source in enumerate(cells)
+                    if (
+                        "Base.invokelatest(QUBONotebooksBootstrap.bootstrap_notebook"
+                        in source
+                    )
                 ]
                 activate_indexes = [
-                    i for i, source in enumerate(cells) if "Pkg.activate(@__DIR__)" in source
+                    i for i, source in enumerate(cells) if "Pkg.activate(JULIA_PROJECT_DIR)" in source
                 ]
+                expected_call = (
+                    "Base.invokelatest("
+                    f'QUBONotebooksBootstrap.bootstrap_notebook, "{path.stem}")'
+                )
+                metadata = json.loads(path.read_text())["metadata"]["kernelspec"]
 
-                self.assertEqual(1, len(install_indexes))
+                self.assertEqual(1, len(setup_indexes))
+                self.assertIn(expected_call, cells[setup_indexes[0]])
                 self.assertTrue(activate_indexes)
-                self.assertLess(install_indexes[0], min(activate_indexes))
-                self.assertIn("precompiled QUBONotebooks sysimage", cells[install_indexes[0] - 1])
+                self.assertLess(setup_indexes[0], min(activate_indexes))
+                self.assertNotIn("%%shell", notebook_source(path))
+                self.assertNotIn("install-colab-julia.sh", notebook_source(path))
+                self.assertEqual(
+                    {"display_name": "Julia", "language": "julia", "name": "julia"},
+                    metadata,
+                )
+
+    def test_bootstrap_supports_native_colab_runtime_failure_modes(self) -> None:
+        source = BOOTSTRAP_PATH.read_text()
+
+        self.assertIn("module QUBONotebooksBootstrap", source)
+        self.assertIn("COLAB_RELEASE_TAG", source)
+        self.assertIn("git clone --depth 1 https://github.com/JuliaQUBO/QUBONotebooks.git", source)
+        self.assertIn("QUBONOTEBOOKS_REPO_DIR", source)
+        self.assertIn("Base.invokelatest", notebook_source(MATHPROG_JULIA_NOTEBOOK_PATH))
+        self.assertIn("configured_allow_mismatch = env_bool(ALLOW_VERSION_MISMATCH_ENV)", source)
+        self.assertIn("Colab will allow Pkg to re-resolve the notebook environment", source)
+        self.assertIn("Resolving Julia packages for current runtime Julia", source)
+        self.assertIn("Pkg.resolve()", source)
+        self.assertIn("Pkg.update()", source)
+        self.assertIn('ENV["JULIA_CONDAPKG_BACKEND"] = "Null"', source)
+        self.assertIn('python_packages::Vector{String} = ["dwave-ocean-sdk"]', source)
 
 
 class PythonNotebookDependencySetupTests(unittest.TestCase):
