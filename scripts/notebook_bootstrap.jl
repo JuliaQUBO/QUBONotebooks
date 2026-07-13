@@ -184,11 +184,51 @@ function should_resolve_project_for_current_julia(project_dir::AbstractString; i
     return in_colab && manifest_version !== nothing && manifest_version != VERSION
 end
 
+active_stdlib_names() = Set(readdir(Base.load_path_expand("@stdlib")))
+
+function strip_manifest_stdlib_pins!(project_dir::AbstractString; stdlib_names = active_stdlib_names())
+    path = manifest_path(project_dir)
+    isfile(path) || return false
+
+    manifest = TOML.parsefile(path)
+    deps = get(manifest, "deps", nothing)
+    deps isa AbstractDict || return false
+
+    changed = String[]
+    for (name, entries) in deps
+        name in stdlib_names || continue
+        entries isa AbstractVector || continue
+
+        for entry in entries
+            entry isa AbstractDict || continue
+            removed_pin = false
+            if haskey(entry, "version")
+                delete!(entry, "version")
+                removed_pin = true
+            end
+            if haskey(entry, "git-tree-sha1")
+                delete!(entry, "git-tree-sha1")
+                removed_pin = true
+            end
+            removed_pin && push!(changed, String(name))
+        end
+    end
+
+    isempty(changed) && return false
+
+    log_step("Removing stale Julia stdlib pins before resolving: $(join(sort(unique(changed)), ", "))")
+    open(path, "w") do io
+        TOML.print(io, manifest, sorted = true)
+    end
+    return true
+end
+
 function resolve_project_for_current_julia!(project_dir::AbstractString; in_colab::Bool = detect_colab())
     should_resolve_project_for_current_julia(project_dir; in_colab = in_colab) || return false
 
     if in_colab
         get!(ENV, "JULIA_PKG_PRECOMPILE_AUTO", "0")
+        strip_manifest_stdlib_pins!(project_dir)
     end
     log_step("Resolving Julia packages for current runtime Julia $(VERSION)")
     try
@@ -358,9 +398,7 @@ function bootstrap_notebook(
     end
 
     refreshed_for_current_julia = instantiate_project!(project_dir; precompile = precompile)
-    if warm_packages && refreshed_for_current_julia
-        log_step("Skipping package warmup because the notebook environment was refreshed for Julia $(VERSION). Restart the runtime and rerun this setup cell for a clean package load before continuing.")
-    elseif warm_packages
+    if warm_packages
         warm_notebook_packages!(project_key; suppress_logs = suppress_warmup_logs)
     end
 

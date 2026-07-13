@@ -1,6 +1,8 @@
 using Test
+import TOML
 
 repo_root = dirname(@__DIR__)
+include(joinpath(repo_root, "scripts", "notebook_bootstrap.jl"))
 
 files_with_qubo_links = [
     "README.md",
@@ -115,4 +117,43 @@ end
 
     @test occursin("gprev = fill(typemin(Int), n)", contents)
     @test !occursin("gprev = Vector{Int}(undef, n)", contents)
+end
+
+@testset "Julia Colab stdlib manifest sanitization" begin
+    mktempdir() do dir
+        project_dir = joinpath(dir, "notebooks_jl")
+        mkpath(project_dir)
+        manifest = joinpath(project_dir, "Manifest.toml")
+
+        write(
+            manifest,
+            """
+            julia_version = "1.10.11"
+            manifest_format = "2.0"
+
+            [[deps.ExamplePackage]]
+            git-tree-sha1 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            uuid = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            version = "1.2.3"
+
+            [[deps.Statistics]]
+            deps = ["LinearAlgebra", "SparseArrays"]
+            git-tree-sha1 = "cccccccccccccccccccccccccccccccccccccccc"
+            uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+            version = "1.10.0"
+            """,
+        )
+
+        @test QUBONotebooksBootstrap.strip_manifest_stdlib_pins!(project_dir)
+
+        parsed = TOML.parsefile(manifest)
+        statistics_entry = only(parsed["deps"]["Statistics"])
+        package_entry = only(parsed["deps"]["ExamplePackage"])
+
+        @test !haskey(statistics_entry, "version")
+        @test !haskey(statistics_entry, "git-tree-sha1")
+        @test package_entry["version"] == "1.2.3"
+        @test package_entry["git-tree-sha1"] == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        @test !QUBONotebooksBootstrap.strip_manifest_stdlib_pins!(project_dir)
+    end
 end
