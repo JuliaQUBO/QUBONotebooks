@@ -1402,6 +1402,12 @@ class JuliaColabSetupTests(unittest.TestCase):
                     metadata,
                 )
 
+    def test_dwave_installation_badge_targets_existing_anchor(self) -> None:
+        source = notebook_source(DWAVE_JULIA_NOTEBOOK_PATH)
+
+        self.assertIn('href="#installation"', source)
+        self.assertRegex(source, r'<a\b[^>]*(?:id|name)="installation"')
+
     def test_bootstrap_supports_native_colab_runtime_failure_modes(self) -> None:
         source = BOOTSTRAP_PATH.read_text()
 
