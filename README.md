@@ -43,6 +43,7 @@ long benchmark runs.
 | D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; quantum annealer cells require D-Wave solver access. The Python D-Wave notebook requires a user-managed Ocean install and is not part of the locked Python verification environment. |
 | Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; benchmark runs are long-running and generate artifacts. |
 | QCi | Not available | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | Requires QCi API credentials and the QCi Python stack. |
+| Canonical QUBO starter problems | [notebooks_jl/7-CanonicalProblems.ipynb](notebooks_jl/7-CanonicalProblems.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-canonical-problems-julia`; exhaustive checks validate number partitioning, Max-Cut, and minimum vertex cover. |
 
 ## Local verification
 
@@ -62,6 +63,7 @@ make test-python
 make test-julia
 make verify-qubo-python
 make verify-gama-python
+make verify-canonical-problems-julia
 ```
 
 The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`
