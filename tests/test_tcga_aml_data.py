@@ -327,6 +327,14 @@ class CommittedArtifactTests(unittest.TestCase):
             provenance["output_row_counts"],
         )
 
+        self.assertEqual(
+            {
+                "9-CancerGenomics_comutation.csv",
+                "9-CancerGenomics_coverage.csv",
+                "9-CancerGenomics_genes.csv",
+            },
+            set(provenance["output_sha256"]),
+        )
         for name, expected_digest in provenance["output_sha256"].items():
             self.assertEqual(expected_digest, sha256(DATA_DIR / name))
 
