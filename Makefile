@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python
+.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python
 
 PYTHON ?= python3
 UV ?= uv
@@ -47,6 +47,9 @@ check-notebook-output-hygiene:
 
 clear-notebook-outputs:
 	$(PYTHON) -m jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace $(NOTEBOOK_FILES)
+
+refresh-tcga-aml:
+	$(PYTHON) ./scripts/fetch_tcga_aml.py
 
 verify-notebooks:
 	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) sync --locked $(UV_GROUP_FLAGS)
