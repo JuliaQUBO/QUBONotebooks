@@ -26,6 +26,9 @@ BENCHMARKING_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "5-Benchmarking.
 BENCHMARKING_PYTHON_NOTEBOOK_PATH = (
     REPO_ROOT / "notebooks_py" / "5-Benchmarking_python.ipynb"
 )
+CANONICAL_PROBLEMS_JULIA_NOTEBOOK_PATH = (
+    REPO_ROOT / "notebooks_jl" / "7-CanonicalProblems.ipynb"
+)
 BENCHMARKING_RESULTS_ARCHIVES = (
     REPO_ROOT / "notebooks_py" / "results.zip",
     REPO_ROOT / "notebooks_jl" / "results.zip",
@@ -36,6 +39,7 @@ JULIA_COLAB_NOTEBOOK_PATHS = (
     REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb",
     REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb",
     REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb",
+    CANONICAL_PROBLEMS_JULIA_NOTEBOOK_PATH,
 )
 BOOTSTRAP_PATH = REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
 NOTEBOOK_DIRS = (

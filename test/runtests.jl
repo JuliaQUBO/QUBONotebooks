@@ -23,6 +23,7 @@ notebook_links = [
     "notebooks_jl/5-Benchmarking.ipynb",
     "notebooks_py/5-Benchmarking_python.ipynb",
     "notebooks_py/6-QCi_python.ipynb",
+    "notebooks_jl/7-CanonicalProblems.ipynb",
 ]
 files_with_repository_links = [
     "README.md",
