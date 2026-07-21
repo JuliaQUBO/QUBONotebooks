@@ -44,6 +44,7 @@ long benchmark runs.
 | Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; benchmark runs are long-running and generate artifacts. |
 | QCi | Not available | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | Requires QCi API credentials and the QCi Python stack. |
 | Canonical QUBO starter problems | [notebooks_jl/7-CanonicalProblems.ipynb](notebooks_jl/7-CanonicalProblems.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-canonical-problems-julia`; exhaustive checks validate number partitioning, Max-Cut, and minimum vertex cover. |
+| Order partitioning for A/B testing | [notebooks_jl/8-OrderPartitioning.ipynb](notebooks_jl/8-OrderPartitioning.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-order-partitioning-julia`; all 64 assignments validate the grouped value/risk objective and decoded balances. |
 
 ## Local verification
 
@@ -64,6 +65,7 @@ make test-julia
 make verify-qubo-python
 make verify-gama-python
 make verify-canonical-problems-julia
+make verify-order-partitioning-julia
 ```
 
 The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`

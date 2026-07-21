@@ -24,6 +24,7 @@ notebook_links = [
     "notebooks_py/5-Benchmarking_python.ipynb",
     "notebooks_py/6-QCi_python.ipynb",
     "notebooks_jl/7-CanonicalProblems.ipynb",
+    "notebooks_jl/8-OrderPartitioning.ipynb",
 ]
 files_with_repository_links = [
     "README.md",
