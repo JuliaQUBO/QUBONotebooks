@@ -20,6 +20,21 @@ def notebook_source() -> str:
     )
 
 
+def notebook_cell(data: dict, cell_id: str) -> dict:
+    matches = [cell for cell in data["cells"] if cell.get("id") == cell_id]
+    if len(matches) != 1:
+        raise AssertionError(f"Expected one cell with id {cell_id!r}, found {len(matches)}")
+    return matches[0]
+
+
+def cell_output_text(cell: dict) -> str:
+    output_parts = []
+    for output in cell.get("outputs", []):
+        value = output.get("text", output.get("data", {}).get("text/plain", ""))
+        output_parts.append("".join(value) if isinstance(value, list) else value)
+    return "\n".join(output_parts)
+
+
 def binary_states(size: int) -> list[tuple[int, ...]]:
     return list(itertools.product((0, 1), repeat=size))
 
@@ -92,13 +107,57 @@ class CanonicalProblemsNotebookSourceTests(unittest.TestCase):
             with self.subTest(out_of_scope_name=out_of_scope_name):
                 assert_source_excludes(self, source, out_of_scope_name)
 
-    def test_notebook_keeps_outputs_uncommitted(self) -> None:
+    def test_notebook_commits_reproducible_teaching_outputs(self) -> None:
         data = notebook()
         code_cells = [cell for cell in data["cells"] if cell["cell_type"] == "code"]
+        populated_cells = [cell for cell in code_cells if cell.get("outputs", [])]
 
         self.assertTrue(code_cells)
-        self.assertTrue(all(cell.get("outputs", []) == [] for cell in code_cells))
-        self.assertTrue(all(cell.get("execution_count") is None for cell in code_cells))
+        self.assertEqual(
+            list(range(1, len(code_cells) + 1)),
+            [cell.get("execution_count") for cell in code_cells],
+        )
+        self.assertGreaterEqual(len(populated_cells), 10)
+        self.assertEqual([], notebook_cell(data, "bootstrap").get("outputs", []))
+        self.assertEqual([], notebook_cell(data, "activate").get("outputs", []))
+
+        expected_output_markers = {
+            "partition-check": "imbalance=0, raw energy=0",
+            "maxcut-check": "cut weight=7, raw energy=-7",
+            "cover-check": "selected=[1, 3], uncovered=Tuple{Int64, Int64}[]",
+            "solution-partition": "Best imbalance: 1",
+            "solution-maxcut": "Best cut weight: 9",
+            "solution-cover": "infeasible best-energy states include [[0, 0, 1, 0]]",
+        }
+        for cell_id, marker in expected_output_markers.items():
+            with self.subTest(cell_id=cell_id):
+                self.assertTrue(
+                    marker in cell_output_text(notebook_cell(data, cell_id)),
+                    f"Missing output marker in {cell_id!r}: {marker!r}",
+                )
+
+        plot_outputs = notebook_cell(data, "maxcut-plot").get("outputs", [])
+        png_outputs = [
+            output.get("data", {}).get("image/png", "") for output in plot_outputs
+        ]
+        self.assertTrue(any(len(image) > 1_000 for image in png_outputs))
+        self.assertFalse(
+            any(
+                output.get("output_type") == "error"
+                for cell in code_cells
+                for output in cell.get("outputs", [])
+            )
+        )
+
+        serialized_outputs = json.dumps(
+            [cell.get("outputs", []) for cell in code_cells], ensure_ascii=False
+        )
+        for marker in ("/home/", "/Users/", "C:\\Users", "AppData", "Bearer "):
+            with self.subTest(forbidden_output_marker=marker):
+                self.assertFalse(
+                    marker in serialized_outputs,
+                    f"Forbidden marker in committed outputs: {marker!r}",
+                )
 
     def test_notebook_and_verifier_are_linked(self) -> None:
         readme = (REPO_ROOT / "README.md").read_text()
