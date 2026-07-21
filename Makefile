@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-canonical-problems-julia
+.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-canonical-problems-julia verify-order-partitioning-julia
 
 PYTHON ?= python3
 UV ?= uv
@@ -15,6 +15,7 @@ PORTABLE_PYTHON_NOTEBOOKS ?= $(QUBO_PYTHON_NOTEBOOK) $(GAMA_PYTHON_NOTEBOOK)
 DWAVE_PYTHON_NOTEBOOK ?= notebooks_py/4-DWAVE_python.ipynb
 BENCHMARKING_PYTHON_NOTEBOOK ?= notebooks_py/5-Benchmarking_python.ipynb
 CANONICAL_PROBLEMS_JULIA_NOTEBOOK ?= notebooks_jl/7-CanonicalProblems.ipynb
+ORDER_PARTITIONING_JULIA_NOTEBOOK ?= notebooks_jl/8-OrderPartitioning.ipynb
 NOTEBOOKS ?= $(PORTABLE_PYTHON_NOTEBOOKS)
 NOTEBOOK_FILES ?= notebooks_jl/*.ipynb notebooks_py/*.ipynb
 
@@ -70,3 +71,6 @@ verify-benchmarking-python:
 
 verify-canonical-problems-julia:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(CANONICAL_PROBLEMS_JULIA_NOTEBOOK)"
+
+verify-order-partitioning-julia:
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ORDER_PARTITIONING_JULIA_NOTEBOOK)"
