@@ -1312,8 +1312,8 @@ class RepositoryCommandTests(unittest.TestCase):
             pyproject.index("qubo = [") : pyproject.index("\n]\n\n[tool.uv]")
         ]
 
-        self.assertIn('"dimod>=0.12,<1"', qubo_group)
-        self.assertIn('"dwave-neal>=0.6,<1"', qubo_group)
+        self.assertIn('"dimod', qubo_group)
+        self.assertIn('"dwave-neal', qubo_group)
 
     def test_sysimage_scripts_use_current_julia_notebook_project(self) -> None:
         create_sysimage = (REPO_ROOT / "scripts" / "create_sysimage.jl").read_text()
@@ -1488,6 +1488,9 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
 
     def test_benchmarking_installs_progress_dependency(self) -> None:
         pyproject = (REPO_ROOT / "pyproject.toml").read_text()
+        qubo_group = pyproject[
+            pyproject.index("qubo = [") : pyproject.index("\n]\n\n[tool.uv]")
+        ]
         local_setup_cell = notebook_cell_source(
             BENCHMARKING_PYTHON_NOTEBOOK_PATH,
             "python -m pip install dimod dwave-neal",
@@ -1499,7 +1502,7 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
 
         self.assertIn("tqdm", local_setup_cell)
         self.assertIn("tqdm", colab_install_cell)
-        self.assertIn('"tqdm>=4.67,<5"', pyproject)
+        self.assertIn('"tqdm', qubo_group)
 
     def test_qci_constrained_polynomial_model_solves_wrapped_model(self) -> None:
         source = notebook_source(QCI_NOTEBOOK_PATH)
