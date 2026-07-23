@@ -198,6 +198,31 @@ class AnnealingNotebookSourceTests(unittest.TestCase):
         self.assertIn("DWave.draw_embedding", plot_source)
         self.assertNotIn('"problem_id"', qpu_source)
 
+    def test_qpu_result_is_included_in_credential_free_comparison_contract(
+        self,
+    ) -> None:
+        data = notebook()
+        runner_source = "".join(notebook_cell(data, "annealing-runner")["source"])
+        table_source = "".join(notebook_cell(data, "comparison-table")["source"])
+        qpu_source = "".join(notebook_cell(data, "qpu-run")["source"])
+
+        self.assertIn("execution_mode = metadata", runner_source)
+        self.assertIn("qpu_access_time_microseconds", runner_source)
+        self.assertIn("function format_comparison_row(result)", table_source)
+        self.assertIn("function print_comparison_table(results)", table_source)
+        self.assertIn("qpu access μs", table_source)
+        self.assertIn('execution_mode = "qpu"', table_source)
+        self.assertIn("synthetic_qpu_row", table_source)
+        self.assertIn(
+            '@assert synthetic_qpu_row == "D-Wave QPU (synthetic)',
+            table_source,
+        )
+        self.assertIn('"n/a | 0.250000 | 1234"', table_source)
+        self.assertIn(
+            "print_comparison_table((local_results[2], qpu_result))",
+            qpu_source,
+        )
+
     def test_small_models_use_exact_optima_and_cancer_claims_are_bounded(self) -> None:
         source = notebook_source()
 
@@ -285,6 +310,7 @@ class AnnealingNotebookOutputTests(unittest.TestCase):
         )
         self.assertEqual([], notebook_cell(data, "bootstrap").get("outputs", []))
         self.assertEqual([], notebook_cell(data, "activate").get("outputs", []))
+        self.assertEqual([], notebook_cell(data, "imports").get("outputs", []))
 
         expected_output_markers = {
             "runtime-check": "Local annealing runtime ready",
@@ -314,6 +340,8 @@ class AnnealingNotebookOutputTests(unittest.TestCase):
             "/Users/",
             "C:\\Users",
             "AppData",
+            "~/repos/",
+            ".julia-depot/packages",
             "Bearer ",
             "DWAVE_API_TOKEN=",
         ):
