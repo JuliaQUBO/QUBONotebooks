@@ -61,7 +61,7 @@ class QAOANotebookSourceTests(unittest.TestCase):
             "## QAOA in one convention",
             "## Three canonical models",
             "## Fixed-parameter circuits and resource audit",
-            "## Optional IBM Runtime handoff",
+            "## Run on IBM quantum hardware",
             "## Practice checkpoints",
             "## Summary",
             "## References",
@@ -69,7 +69,10 @@ class QAOANotebookSourceTests(unittest.TestCase):
 
         for section in required_sections:
             with self.subTest(section=section):
-                self.assertIn(section, source)
+                self.assertTrue(
+                    section in source,
+                    msg=f"missing tutorial section: {section}",
+                )
 
         self.assertIn("https://arxiv.org/abs/1411.4028", source)
         self.assertIn("https://doi.org/10.1287/educ.2025.0288", source)
@@ -111,26 +114,52 @@ class QAOANotebookSourceTests(unittest.TestCase):
         self.assertNotIn("QiskitOpt.qiskit", source)
 
     def test_ibm_handoff_is_explicit_secret_safe_and_backend_configurable(self) -> None:
+        data = notebook()
         source = notebook_source()
+        handoff_source = "".join(notebook_cell(data, "ibm-handoff")["source"])
+        hardware_source = "".join(notebook_cell(data, "ibm-hardware")["source"])
 
         required_markers = (
-            'get(ENV, "QUBONOTEBOOKS_QAOA_ENABLE_IBM", "0") == "1"',
+            'ibm_hardware_requested = get(ENV, "QUBONOTEBOOKS_QAOA_ENABLE_IBM", "0") == "1"',
             'get(ENV, "QUBONOTEBOOKS_QAOA_IBM_BACKEND", "")',
             'get(ENV, "QISKIT_IBM_TOKEN", "")',
             'get(ENV, "QISKIT_IBM_INSTANCE", "")',
             'get(ENV, "QISKIT_IBM_CHANNEL", "")',
             'dry_run_backend = isempty(ibm_backend) ? "not-configured" : ibm_backend',
-            "QiskitOpt.QAOA.ibm_runtime_handoff(",
-            "dry_run=true",
-            "if ibm_live_enabled",
-            "backend=ibm_backend",
-            "dry_run=false",
+            "QiskitOpt.check_runtime(; local_backend=false, ibm=true, verbose=false)",
+            "ibm_hardware_submitted = ibm_hardware.submitted",
+            "if !requested",
+            'isempty(backend) && push!(missing_configuration, "QUBONOTEBOOKS_QAOA_IBM_BACKEND")',
+            '!token_is_configured && push!(missing_configuration, "QISKIT_IBM_TOKEN")',
+            "err isa QiskitOpt.QAOA.RuntimeHandoffError",
+            "failure=err.metadata",
+            "backend=backend",
+            "ibm_hardware_job = ibm_hardware_submitted ? ibm_hardware_run.job : nothing",
+            "ibm_hardware_job.status()",
+            "ibm_hardware_job.result()",
+            "local Aer results above remain available",
         )
         for marker in required_markers:
             with self.subTest(marker=marker):
-                self.assertIn(marker, source)
+                self.assertTrue(
+                    marker in source,
+                    msg=f"missing IBM hardware marker: {marker}",
+                )
 
-        self.assertLess(source.index("if ibm_live_enabled"), source.index("dry_run=false"))
+        self.assertTrue(
+            "QiskitOpt.QAOA.ibm_runtime_handoff(" in handoff_source
+            and "dry_run=true" in handoff_source,
+            msg="the IBM preparation cell must exercise a dry run",
+        )
+        self.assertTrue(
+            "QiskitOpt.QAOA.ibm_runtime_handoff(" in hardware_source
+            and "dry_run=false" in hardware_source,
+            msg="the hardware cell must contain a real IBM Runtime submission",
+        )
+        self.assertLess(
+            hardware_source.index("if !requested"),
+            hardware_source.index("dry_run=false"),
+        )
         self.assertIsNone(re.search(r"\bsave_account\s*\(", source))
         self.assertNotIn("ibm_fez", source)
         self.assertNotIn("ibm_brisbane", source)
@@ -177,6 +206,7 @@ class QAOANotebookSourceTests(unittest.TestCase):
         self.assertIn('version = "0.7.1"', manifest)
         self.assertIn("notebooks_jl/10-QAOA.ipynb", readme)
         self.assertIn("make verify-qaoa-julia-local", readme)
+        self.assertIn("environment-gated IBM hardware cell", readme)
         self.assertIn("verify-qaoa-julia-local:", makefile)
         self.assertIn('NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"', makefile)
         self.assertIn('"QiskitOpt",', sysimage)
@@ -271,7 +301,8 @@ class QAOANotebookOutputTests(unittest.TestCase):
             "fixed-circuits": "p=1 parameter order:",
             "resource-audits": "p=2 resources:",
             "bit-order": "QAOA.count_key_bits returns variable order",
-            "ibm-handoff": "Live IBM submission disabled",
+            "ibm-handoff": "IBM handoff dry run:",
+            "ibm-hardware": "IBM quantum hardware submission is disabled",
             "solution-bit-order": "Rendered key 1100 becomes variable-order bits",
         }
         for cell_id, marker in expected_output_markers.items():
