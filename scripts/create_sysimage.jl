@@ -31,6 +31,7 @@ const PACKAGES = [
     # QUBO
     "DWave",
     "PythonCall",
+    "QiskitOpt",
     "QUBO",
 
     # Visualization

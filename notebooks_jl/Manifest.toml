@@ -2,7 +2,7 @@
 
 julia_version = "1.10.11"
 manifest_format = "2.0"
-project_hash = "ade375b6d43c9fab4e1ec59a48a2fad708ffad73"
+project_hash = "265cf64277e9b7228bbb5768a64721d795e215be"
 
 [[deps.ASL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1473,6 +1473,12 @@ weakdeps = ["MathOptInterface"]
 
     [deps.QUBOTools.extensions]
     QUBOTools_MOI = ["MathOptInterface"]
+
+[[deps.QiskitOpt]]
+deps = ["PythonCall", "QUBO"]
+git-tree-sha1 = "ac019faa50eafbb7b14854b8c5982c8f0c835f7f"
+uuid = "81b20daf-e62b-4502-a0d1-aa084de80e33"
+version = "0.7.1"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
