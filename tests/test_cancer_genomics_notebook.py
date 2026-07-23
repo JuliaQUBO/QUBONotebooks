@@ -201,13 +201,18 @@ class CancerGenomicsNotebookSourceTests(unittest.TestCase):
 
         for forbidden in (
             "DWave.Optimizer",
-            "DWAVE_API_TOKEN",
             "save_account",
             "Downloads.download",
             "HTTP.get",
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, source)
+
+        imports = "".join(notebook_cell(data, "imports")["source"])
+        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', imports)
+        self.assertIn("Logging.with_logger(Logging.NullLogger())", imports)
+        self.assertIn("@eval using DWave", imports)
+        self.assertNotIn('get(ENV, "DWAVE_API_TOKEN"', source)
 
     def test_notebook_commits_reproducible_outputs(self) -> None:
         data = notebook()
