@@ -35,6 +35,7 @@ ORDER_PARTITIONING_JULIA_NOTEBOOK_PATH = (
 CANCER_GENOMICS_JULIA_NOTEBOOK_PATH = (
     REPO_ROOT / "notebooks_jl" / "9-CancerGenomics.ipynb"
 )
+QAOA_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "10-QAOA.ipynb"
 BENCHMARKING_RESULTS_ARCHIVES = (
     REPO_ROOT / "notebooks_py" / "results.zip",
     REPO_ROOT / "notebooks_jl" / "results.zip",
@@ -48,6 +49,7 @@ JULIA_COLAB_NOTEBOOK_PATHS = (
     CANONICAL_PROBLEMS_JULIA_NOTEBOOK_PATH,
     ORDER_PARTITIONING_JULIA_NOTEBOOK_PATH,
     CANCER_GENOMICS_JULIA_NOTEBOOK_PATH,
+    QAOA_JULIA_NOTEBOOK_PATH,
 )
 BOOTSTRAP_PATH = REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
 NOTEBOOK_DIRS = (
@@ -1282,6 +1284,7 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn("verify-qubo-python:", makefile)
         self.assertIn("verify-gama-python:", makefile)
         self.assertIn("verify-benchmarking-python:", makefile)
+        self.assertIn("verify-qaoa-julia-local:", makefile)
         self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
         self.assertIn("ClearOutputPreprocessor.enabled=True", makefile)
         self.assertIn("git grep -lE", makefile)
@@ -1370,6 +1373,7 @@ class RepositoryCommandTests(unittest.TestCase):
             '"NPZ",',
             '"Plots",',
             '"PythonCall",',
+            '"QiskitOpt",',
             '"QUBO",',
             '"StatsBase",',
             '"StatsPlots",',
