@@ -27,6 +27,7 @@ notebook_links = [
     "notebooks_jl/8-OrderPartitioning.ipynb",
     "notebooks_jl/9-CancerGenomics.ipynb",
     "notebooks_jl/10-QAOA.ipynb",
+    "notebooks_jl/11-Annealing.ipynb",
 ]
 files_with_repository_links = [
     "README.md",
