@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local
+.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local
 
 PYTHON ?= python3
 UV ?= uv
@@ -18,6 +18,7 @@ CANONICAL_PROBLEMS_JULIA_NOTEBOOK ?= notebooks_jl/7-CanonicalProblems.ipynb
 ORDER_PARTITIONING_JULIA_NOTEBOOK ?= notebooks_jl/8-OrderPartitioning.ipynb
 CANCER_GENOMICS_JULIA_NOTEBOOK ?= notebooks_jl/9-CancerGenomics.ipynb
 QAOA_JULIA_NOTEBOOK ?= notebooks_jl/10-QAOA.ipynb
+ANNEALING_JULIA_NOTEBOOK ?= notebooks_jl/11-Annealing.ipynb
 NOTEBOOKS ?= $(PORTABLE_PYTHON_NOTEBOOKS)
 NOTEBOOK_FILES ?= notebooks_jl/*.ipynb notebooks_py/*.ipynb
 
@@ -82,3 +83,6 @@ verify-cancer-genomics-julia:
 
 verify-qaoa-julia-local:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
+
+verify-annealing-julia-local:
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"

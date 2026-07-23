@@ -36,6 +36,7 @@ CANCER_GENOMICS_JULIA_NOTEBOOK_PATH = (
     REPO_ROOT / "notebooks_jl" / "9-CancerGenomics.ipynb"
 )
 QAOA_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "10-QAOA.ipynb"
+ANNEALING_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "11-Annealing.ipynb"
 BENCHMARKING_RESULTS_ARCHIVES = (
     REPO_ROOT / "notebooks_py" / "results.zip",
     REPO_ROOT / "notebooks_jl" / "results.zip",
@@ -50,6 +51,7 @@ JULIA_COLAB_NOTEBOOK_PATHS = (
     ORDER_PARTITIONING_JULIA_NOTEBOOK_PATH,
     CANCER_GENOMICS_JULIA_NOTEBOOK_PATH,
     QAOA_JULIA_NOTEBOOK_PATH,
+    ANNEALING_JULIA_NOTEBOOK_PATH,
 )
 BOOTSTRAP_PATH = REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
 NOTEBOOK_DIRS = (
