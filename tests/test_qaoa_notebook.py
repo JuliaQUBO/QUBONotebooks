@@ -91,6 +91,7 @@ class QAOANotebookSourceTests(unittest.TestCase):
             "QiskitOpt.QAOA.fixed_parameter_circuit(",
             "QiskitOpt.QAOA.resource_audit(",
             "QiskitOpt.QAOA.count_key_bits(",
+            "QiskitOpt's documented local default",
             "const QAOA_STANDARD_SEED = 73001",
             "const QAOA_LAYERS = 1",
             "const QAOA_OPTIMIZER_SHOTS = 256",
