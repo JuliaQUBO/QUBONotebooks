@@ -8,7 +8,6 @@ using Test
     ) do
         @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages()
         @test !QUBONotebooksBootstrap.default_bootstrap_precompile()
-        @test !QUBONotebooksBootstrap.default_bootstrap_precompile(warm_packages = false)
     end
 
     withenv(

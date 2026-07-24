@@ -61,13 +61,10 @@ function env_bool(name::AbstractString)
     error("Expected `$name` to be one of 1/0/true/false/yes/no/on/off, got `$value`.")
 end
 
-default_bootstrap_warm_packages(; in_colab::Bool = detect_colab()) =
+default_bootstrap_warm_packages() =
     something(env_bool("QUBONOTEBOOKS_WARM_PACKAGES"), false)
 
-default_bootstrap_precompile(;
-    in_colab::Bool = detect_colab(),
-    warm_packages::Bool = default_bootstrap_warm_packages(in_colab = in_colab),
-) = something(env_bool(PRECOMPILE_ENV), false)
+default_bootstrap_precompile() = something(env_bool(PRECOMPILE_ENV), false)
 
 function notebook_key(target::AbstractString)
     return splitext(basename(target))[1]
@@ -389,7 +386,7 @@ function bootstrap_notebook(
     needs_python::Bool = notebook_requires_python(project_key),
     python_packages::Vector{String} = ["dwave-ocean-sdk"],
     warm_packages::Bool = default_bootstrap_warm_packages(),
-    precompile::Bool = default_bootstrap_precompile(in_colab = detect_colab(), warm_packages = warm_packages),
+    precompile::Bool = default_bootstrap_precompile(),
     suppress_warmup_logs::Bool = warm_packages,
     chdir_to_notebooks::Bool = true,
 )
