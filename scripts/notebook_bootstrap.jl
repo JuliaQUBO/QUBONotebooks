@@ -15,12 +15,21 @@ const PYTHON_STACK_NOTEBOOKS = Set((
     "4-DWave",
     "5-Benchmarking",
 ))
+const CREDENTIAL_FREE_DWAVE_NOTEBOOKS = Set((
+    "9-CancerGenomics",
+    "11-Annealing",
+))
 const NOTEBOOK_IMPORTS = Dict(
     "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
     "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
     "3-GAMA" => :(using BinaryWrappers, DelimitedFiles, Downloads, NPZ, JuMP, DWave, LinearAlgebra, Measures, Random, Plots, StatsBase, StatsPlots, lib4ti2_jll),
     "4-DWave" => :(using LinearAlgebra, Plots, JuMP, QUBO, DWave, Graphs),
     "5-Benchmarking" => :(using JuMP, QUBO, LinearAlgebra, Plots, Measures, DWave, Random, Statistics, ZipFile, JSON, StatsBase),
+    "7-CanonicalProblems" => :(using JuMP, Plots, QUBO),
+    "8-OrderPartitioning" => :(using JuMP, Printf, QUBO),
+    "9-CancerGenomics" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
+    "10-QAOA" => :(using JuMP, QiskitOpt),
+    "11-Annealing" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
 )
 
 timestamp() = Dates.format(now(), "HH:MM:SS")
@@ -354,13 +363,22 @@ function warm_notebook_packages!(
     import_expr = notebook_import_expr(project_key)
     import_expr === nothing && return false
 
+    function load_packages()
+        if project_key in CREDENTIAL_FREE_DWAVE_NOTEBOOKS
+            return withenv("DWAVE_API_TOKEN" => nothing) do
+                Core.eval(Main, import_expr)
+            end
+        end
+        return Core.eval(Main, import_expr)
+    end
+
     log_step("Loading notebook packages")
     if suppress_logs
         with_logger(NullLogger()) do
-            Core.eval(Main, import_expr)
+            load_packages()
         end
     else
-        Core.eval(Main, import_expr)
+        load_packages()
     end
     return true
 end

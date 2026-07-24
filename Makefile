@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local
+.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
 PYTHON ?= python3
 UV ?= uv
@@ -19,6 +19,7 @@ ORDER_PARTITIONING_JULIA_NOTEBOOK ?= notebooks_jl/8-OrderPartitioning.ipynb
 CANCER_GENOMICS_JULIA_NOTEBOOK ?= notebooks_jl/9-CancerGenomics.ipynb
 QAOA_JULIA_NOTEBOOK ?= notebooks_jl/10-QAOA.ipynb
 ANNEALING_JULIA_NOTEBOOK ?= notebooks_jl/11-Annealing.ipynb
+FIVE_STARTER_JULIA_NOTEBOOKS ?= $(CANONICAL_PROBLEMS_JULIA_NOTEBOOK) $(ORDER_PARTITIONING_JULIA_NOTEBOOK) $(CANCER_GENOMICS_JULIA_NOTEBOOK) $(QAOA_JULIA_NOTEBOOK) $(ANNEALING_JULIA_NOTEBOOK)
 NOTEBOOKS ?= $(PORTABLE_PYTHON_NOTEBOOKS)
 NOTEBOOK_FILES ?= notebooks_jl/*.ipynb notebooks_py/*.ipynb
 
@@ -82,7 +83,36 @@ verify-cancer-genomics-julia:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(CANCER_GENOMICS_JULIA_NOTEBOOK)"
 
 verify-qaoa-julia-local:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
+	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
 
 verify-annealing-julia-local:
-	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"
+	QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"
+
+verify-five-starter-problems-julia-local:
+	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(FIVE_STARTER_JULIA_NOTEBOOKS)"
+
+verify-qaoa-julia-ibm:
+	@if [ "$${QUBONOTEBOOKS_QAOA_ENABLE_IBM:-0}" != "1" ]; then \
+		echo "Set QUBONOTEBOOKS_QAOA_ENABLE_IBM=1 to opt into IBM hardware submission."; \
+		exit 2; \
+	fi
+	@if [ -z "$${QUBONOTEBOOKS_QAOA_IBM_BACKEND:-}" ]; then \
+		echo "Set QUBONOTEBOOKS_QAOA_IBM_BACKEND to an available backend."; \
+		exit 2; \
+	fi
+	@if [ -z "$${QISKIT_IBM_TOKEN:-}" ]; then \
+		echo "Set QISKIT_IBM_TOKEN through the process environment or a secret store."; \
+		exit 2; \
+	fi
+	QUBONOTEBOOKS_QAOA_REQUIRE_IBM=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
+
+verify-annealing-julia-qpu:
+	@if [ "$${QUBONOTEBOOKS_ANNEALING_ENABLE_QPU:-0}" != "1" ]; then \
+		echo "Set QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=1 to opt into D-Wave QPU submission."; \
+		exit 2; \
+	fi
+	@if [ -z "$${DWAVE_API_TOKEN:-}" ]; then \
+		echo "Set DWAVE_API_TOKEN through the process environment or a secret store."; \
+		exit 2; \
+	fi
+	QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"

@@ -168,9 +168,33 @@ class AnnealingNotebookSourceTests(unittest.TestCase):
         self.assertIn("isempty(strip(token)) && error(", guard_source)
         self.assertIn("require_qpu_credentials()", qpu_source)
         self.assertIn("run_annealing(maxcut_problem, qpu_config)", qpu_source)
+        self.assertIn("QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU", qpu_source)
+        self.assertIn("qpu_hardware_submitted = false", qpu_source)
+        self.assertIn(
+            'qpu_hardware_submitted = qpu_result.execution_mode == "qpu"',
+            qpu_source,
+        )
+        self.assertIn(
+            "if qpu_hardware_required && !qpu_hardware_submitted",
+            qpu_source,
+        )
+        self.assertIn(
+            "D-Wave QPU verification was required, but no job was submitted.",
+            qpu_source,
+        )
         self.assertLess(
             qpu_source.index("require_qpu_credentials()"),
             qpu_source.index("run_annealing(maxcut_problem, qpu_config)"),
+        )
+        self.assertLess(
+            qpu_source.index("run_annealing(maxcut_problem, qpu_config)"),
+            qpu_source.index("qpu_hardware_submitted = qpu_result.execution_mode"),
+        )
+        self.assertLess(
+            qpu_source.index("qpu_hardware_submitted = qpu_result.execution_mode"),
+            qpu_source.index(
+                "if qpu_hardware_required && !qpu_hardware_submitted"
+            ),
         )
         self.assertIn("DWave.Optimizer", qpu_source)
         self.assertIn('"return_embedding" => true', qpu_source)
