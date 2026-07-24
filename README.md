@@ -130,8 +130,11 @@ not yet have a locked local make target because `eqc-models==0.19.0` requires
 `networkx<3`, which conflicts with the D-Wave Ocean stack.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and resolve the checked-in
-manifest for the current hosted Julia runtime. The bootstrap warms only the
-imports used by the selected notebook.
+manifest for the current hosted Julia runtime. Package imports and their
+automatic precompilation run in each notebook's dedicated import cell instead
+of the setup cell. Set `QUBONOTEBOOKS_WARM_PACKAGES=1` or
+`QUBONOTEBOOKS_PRECOMPILE=1` before setup to opt into either extra bootstrap
+step.
 
 ```bash
 make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"

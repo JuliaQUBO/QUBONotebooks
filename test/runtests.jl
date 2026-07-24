@@ -3,6 +3,7 @@ import TOML
 
 repo_root = dirname(@__DIR__)
 include(joinpath(repo_root, "scripts", "notebook_bootstrap.jl"))
+include(joinpath(@__DIR__, "issue_90_colab_first_cell.jl"))
 
 files_with_qubo_links = [
     "README.md",
