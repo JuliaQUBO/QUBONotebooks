@@ -9,6 +9,7 @@ const WORKSPACE = normpath(joinpath(@__DIR__, ".."))
 const NOTEBOOKS_DIRNAME = "notebooks_jl"
 const ALLOW_VERSION_MISMATCH_ENV = "QUBONOTEBOOKS_ALLOW_JULIA_VERSION_MISMATCH"
 const REPO_REF_ENV = "QUBONOTEBOOKS_REPO_REF"
+const PRECOMPILE_ENV = "QUBONOTEBOOKS_PRECOMPILE"
 const PYTHON_STACK_NOTEBOOKS = Set((
     "2-QUBO",
     "3-GAMA",
@@ -61,12 +62,12 @@ function env_bool(name::AbstractString)
 end
 
 default_bootstrap_warm_packages(; in_colab::Bool = detect_colab()) =
-    something(env_bool("QUBONOTEBOOKS_WARM_PACKAGES"), in_colab)
+    something(env_bool("QUBONOTEBOOKS_WARM_PACKAGES"), false)
 
 default_bootstrap_precompile(;
     in_colab::Bool = detect_colab(),
     warm_packages::Bool = default_bootstrap_warm_packages(in_colab = in_colab),
-) = in_colab && !warm_packages
+) = something(env_bool(PRECOMPILE_ENV), false)
 
 function notebook_key(target::AbstractString)
     return splitext(basename(target))[1]
