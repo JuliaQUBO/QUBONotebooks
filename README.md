@@ -72,13 +72,14 @@ queue after the local notebook work.
 | Submit the QAOA circuit | opt-in IBM hardware | `make verify-qaoa-julia-ibm` | Local QAOA time plus the IBM queue | `QUBONOTEBOOKS_QAOA_ENABLE_IBM=1`, `QUBONOTEBOOKS_QAOA_IBM_BACKEND`, and `QISKIT_IBM_TOKEN`; optional `QISKIT_IBM_CHANNEL` and `QISKIT_IBM_INSTANCE` |
 | Submit the annealing example | opt-in D-Wave QPU | `make verify-annealing-julia-qpu` | Local Neal time plus the D-Wave queue | `QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=1` and `DWAVE_API_TOKEN` |
 
-The two hardware targets validate their opt-in variables before starting and
-are excluded from default CI. Pass credentials only through the process
-environment or an approved secret store. The local QAOA, local annealing, and
-aggregate targets force their hardware switches off even if those switches are
-set in the caller's environment; the aggregate target also never refreshes
-data. All five notebook badges target `JuliaQUBO/QUBONotebooks` on the current
-default branch, `main`.
+The two hardware targets validate their opt-in variables before starting, fail
+unless a hardware job is submitted, and are excluded from default CI. Pass
+credentials only through the process environment or an approved secret store.
+The local QAOA, local annealing, and aggregate targets force their hardware
+switches and submission requirements off even if those values are set in the
+caller's environment; the aggregate target also never refreshes data. All five
+notebook badges target `JuliaQUBO/QUBONotebooks` on the current default branch,
+`main`.
 
 ### Attribution and clean-room reimplementation
 

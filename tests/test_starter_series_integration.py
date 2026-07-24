@@ -165,6 +165,7 @@ class StarterSeriesVerificationTargetTests(unittest.TestCase):
         self.assertIn("QUBONOTEBOOKS_QAOA_IBM_BACKEND", makefile)
         self.assertIn("QISKIT_IBM_TOKEN", makefile)
         self.assertIn("QUBONOTEBOOKS_ANNEALING_ENABLE_QPU", makefile)
+        self.assertIn("QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU", makefile)
         self.assertIn("DWAVE_API_TOKEN", makefile)
 
         def recipe(target: str) -> str:
@@ -180,13 +181,30 @@ class StarterSeriesVerificationTargetTests(unittest.TestCase):
             recipe("verify-qaoa-julia-local"),
         )
         self.assertIn(
+            "QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0",
+            recipe("verify-qaoa-julia-local"),
+        )
+        self.assertIn(
             "QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0",
             recipe("verify-annealing-julia-local"),
         )
+        self.assertIn(
+            "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0",
+            recipe("verify-annealing-julia-local"),
+        )
+        self.assertIn(
+            "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=1",
+            recipe("verify-annealing-julia-qpu"),
+        )
         aggregate_recipe = recipe("verify-five-starter-problems-julia-local")
         self.assertIn("QUBONOTEBOOKS_QAOA_ENABLE_IBM=0", aggregate_recipe)
+        self.assertIn("QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0", aggregate_recipe)
         self.assertIn(
             "QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0",
+            aggregate_recipe,
+        )
+        self.assertIn(
+            "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0",
             aggregate_recipe,
         )
 
@@ -309,6 +327,7 @@ class StarterSeriesSafetyTests(unittest.TestCase):
             annealing.index("qpu_requested ="),
             annealing.index("optimizer = DWave.Optimizer"),
         )
+        self.assertIn("QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU", annealing)
 
 
 if __name__ == "__main__":
