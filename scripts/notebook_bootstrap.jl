@@ -34,6 +34,7 @@ const NOTEBOOK_IMPORTS = Dict(
 )
 
 timestamp() = Dates.format(now(), "HH:MM:SS")
+package_operation_io(in_colab::Bool) = in_colab ? devnull : stderr
 
 function log_step(message::AbstractString)
     println("[$(timestamp())] $message")
@@ -223,7 +224,8 @@ function strip_manifest_stdlib_pins!(project_dir::AbstractString; stdlib_names =
 
     isempty(changed) && return false
 
-    log_step("Removing stale Julia stdlib pins before resolving: $(join(sort(unique(changed)), ", "))")
+    changed_count = length(unique(changed))
+    log_step("Removing $changed_count stale Julia stdlib pins before resolving")
     open(path, "w") do io
         TOML.print(io, manifest, sorted = true)
     end
@@ -233,21 +235,29 @@ end
 function resolve_project_for_current_julia!(project_dir::AbstractString; in_colab::Bool = detect_colab())
     should_resolve_project_for_current_julia(project_dir; in_colab = in_colab) || return false
 
+    pkg_io = package_operation_io(in_colab)
     if in_colab
         get!(ENV, "JULIA_PKG_PRECOMPILE_AUTO", "0")
         strip_manifest_stdlib_pins!(project_dir)
+        log_step("Refreshing Julia package registry")
+        Pkg.Registry.update(; io = pkg_io, force = true)
     end
     log_step("Resolving Julia packages for current runtime Julia $(VERSION)")
     try
-        Pkg.resolve()
+        Pkg.resolve(; io = pkg_io)
     catch err
         if !in_colab
             rethrow()
         end
 
-        @warn "Pkg.resolve() could not refresh $(manifest_path(project_dir)); updating Julia packages for current runtime Julia $(VERSION)." exception = (err, catch_backtrace())
+        reason = first(split(sprint(showerror, err), '\n'))
+        @warn string(
+            "Pkg.resolve() could not refresh $(manifest_path(project_dir)); ",
+            "updating Julia packages for current runtime Julia $(VERSION). ",
+            "Reason: $reason",
+        )
         log_step("Updating Julia packages for current runtime Julia $(VERSION)")
-        Pkg.update()
+        Pkg.update(; io = pkg_io)
     end
     return true
 end
@@ -294,7 +304,7 @@ function ensure_repo_root(; in_colab::Bool = detect_colab())
     repo_dir = get(ENV, "QUBONOTEBOOKS_REPO_DIR", joinpath(pwd(), "QUBONotebooks"))
     if !isdir(repo_dir)
         log_step("Cloning JuliaQUBO/QUBONotebooks into $repo_dir")
-        run(`git clone --depth 1 https://github.com/JuliaQUBO/QUBONotebooks.git $repo_dir`)
+        run(`git clone --quiet --depth 1 https://github.com/JuliaQUBO/QUBONotebooks.git $repo_dir`)
     else
         log_step("Using existing QUBONotebooks clone at $repo_dir")
     end
@@ -336,20 +346,40 @@ function configure_python_runtime!(
     return python_exe
 end
 
-function activate_project!(project_dir::AbstractString)
+function activate_project!(
+    project_dir::AbstractString;
+    in_colab::Bool = detect_colab(),
+)
+    pkg_io = package_operation_io(in_colab)
     log_step("Activating project at `$project_dir`")
-    Pkg.activate(project_dir)
+    Pkg.activate(project_dir; io = pkg_io)
     return nothing
 end
 
-function instantiate_project!(project_dir::AbstractString; precompile::Bool = true)
-    activate_project!(project_dir)
-    refreshed_for_current_julia = resolve_project_for_current_julia!(project_dir)
+function instantiate_project!(
+    project_dir::AbstractString;
+    precompile::Bool = true,
+    in_colab::Bool = detect_colab(),
+)
+    pkg_io = package_operation_io(in_colab)
+    activate_project!(project_dir; in_colab = in_colab)
+    refreshed_for_current_julia = resolve_project_for_current_julia!(
+        project_dir;
+        in_colab = in_colab,
+    )
     log_step("Instantiating Julia packages")
-    @time Pkg.instantiate()
+    if in_colab
+        Pkg.instantiate(; io = pkg_io)
+    else
+        @time Pkg.instantiate(; io = pkg_io)
+    end
     if precompile
         log_step("Precompiling Julia packages")
-        @time Pkg.precompile()
+        if in_colab
+            Pkg.precompile(; io = pkg_io)
+        else
+            @time Pkg.precompile(; io = pkg_io)
+        end
     end
     return refreshed_for_current_julia
 end
@@ -413,7 +443,11 @@ function bootstrap_notebook(
         configure_python_runtime!(repo_dir; in_colab = in_colab, python_packages = python_packages)
     end
 
-    refreshed_for_current_julia = instantiate_project!(project_dir; precompile = precompile)
+    refreshed_for_current_julia = instantiate_project!(
+        project_dir;
+        precompile = precompile,
+        in_colab = in_colab,
+    )
     if warm_packages
         warm_notebook_packages!(project_key; suppress_logs = suppress_warmup_logs)
     end
