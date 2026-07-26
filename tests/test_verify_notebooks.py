@@ -22,6 +22,7 @@ DWAVE_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb"
 DWAVE_PYTHON_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "4-DWAVE_python.ipynb"
 MATHPROG_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "1-MathProg_python.ipynb"
 QCI_NOTEBOOK_PATH = REPO_ROOT / "notebooks_py" / "6-QCi_python.ipynb"
+QCI_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "6-QCi.ipynb"
 BENCHMARKING_JULIA_NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb"
 BENCHMARKING_PYTHON_NOTEBOOK_PATH = (
     REPO_ROOT / "notebooks_py" / "5-Benchmarking_python.ipynb"
@@ -47,6 +48,7 @@ JULIA_COLAB_NOTEBOOK_PATHS = (
     REPO_ROOT / "notebooks_jl" / "3-GAMA.ipynb",
     REPO_ROOT / "notebooks_jl" / "4-DWave.ipynb",
     REPO_ROOT / "notebooks_jl" / "5-Benchmarking.ipynb",
+    QCI_JULIA_NOTEBOOK_PATH,
     CANONICAL_PROBLEMS_JULIA_NOTEBOOK_PATH,
     ORDER_PARTITIONING_JULIA_NOTEBOOK_PATH,
     CANCER_GENOMICS_JULIA_NOTEBOOK_PATH,
@@ -1440,7 +1442,10 @@ class JuliaColabSetupTests(unittest.TestCase):
         self.assertIn("Pkg.resolve()", source)
         self.assertIn("Pkg.update()", source)
         self.assertIn('ENV["JULIA_CONDAPKG_BACKEND"] = "Null"', source)
-        self.assertIn('python_packages::Vector{String} = ["dwave-ocean-sdk"]', source)
+        self.assertIn(
+            "python_packages::Vector{String} = default_python_packages(project_key)",
+            source,
+        )
 
 
 class PythonNotebookDependencySetupTests(unittest.TestCase):

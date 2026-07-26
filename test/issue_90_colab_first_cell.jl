@@ -19,7 +19,15 @@ using Test
         @test QUBONotebooksBootstrap.default_bootstrap_precompile()
     end
 
+    @test QUBONotebooksBootstrap.default_python_packages("6-QCi") ==
+        ["qci-client>=4.5,<6"]
+    @test "qiskit>=2.3,<2.4" in
+        QUBONotebooksBootstrap.default_python_packages("10-QAOA")
+    @test QUBONotebooksBootstrap.default_python_packages("2-QUBO") ==
+        ["dwave-ocean-sdk"]
+
     for project_key in (
+        "6-QCi",
         "7-CanonicalProblems",
         "8-OrderPartitioning",
         "9-CancerGenomics",

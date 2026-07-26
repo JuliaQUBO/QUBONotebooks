@@ -15,17 +15,33 @@ const PYTHON_STACK_NOTEBOOKS = Set((
     "3-GAMA",
     "4-DWave",
     "5-Benchmarking",
+    "6-QCi",
+    "10-QAOA",
 ))
 const CREDENTIAL_FREE_DWAVE_NOTEBOOKS = Set((
     "9-CancerGenomics",
     "11-Annealing",
 ))
+const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
+    "6-QCi",
+))
+const NOTEBOOK_PYTHON_PACKAGES = Dict(
+    "6-QCi" => ["qci-client>=4.5,<6"],
+    "10-QAOA" => [
+        "qiskit>=2.3,<2.4",
+        "qiskit-aer>=0.17,<0.18",
+        "qiskit-ibm-runtime>=0.46,<0.47",
+        "qiskit-optimization>=0.7,<0.8",
+        "scipy>=1.15,<1.16",
+    ],
+)
 const NOTEBOOK_IMPORTS = Dict(
     "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
     "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
     "3-GAMA" => :(using BinaryWrappers, DelimitedFiles, Downloads, NPZ, JuMP, DWave, LinearAlgebra, Measures, Random, Plots, StatsBase, StatsPlots, lib4ti2_jll),
     "4-DWave" => :(using LinearAlgebra, Plots, JuMP, QUBO, DWave, Graphs),
     "5-Benchmarking" => :(using JuMP, QUBO, LinearAlgebra, Plots, Measures, DWave, Random, Statistics, ZipFile, JSON, StatsBase),
+    "6-QCi" => :(using JuMP, QCIOpt),
     "7-CanonicalProblems" => :(using JuMP, Plots, QUBO),
     "8-OrderPartitioning" => :(using JuMP, Printf, QUBO),
     "9-CancerGenomics" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
@@ -65,6 +81,9 @@ default_bootstrap_warm_packages() =
     something(env_bool("QUBONOTEBOOKS_WARM_PACKAGES"), false)
 
 default_bootstrap_precompile() = something(env_bool(PRECOMPILE_ENV), false)
+
+default_python_packages(project_key::AbstractString) =
+    get(NOTEBOOK_PYTHON_PACKAGES, project_key, ["dwave-ocean-sdk"])
 
 function notebook_key(target::AbstractString)
     return splitext(basename(target))[1]
@@ -327,7 +346,7 @@ function configure_python_runtime!(
     else
         python_exe = joinpath(repo_dir, ".venv", "bin", "python3")
         if !isfile(python_exe)
-            error("Could not find $python_exe. Run `uv sync --group qubo` from the repository root before launching this notebook.")
+            error("Could not find $python_exe. Run the notebook's documented `uv sync` command from the repository root before launching it.")
         end
     end
 
@@ -366,6 +385,10 @@ function warm_notebook_packages!(
             return withenv("DWAVE_API_TOKEN" => nothing) do
                 Core.eval(Main, import_expr)
             end
+        elseif project_key in CREDENTIAL_FREE_QCI_NOTEBOOKS
+            return withenv("QCI_TOKEN" => nothing) do
+                Core.eval(Main, import_expr)
+            end
         end
         return Core.eval(Main, import_expr)
     end
@@ -384,7 +407,7 @@ end
 function bootstrap_notebook(
     project_key::AbstractString;
     needs_python::Bool = notebook_requires_python(project_key),
-    python_packages::Vector{String} = ["dwave-ocean-sdk"],
+    python_packages::Vector{String} = default_python_packages(project_key),
     warm_packages::Bool = default_bootstrap_warm_packages(),
     precompile::Bool = default_bootstrap_precompile(),
     suppress_warmup_logs::Bool = warm_packages,
