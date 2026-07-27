@@ -10,7 +10,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_PATH = REPO_ROOT / "notebooks_jl" / "6-QCi.ipynb"
-QCI_REVISION = "57fe8c084765a18b057228dade52c9f95e460a35"
+QCI_REVISION = "30a6074fdd5bd75c3f1cf965329edd01c67e63fe"
 
 
 def notebook() -> dict:
@@ -180,27 +180,21 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             "QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0",
             makefile,
         )
-        self.assertIn("--group docs --group qci", makefile)
+        self.assertIn('UV_GROUP_FLAGS="--group docs"', makefile)
         self.assertIn('NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"', makefile)
-        self.assertTrue(
-            any(
-                requirement.startswith("qci-client")
-                for requirement in pyproject["dependency-groups"]["qci"]
-            )
-        )
-        self.assertIn(
-            [{"group": "qci"}, {"group": "qubo"}],
-            pyproject["tool"]["uv"]["conflicts"],
-        )
+        self.assertNotIn("qci", pyproject["dependency-groups"])
+        self.assertNotIn("qiskit", pyproject["dependency-groups"])
+        self.assertNotIn("conflicts", pyproject["tool"]["uv"])
         self.assertIn('"6-QCi" => :(using JuMP, QCIOpt)', bootstrap)
-        self.assertIn('"6-QCi" => ["qci-client>=4.5,<6"]', bootstrap)
-        self.assertIn('"10-QAOA" => [', bootstrap)
+        self.assertNotIn("qci-client", bootstrap)
         self.assertIn(
-            "python_packages::Vector{String} = "
-            "default_python_packages(project_key)",
-            bootstrap,
+            "env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE",
+            makefile,
         )
         self.assertIn('withenv("QCI_TOKEN" => nothing)', bootstrap)
+        self.assertNotIn("qci-client>=", source)
+        self.assertNotIn("pip install qci-client", source)
+        self.assertNotIn("--group qci", source)
         self.assertIn(
             'Base.invokelatest('
             'QUBONotebooksBootstrap.bootstrap_notebook, "6-QCi")',

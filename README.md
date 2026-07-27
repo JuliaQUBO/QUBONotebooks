@@ -47,7 +47,7 @@ Julia Five Starter Problems series starts at notebook 7.
 | Graver Augmented Multiseed Algorithm | [notebooks_jl/3-GAMA.ipynb](notebooks_jl/3-GAMA.ipynb) | [notebooks_py/3-GAMA_python.ipynb](notebooks_py/3-GAMA_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; Python notebook is portable and covered by `make verify-gama-python`. |
 | D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; quantum annealer cells require D-Wave solver access. The Python D-Wave notebook requires a user-managed Ocean install and is not part of the locked Python verification environment. |
 | Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; benchmark runs are long-running and generate artifacts. |
-| QCi | [notebooks_jl/6-QCi.ipynb](notebooks_jl/6-QCi.ipynb) | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | The Julia notebook's model-construction and exact-enumeration path is credential-free and covered by `make verify-qci-julia-local`; QCI submission is a separate explicit opt-in. The Python notebook requires the QCi Python stack and credentials for its cloud examples. |
+| QCi | [notebooks_jl/6-QCi.ipynb](notebooks_jl/6-QCi.ipynb) | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | The Julia notebook uses QCIOpt's default CondaPkg environment; its model-construction and exact-enumeration path is credential-free and covered by `make verify-qci-julia-local`. QCI submission is a separate explicit opt-in. The Python notebook requires its separate `eqc-models` stack and credentials for cloud examples. |
 | Canonical QUBO starter problems | [notebooks_jl/7-CanonicalProblems.ipynb](notebooks_jl/7-CanonicalProblems.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-canonical-problems-julia`; exhaustive checks validate number partitioning, Max-Cut, and minimum vertex cover. |
 | Order partitioning for A/B testing | [notebooks_jl/8-OrderPartitioning.ipynb](notebooks_jl/8-OrderPartitioning.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-order-partitioning-julia`; all 64 assignments validate the grouped value/risk objective and decoded balances. |
 | Altered cancer pathways from TCGA AML aggregates | [notebooks_jl/9-CancerGenomics.ipynb](notebooks_jl/9-CancerGenomics.ipynb) | Not available | Offline, credential-free Julia notebook covered by `make verify-cancer-genomics-julia`; a tiny incidence fixture is solved exhaustively and a seeded local sampler validates the committed aggregate without claiming clinical significance. |
@@ -112,6 +112,7 @@ For narrower checks, run the unit/link tests or one portable notebook target:
 make test
 make test-python
 make test-julia
+make test-qciopt-dwave-coexistence
 make verify-qubo-python
 make verify-gama-python
 make verify-qci-julia-local
@@ -131,11 +132,11 @@ release. Separate targets exist for notebooks that do not require external
 solver credentials or longer-running jobs; those credentialed and long-running
 notebooks are not part of the default portable subset. The Python QCi notebook
 does not have a locked local make target because `eqc-models==0.19.0` requires
-`networkx<3`, which conflicts with the D-Wave Ocean stack. Its Julia counterpart
-uses the shared Julia manifest and has a credential-free local target. The
-locked `qci` and `qubo` Python groups are therefore explicitly mutually
-exclusive; notebook targets sync the provider-specific group they need. QAOA
-uses its separate compatible `qiskit` group.
+`networkx<3`, which conflicts with the D-Wave Ocean stack. That isolation is
+specific to the Python notebook. The Julia counterpart does not install the
+Python `qci-client` distribution: QCIOpt uses its default CondaPkg environment
+and coexists with DWave and NetworkX 3 in the shared Julia project, guarded by
+`make test-qciopt-dwave-coexistence`.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and resolve the checked-in
 manifest for the current hosted Julia runtime. Package imports and their

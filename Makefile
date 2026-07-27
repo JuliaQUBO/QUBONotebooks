@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-qaoa-julia-ibm verify-annealing-julia-qpu
+.PHONY: test sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
 PYTHON ?= python3
 UV ?= uv
@@ -36,16 +36,18 @@ test:
 
 sysimage:
 	$(JULIA) -e 'using InteractiveUtils; versioninfo()'
-	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) sync --locked --group qubo --group qiskit
-	JULIA_CONDAPKG_BACKEND=Null JULIA_PYTHONCALL_EXE=$(CURDIR)/.venv/bin/python3 JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(JULIA) --project=./notebooks_jl -e 'import Pkg; Pkg.instantiate()'
+	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(JULIA) --project=./notebooks_jl -e 'import Pkg; Pkg.instantiate()'
 	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(JULIA) --project=./scripts -e 'import Pkg; Pkg.instantiate()'
-	JULIA_CONDAPKG_BACKEND=Null JULIA_PYTHONCALL_EXE=$(CURDIR)/.venv/bin/python3 JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) $(JULIA) --project=./scripts --threads=auto ./scripts/create_sysimage.jl
+	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) $(JULIA) --project=./scripts --threads=auto ./scripts/create_sysimage.jl
 
 test-python:
 	$(PYTHON) -m unittest discover -s tests
 
 test-julia:
 	$(JULIA) --startup-file=no test/runtests.jl
+
+test-qciopt-dwave-coexistence:
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(JULIA) --startup-file=no --project=./notebooks_jl -e 'import Pkg; Pkg.instantiate(); include("test/qciopt_dwave_coexistence.jl")'
 
 check-notebook-output-hygiene:
 	@if git grep -lE 'C:\\\\Users|AppData|purdue-internship|QUBONotebooksFork|home/azain' -- $(NOTEBOOK_FILES); then \
@@ -76,7 +78,7 @@ verify-benchmarking-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(BENCHMARKING_UV_GROUP_FLAGS)" NOTEBOOKS="$(BENCHMARKING_PYTHON_NOTEBOOK)"
 
 verify-qci-julia-local:
-	QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qci" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"
 
 verify-canonical-problems-julia:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(CANONICAL_PROBLEMS_JULIA_NOTEBOOK)"
@@ -88,13 +90,13 @@ verify-cancer-genomics-julia:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(CANCER_GENOMICS_JULIA_NOTEBOOK)"
 
 verify-qaoa-julia-local:
-	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qiskit" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
+	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
 
 verify-annealing-julia-local:
 	QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"
 
 verify-five-starter-problems-julia-local:
-	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qiskit" NOTEBOOKS="$(FIVE_STARTER_JULIA_NOTEBOOKS)"
+	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(FIVE_STARTER_JULIA_NOTEBOOKS)"
 
 verify-qci-julia-cloud:
 	@if [ "$${QUBONOTEBOOKS_QCI_ENABLE_CLOUD:-0}" != "1" ]; then \
@@ -105,7 +107,7 @@ verify-qci-julia-cloud:
 		echo "Set QCI_TOKEN through the process environment or a secret store."; \
 		exit 2; \
 	fi
-	QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qci" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"
 
 verify-qaoa-julia-ibm:
 	@if [ "$${QUBONOTEBOOKS_QAOA_ENABLE_IBM:-0}" != "1" ]; then \
@@ -120,7 +122,7 @@ verify-qaoa-julia-ibm:
 		echo "Set QISKIT_IBM_TOKEN through the process environment or a secret store."; \
 		exit 2; \
 	fi
-	QUBONOTEBOOKS_QAOA_REQUIRE_IBM=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs --group qiskit" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
+	QUBONOTEBOOKS_QAOA_REQUIRE_IBM=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QAOA_JULIA_NOTEBOOK)"
 
 verify-annealing-julia-qpu:
 	@if [ "$${QUBONOTEBOOKS_ANNEALING_ENABLE_QPU:-0}" != "1" ]; then \

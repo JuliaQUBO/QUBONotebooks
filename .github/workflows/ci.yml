@@ -57,5 +57,11 @@ jobs:
       - name: Julia link tests
         run: make test-julia
 
+      - name: QCIOpt and DWave coexistence
+        run: make test-qciopt-dwave-coexistence
+
+      - name: QCI Julia notebook
+        run: make verify-qci-julia-local
+
       - name: Portable Python notebooks
         run: make verify-python-portable

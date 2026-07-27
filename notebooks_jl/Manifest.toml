@@ -1465,8 +1465,8 @@ version = "1.0.6"
 
 [[deps.QCIOpt]]
 deps = ["CondaPkg", "Dates", "DynamicPolynomials", "JSON", "LinearAlgebra", "MathOptInterface", "PythonCall", "QUBODrivers", "QUBOTools", "Suppressor"]
-git-tree-sha1 = "b36fab1ca31c70c200a0e01f902e5548a0b59535"
-repo-rev = "57fe8c084765a18b057228dade52c9f95e460a35"
+git-tree-sha1 = "ab844fb172876d019201e8694c8e92a5dde479da"
+repo-rev = "30a6074fdd5bd75c3f1cf965329edd01c67e63fe"
 repo-url = "https://github.com/SECQUOIA/QCIOpt.jl"
 uuid = "6e1d72ef-e149-4f5c-9c69-bc0273b92dbc"
 version = "0.1.0"

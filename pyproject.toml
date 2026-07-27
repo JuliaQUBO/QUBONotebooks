@@ -19,16 +19,6 @@ mathprog = [
     "pyscipopt>=6.2.1,<7",
     "scipy>=1.13,<2",
 ]
-qci = [
-    "qci-client>=4.5,<6",
-]
-qiskit = [
-    "qiskit>=2.3,<2.4",
-    "qiskit-aer>=0.17,<0.18",
-    "qiskit-ibm-runtime>=0.46,<0.47",
-    "qiskit-optimization>=0.7,<0.8",
-    "scipy>=1.15,<1.16",
-]
 qubo = [
     "dimod>=0.12,<1",
     "dwave-neal>=0.6,<1",
@@ -46,9 +36,3 @@ qubo = [
 [tool.uv]
 package = false
 default-groups = ["docs"]
-conflicts = [
-    [
-        { group = "qci" },
-        { group = "qubo" },
-    ],
-]

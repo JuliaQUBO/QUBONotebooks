@@ -1443,7 +1443,7 @@ class JuliaColabSetupTests(unittest.TestCase):
         self.assertIn("Pkg.update()", source)
         self.assertIn('ENV["JULIA_CONDAPKG_BACKEND"] = "Null"', source)
         self.assertIn(
-            "python_packages::Vector{String} = default_python_packages(project_key)",
+            'python_packages::Vector{String} = ["dwave-ocean-sdk"]',
             source,
         )
 
