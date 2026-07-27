@@ -2,7 +2,7 @@
 
 julia_version = "1.10.11"
 manifest_format = "2.0"
-project_hash = "265cf64277e9b7228bbb5768a64721d795e215be"
+project_hash = "f55291c6ae370924a8f9c0cb385d05d4e030a495"
 
 [[deps.ASL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -425,6 +425,12 @@ version = "0.9.5"
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 version = "1.6.0"
+
+[[deps.DynamicPolynomials]]
+deps = ["LinearAlgebra", "MultivariatePolynomials", "MutableArithmetics", "Reexport", "StarAlgebras", "Test"]
+git-tree-sha1 = "5bfabc3827dfdd164359bad6800c115a81280c00"
+uuid = "7c1d4256-1411-5781-91ec-d7bc3513ac07"
+version = "0.6.6"
 
 [[deps.EarCut_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1175,6 +1181,16 @@ git-tree-sha1 = "e8dcbeef032ba2f9051a44ac22b4e54e3a1a0099"
 uuid = "46d2c3a1-f734-5fdb-9937-b9b9aeba4221"
 version = "0.2.6"
 
+[[deps.MultivariatePolynomials]]
+deps = ["DataStructures", "LinearAlgebra", "MutableArithmetics", "StarAlgebras"]
+git-tree-sha1 = "4838893d9b035c2f6967c0d533350e1755b58a70"
+uuid = "102ac46a-7ee4-5c85-9060-abc95bfdeaa3"
+version = "0.5.19"
+weakdeps = ["ChainRulesCore"]
+
+    [deps.MultivariatePolynomials.extensions]
+    MultivariatePolynomialsChainRulesCoreExt = "ChainRulesCore"
+
 [[deps.MultivariateStats]]
 deps = ["Arpack", "Distributions", "LinearAlgebra", "SparseArrays", "Statistics", "StatsAPI", "StatsBase"]
 git-tree-sha1 = "7c3ff68a904d0f7404e5d2f7f5bc667934d8d616"
@@ -1447,6 +1463,14 @@ git-tree-sha1 = "409884283434a04092ddf1d9594c22bc097d5d9a"
 uuid = "274fc56d-3b97-40fa-a1cd-1b4a50311bf9"
 version = "1.0.6"
 
+[[deps.QCIOpt]]
+deps = ["CondaPkg", "Dates", "DynamicPolynomials", "JSON", "LinearAlgebra", "MathOptInterface", "PythonCall", "QUBODrivers", "QUBOTools", "Suppressor"]
+git-tree-sha1 = "ab844fb172876d019201e8694c8e92a5dde479da"
+repo-rev = "30a6074fdd5bd75c3f1cf965329edd01c67e63fe"
+repo-url = "https://github.com/SECQUOIA/QCIOpt.jl"
+uuid = "6e1d72ef-e149-4f5c-9c69-bc0273b92dbc"
+version = "0.1.0"
+
 [[deps.QUBO]]
 deps = ["JuMP", "MathOptInterface", "QUBODrivers", "QUBOTools", "ToQUBO"]
 git-tree-sha1 = "2a50f96733c2a6f4f4d9d8736840232134c0a581"
@@ -1697,6 +1721,12 @@ git-tree-sha1 = "4f96c596b8c8258cc7d3b19797854d368f243ddc"
 uuid = "860ef19b-820b-49d6-a774-d7a799459cd3"
 version = "1.0.4"
 
+[[deps.StarAlgebras]]
+deps = ["LinearAlgebra", "MutableArithmetics", "SparseArrays"]
+git-tree-sha1 = "235b1f9d287bbf34083b3d0829343a7942c0ad1c"
+uuid = "0c0c59c1-dc5f-42e9-9a8b-b5dc384a6cd1"
+version = "0.3.0"
+
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
 git-tree-sha1 = "246a8bb2e6667f832eea063c3a56aef96429a3db"
@@ -1761,6 +1791,12 @@ uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
 version = "7.2.1+1"
+
+[[deps.Suppressor]]
+deps = ["Logging"]
+git-tree-sha1 = "6dbb5b635c5437c68c28c2ac9e39b87138f37c0a"
+uuid = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
+version = "0.2.8"
 
 [[deps.TOML]]
 deps = ["Dates"]

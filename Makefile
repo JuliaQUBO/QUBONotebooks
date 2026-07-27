@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-qaoa-julia-ibm verify-annealing-julia-qpu
+.PHONY: test sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
 PYTHON ?= python3
 UV ?= uv
@@ -14,6 +14,7 @@ GAMA_PYTHON_NOTEBOOK ?= notebooks_py/3-GAMA_python.ipynb
 PORTABLE_PYTHON_NOTEBOOKS ?= $(QUBO_PYTHON_NOTEBOOK) $(GAMA_PYTHON_NOTEBOOK)
 DWAVE_PYTHON_NOTEBOOK ?= notebooks_py/4-DWAVE_python.ipynb
 BENCHMARKING_PYTHON_NOTEBOOK ?= notebooks_py/5-Benchmarking_python.ipynb
+QCI_JULIA_NOTEBOOK ?= notebooks_jl/6-QCi.ipynb
 CANONICAL_PROBLEMS_JULIA_NOTEBOOK ?= notebooks_jl/7-CanonicalProblems.ipynb
 ORDER_PARTITIONING_JULIA_NOTEBOOK ?= notebooks_jl/8-OrderPartitioning.ipynb
 CANCER_GENOMICS_JULIA_NOTEBOOK ?= notebooks_jl/9-CancerGenomics.ipynb
@@ -45,6 +46,9 @@ test-python:
 test-julia:
 	$(JULIA) --startup-file=no test/runtests.jl
 
+test-qciopt-dwave-coexistence:
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(JULIA) --startup-file=no --project=./notebooks_jl test/qciopt_dwave_coexistence.jl
+
 check-notebook-output-hygiene:
 	@if git grep -lE 'C:\\\\Users|AppData|purdue-internship|QUBONotebooksFork|home/azain' -- $(NOTEBOOK_FILES); then \
 		echo "Found stale or personal notebook output paths"; \
@@ -73,6 +77,9 @@ verify-gama-python:
 verify-benchmarking-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(BENCHMARKING_UV_GROUP_FLAGS)" NOTEBOOKS="$(BENCHMARKING_PYTHON_NOTEBOOK)"
 
+verify-qci-julia-local:
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"
+
 verify-canonical-problems-julia:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(CANONICAL_PROBLEMS_JULIA_NOTEBOOK)"
 
@@ -90,6 +97,17 @@ verify-annealing-julia-local:
 
 verify-five-starter-problems-julia-local:
 	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(FIVE_STARTER_JULIA_NOTEBOOKS)"
+
+verify-qci-julia-cloud:
+	@if [ "$${QUBONOTEBOOKS_QCI_ENABLE_CLOUD:-0}" != "1" ]; then \
+		echo "Set QUBONOTEBOOKS_QCI_ENABLE_CLOUD=1 to opt into QCI cloud submission."; \
+		exit 2; \
+	fi
+	@if [ -z "$${QCI_TOKEN:-}" ]; then \
+		echo "Set QCI_TOKEN through the process environment or a secret store."; \
+		exit 2; \
+	fi
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"
 
 verify-qaoa-julia-ibm:
 	@if [ "$${QUBONOTEBOOKS_QAOA_ENABLE_IBM:-0}" != "1" ]; then \

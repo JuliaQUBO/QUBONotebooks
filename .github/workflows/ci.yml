@@ -22,11 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - uses: astral-sh/setup-uv@v8.3.2
+      - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -56,6 +56,12 @@ jobs:
 
       - name: Julia link tests
         run: make test-julia
+
+      - name: QCIOpt and DWave coexistence
+        run: make test-qciopt-dwave-coexistence
+
+      - name: QCI Julia notebook
+        run: make verify-qci-julia-local
 
       - name: Portable Python notebooks
         run: make verify-python-portable
