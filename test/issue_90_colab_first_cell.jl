@@ -19,7 +19,12 @@ using Test
         @test QUBONotebooksBootstrap.default_bootstrap_precompile()
     end
 
+    @test !QUBONotebooksBootstrap.notebook_requires_python("6-QCi")
+    @test !QUBONotebooksBootstrap.notebook_requires_python("10-QAOA")
+    @test QUBONotebooksBootstrap.notebook_requires_python("2-QUBO")
+
     for project_key in (
+        "6-QCi",
         "7-CanonicalProblems",
         "8-OrderPartitioning",
         "9-CancerGenomics",

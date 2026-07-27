@@ -20,12 +20,16 @@ const CREDENTIAL_FREE_DWAVE_NOTEBOOKS = Set((
     "9-CancerGenomics",
     "11-Annealing",
 ))
+const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
+    "6-QCi",
+))
 const NOTEBOOK_IMPORTS = Dict(
     "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
     "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
     "3-GAMA" => :(using BinaryWrappers, DelimitedFiles, Downloads, NPZ, JuMP, DWave, LinearAlgebra, Measures, Random, Plots, StatsBase, StatsPlots, lib4ti2_jll),
     "4-DWave" => :(using LinearAlgebra, Plots, JuMP, QUBO, DWave, Graphs),
     "5-Benchmarking" => :(using JuMP, QUBO, LinearAlgebra, Plots, Measures, DWave, Random, Statistics, ZipFile, JSON, StatsBase),
+    "6-QCi" => :(using JuMP, QCIOpt),
     "7-CanonicalProblems" => :(using JuMP, Plots, QUBO),
     "8-OrderPartitioning" => :(using JuMP, Printf, QUBO),
     "9-CancerGenomics" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
@@ -364,6 +368,10 @@ function warm_notebook_packages!(
     function load_packages()
         if project_key in CREDENTIAL_FREE_DWAVE_NOTEBOOKS
             return withenv("DWAVE_API_TOKEN" => nothing) do
+                Core.eval(Main, import_expr)
+            end
+        elseif project_key in CREDENTIAL_FREE_QCI_NOTEBOOKS
+            return withenv("QCI_TOKEN" => nothing) do
                 Core.eval(Main, import_expr)
             end
         end

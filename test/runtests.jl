@@ -23,6 +23,7 @@ notebook_links = [
     "notebooks_py/4-DWAVE_python.ipynb",
     "notebooks_jl/5-Benchmarking.ipynb",
     "notebooks_py/5-Benchmarking_python.ipynb",
+    "notebooks_jl/6-QCi.ipynb",
     "notebooks_py/6-QCi_python.ipynb",
     "notebooks_jl/7-CanonicalProblems.ipynb",
     "notebooks_jl/8-OrderPartitioning.ipynb",
@@ -36,6 +37,7 @@ files_with_repository_links = [
     joinpath("templates", "julia.ipynb"),
     joinpath("templates", "qubo.ipynb"),
     joinpath("notebooks_jl", "4-DWave.ipynb"),
+    joinpath("notebooks_jl", "6-QCi.ipynb"),
     joinpath("notebooks_py", "5-Benchmarking_python.ipynb"),
     joinpath("notebooks_py", "6-QCi_python.ipynb"),
 ]
