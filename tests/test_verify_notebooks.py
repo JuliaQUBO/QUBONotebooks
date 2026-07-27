@@ -1433,14 +1433,18 @@ class JuliaColabSetupTests(unittest.TestCase):
 
         self.assertIn("module QUBONotebooksBootstrap", source)
         self.assertIn("COLAB_RELEASE_TAG", source)
-        self.assertIn("git clone --depth 1 https://github.com/JuliaQUBO/QUBONotebooks.git", source)
+        self.assertIn(
+            "git clone --quiet --depth 1 https://github.com/JuliaQUBO/QUBONotebooks.git",
+            source,
+        )
         self.assertIn("QUBONOTEBOOKS_REPO_DIR", source)
         self.assertIn("Base.invokelatest", notebook_source(MATHPROG_JULIA_NOTEBOOK_PATH))
         self.assertIn("configured_allow_mismatch = env_bool(ALLOW_VERSION_MISMATCH_ENV)", source)
         self.assertIn("Colab will allow Pkg to re-resolve the notebook environment", source)
         self.assertIn("Resolving Julia packages for current runtime Julia", source)
-        self.assertIn("Pkg.resolve()", source)
-        self.assertIn("Pkg.update()", source)
+        self.assertIn("Pkg.Registry.update(; io = pkg_io, force = true)", source)
+        self.assertIn("Pkg.resolve(; io = pkg_io)", source)
+        self.assertIn("Pkg.update(; io = pkg_io)", source)
         self.assertIn('ENV["JULIA_CONDAPKG_BACKEND"] = "Null"', source)
         self.assertIn(
             'python_packages::Vector{String} = ["dwave-ocean-sdk"]',

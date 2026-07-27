@@ -65,3 +65,34 @@ jobs:
 
       - name: Portable Python notebooks
         run: make verify-python-portable
+
+  colab-bootstrap:
+    name: Julia 1.12 Colab bootstrap
+    runs-on: ubuntu-22.04
+    env:
+      UV_CACHE_DIR: .uv-cache
+      JULIA_DEPOT_PATH: ${{ github.workspace }}/.julia-depot
+      JULIA_PKG_PRECOMPILE_AUTO: "0"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: "1.12.6"
+
+      - uses: julia-actions/cache@v3
+
+      - name: Julia 1.12 bootstrap tests
+        run: make test-julia
+
+      - name: Execute and inspect Colab bootstrap
+        run: make verify-colab-bootstrap-output
