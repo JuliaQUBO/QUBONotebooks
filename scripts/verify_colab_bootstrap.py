@@ -293,6 +293,10 @@ def main() -> int:
     source = bootstrap_cell_source(repo_root)
     julia = julia_command()
     timeout = os.environ.get("QUBONOTEBOOKS_NOTEBOOK_TIMEOUT", "1200")
+    startup_timeout = os.environ.get(
+        "QUBONOTEBOOKS_KERNEL_STARTUP_TIMEOUT",
+        "300",
+    )
 
     with tempfile.TemporaryDirectory(prefix="qubonotebooks-colab-smoke-") as tmp:
         temp_root = Path(tmp)
@@ -332,7 +336,7 @@ def main() -> int:
                 "--startup-file=no",
                 f"--project={kernel_project}",
                 "-e",
-                "import Pkg; Pkg.instantiate(; io = devnull)",
+                "import Pkg; Pkg.instantiate(; io = devnull); import IJulia",
             ],
             cwd=workspace,
             env=env,
@@ -367,6 +371,7 @@ def main() -> int:
                 "notebook",
                 "--execute",
                 f"--ExecutePreprocessor.timeout={timeout}",
+                f"--ExecutePreprocessor.startup_timeout={startup_timeout}",
                 f"--ExecutePreprocessor.kernel_name={KERNEL_NAME}",
                 f"--output-dir={output_dir}",
                 smoke_notebook.name,
