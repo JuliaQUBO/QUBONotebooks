@@ -1,11 +1,20 @@
+const STARTED_WITH_DEFAULT_CONDAPKG_BACKEND =
+    !haskey(ENV, "JULIA_CONDAPKG_BACKEND")
+const STARTED_WITH_DEFAULT_PYTHONCALL_EXE =
+    !haskey(ENV, "JULIA_PYTHONCALL_EXE")
+
+import Pkg
+Pkg.instantiate()
+
 using Test
 using JuMP
 using QCIOpt
 using DWave
 
 @testset "QCIOpt and DWave default CondaPkg coexistence" begin
-    @test !haskey(ENV, "JULIA_CONDAPKG_BACKEND")
-    @test !haskey(ENV, "JULIA_PYTHONCALL_EXE")
+    @test STARTED_WITH_DEFAULT_CONDAPKG_BACKEND
+    @test STARTED_WITH_DEFAULT_PYTHONCALL_EXE
+    @test get(ENV, "JULIA_CONDAPKG_BACKEND", "") != "Null"
     @test QCIOpt.Optimizer <: JuMP.MOI.AbstractOptimizer
     @test DWave.Optimizer <: JuMP.MOI.AbstractOptimizer
 

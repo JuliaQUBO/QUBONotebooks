@@ -47,7 +47,7 @@ test-julia:
 	$(JULIA) --startup-file=no test/runtests.jl
 
 test-qciopt-dwave-coexistence:
-	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(JULIA) --startup-file=no --project=./notebooks_jl -e 'import Pkg; Pkg.instantiate(); include("test/qciopt_dwave_coexistence.jl")'
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=$(JULIA_PKG_PRECOMPILE_AUTO) $(JULIA) --startup-file=no --project=./notebooks_jl test/qciopt_dwave_coexistence.jl
 
 check-notebook-output-hygiene:
 	@if git grep -lE 'C:\\\\Users|AppData|purdue-internship|QUBONotebooksFork|home/azain' -- $(NOTEBOOK_FILES); then \
