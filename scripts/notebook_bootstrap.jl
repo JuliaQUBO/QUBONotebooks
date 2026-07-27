@@ -40,6 +40,16 @@ const NOTEBOOK_IMPORTS = Dict(
 timestamp() = Dates.format(now(), "HH:MM:SS")
 package_operation_io(in_colab::Bool) = in_colab ? devnull : stderr
 
+function with_package_operation_io(operation::Function, in_colab::Bool)
+    pkg_io = package_operation_io(in_colab)
+    if in_colab
+        return redirect_stderr(devnull) do
+            operation(pkg_io)
+        end
+    end
+    return operation(pkg_io)
+end
+
 function log_step(message::AbstractString)
     println("[$(timestamp())] $message")
     flush(stdout)
@@ -239,16 +249,19 @@ end
 function resolve_project_for_current_julia!(project_dir::AbstractString; in_colab::Bool = detect_colab())
     should_resolve_project_for_current_julia(project_dir; in_colab = in_colab) || return false
 
-    pkg_io = package_operation_io(in_colab)
     if in_colab
         get!(ENV, "JULIA_PKG_PRECOMPILE_AUTO", "0")
         strip_manifest_stdlib_pins!(project_dir)
         log_step("Refreshing Julia package registry")
-        Pkg.Registry.update(; io = pkg_io, force = true)
+        with_package_operation_io(in_colab) do pkg_io
+            Pkg.Registry.update(; io = pkg_io, force = true)
+        end
     end
     log_step("Resolving Julia packages for current runtime Julia $(VERSION)")
     try
-        Pkg.resolve(; io = pkg_io)
+        with_package_operation_io(in_colab) do pkg_io
+            Pkg.resolve(; io = pkg_io)
+        end
     catch err
         if !in_colab
             rethrow()
@@ -261,7 +274,9 @@ function resolve_project_for_current_julia!(project_dir::AbstractString; in_cola
             "Reason: $reason",
         )
         log_step("Updating Julia packages for current runtime Julia $(VERSION)")
-        Pkg.update(; io = pkg_io)
+        with_package_operation_io(in_colab) do pkg_io
+            Pkg.update(; io = pkg_io)
+        end
     end
     return true
 end
@@ -354,9 +369,10 @@ function activate_project!(
     project_dir::AbstractString;
     in_colab::Bool = detect_colab(),
 )
-    pkg_io = package_operation_io(in_colab)
     log_step("Activating project at `$project_dir`")
-    Pkg.activate(project_dir; io = pkg_io)
+    with_package_operation_io(in_colab) do pkg_io
+        Pkg.activate(project_dir; io = pkg_io)
+    end
     return nothing
 end
 
@@ -365,7 +381,6 @@ function instantiate_project!(
     precompile::Bool = true,
     in_colab::Bool = detect_colab(),
 )
-    pkg_io = package_operation_io(in_colab)
     activate_project!(project_dir; in_colab = in_colab)
     refreshed_for_current_julia = resolve_project_for_current_julia!(
         project_dir;
@@ -373,16 +388,24 @@ function instantiate_project!(
     )
     log_step("Instantiating Julia packages")
     if in_colab
-        Pkg.instantiate(; io = pkg_io)
+        with_package_operation_io(in_colab) do pkg_io
+            Pkg.instantiate(; io = pkg_io)
+        end
     else
-        @time Pkg.instantiate(; io = pkg_io)
+        @time with_package_operation_io(in_colab) do pkg_io
+            Pkg.instantiate(; io = pkg_io)
+        end
     end
     if precompile
         log_step("Precompiling Julia packages")
         if in_colab
-            Pkg.precompile(; io = pkg_io)
+            with_package_operation_io(in_colab) do pkg_io
+                Pkg.precompile(; io = pkg_io)
+            end
         else
-            @time Pkg.precompile(; io = pkg_io)
+            @time with_package_operation_io(in_colab) do pkg_io
+                Pkg.precompile(; io = pkg_io)
+            end
         end
     end
     return refreshed_for_current_julia
