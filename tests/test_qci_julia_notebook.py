@@ -102,6 +102,9 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         )
         guard_source = "".join(notebook_cell(data, "qci-guard")["source"])
         live_source = "".join(notebook_cell(data, "qci-live")["source"])
+        solution_attribute_source = "".join(
+            notebook_cell(data, "solution-attributes")["source"]
+        )
         full_source = notebook_source()
 
         required_guard_markers = (
@@ -121,6 +124,21 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         )
         for marker in required_attribute_markers:
             self.assertIn(marker, attribute_source)
+        self.assertIn(
+            "qci_status_after_attribute_config = "
+            "termination_status(qci_model)",
+            attribute_source,
+        )
+        self.assertIn(
+            "@assert qci_status_after_attribute_config == "
+            "MOI.OPTIMIZE_NOT_CALLED",
+            solution_attribute_source,
+        )
+        self.assertNotIn(
+            "@assert termination_status(qci_model) == "
+            "MOI.OPTIMIZE_NOT_CALLED",
+            solution_attribute_source,
+        )
 
         required_live_markers = (
             'MOI.RawOptimizerAttribute("api_token")',
