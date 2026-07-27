@@ -165,6 +165,36 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             re.compile(r'(?i)QCI_TOKEN\s*=\s*["\'][^"\']+["\']'),
         )
 
+    def test_live_result_validation_rejects_fractional_values_before_rounding(
+        self,
+    ) -> None:
+        data = notebook()
+        exact_source = "".join(notebook_cell(data, "exact-check")["source"])
+        live_source = "".join(notebook_cell(data, "qci-live")["source"])
+
+        self.assertIn(
+            "validated_binary_bits(raw_values; atol = 1e-8)",
+            exact_source,
+        )
+        self.assertIn("rtol = 0.0", exact_source)
+        self.assertIn("[0.4, 0.6, 0.0]", exact_source)
+        self.assertIn("@assert fractional_values_rejected", exact_source)
+        self.assertIn(
+            "raw_values = value.(x; result=result_index)",
+            live_source,
+        )
+        self.assertIn("bits = validated_binary_bits(raw_values)", live_source)
+        self.assertLess(
+            live_source.index(
+                "raw_values = value.(x; result=result_index)"
+            ),
+            live_source.index("bits = validated_binary_bits(raw_values)"),
+        )
+        self.assertNotIn(
+            "bits = round.(Int, value.(x; result=result_index))",
+            live_source,
+        )
+
     def test_environment_readme_makefile_and_bootstrap_are_linked(self) -> None:
         data = notebook()
         source = notebook_source()
