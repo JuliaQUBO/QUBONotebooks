@@ -1,0 +1,106 @@
+from __future__ import annotations
+
+import importlib.util
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+MODULE_PATH = REPO_ROOT / "scripts" / "verify_colab_bootstrap.py"
+SPEC = importlib.util.spec_from_file_location("verify_colab_bootstrap", MODULE_PATH)
+assert SPEC is not None
+assert SPEC.loader is not None
+verify_colab_bootstrap = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(verify_colab_bootstrap)
+
+
+def stream(text: str, *, name: str = "stdout") -> dict:
+    return {"name": name, "output_type": "stream", "text": [text]}
+
+
+def clean_outputs() -> list[dict]:
+    return [
+        stream(
+            "\n".join(
+                [
+                    "[12:00:00] Notebook project key: 7-CanonicalProblems",
+                    "[12:00:00] Google Colab runtime detected: true",
+                    "[12:00:00] Manifest Julia version: 1.10.11",
+                    "[12:00:00] Refreshing Julia package registry",
+                    (
+                        "[12:00:00] Resolving Julia packages for current runtime "
+                        "Julia 1.12.6"
+                    ),
+                    "[12:00:00] Instantiating Julia packages",
+                    "[12:00:00] Notebook bootstrap complete",
+                ]
+            )
+            + "\n"
+        ),
+        stream(
+            "┌ Warning: manifest mismatch; Colab will re-resolve it.\n"
+            "└ @ Main.QUBONotebooksBootstrap notebook_bootstrap.jl:200\n",
+            name="stderr",
+        ),
+    ]
+
+
+class ColabBootstrapSmokeTests(unittest.TestCase):
+    def test_extracts_real_bootstrap_cell(self) -> None:
+        source = verify_colab_bootstrap.bootstrap_cell_source(REPO_ROOT)
+
+        self.assertIn("function load_qubonotebooks_bootstrap()", source)
+        self.assertIn(
+            'bootstrap_notebook, "7-CanonicalProblems"',
+            source,
+        )
+        self.assertTrue(source.rstrip().endswith("IN_COLAB = BOOTSTRAP.in_colab;"))
+
+    def test_accepts_only_concise_bootstrap_output(self) -> None:
+        rendered = verify_colab_bootstrap.validate_bootstrap_outputs(clean_outputs())
+
+        self.assertIn("Notebook bootstrap complete", rendered)
+
+    def test_rejects_cell_errors(self) -> None:
+        outputs = clean_outputs() + [
+            {
+                "ename": "MethodError",
+                "evalue": "failed bootstrap",
+                "output_type": "error",
+                "traceback": ["large traceback intentionally ignored"],
+            }
+        ]
+
+        with self.assertRaisesRegex(AssertionError, "cell error: MethodError"):
+            verify_colab_bootstrap.validate_bootstrap_outputs(outputs)
+
+    def test_rejects_execute_results_including_trailing_true(self) -> None:
+        outputs = clean_outputs() + [
+            {
+                "data": {"text/plain": ["true"]},
+                "execution_count": 1,
+                "metadata": {},
+                "output_type": "execute_result",
+            }
+        ]
+
+        with self.assertRaisesRegex(AssertionError, "unexpected 'execute_result'"):
+            verify_colab_bootstrap.validate_bootstrap_outputs(outputs)
+
+    def test_rejects_each_noisy_output_class(self) -> None:
+        noisy_samples = {
+            "clone": "     Cloning git-repo https://github.com/example/package\n",
+            "package": "   Installed Example ─ v1.2.3\n",
+            "artifact": "  Installing 44 artifacts\n",
+            "registry": "    Updating registry at `General.toml`\n",
+            "manifest": "    Updating `/content/QUBONotebooks/Manifest.toml`\n",
+            "pkg": "  Activating project at `/content/QUBONotebooks`\n",
+            "stacktrace": "Stacktrace:\n [1] example()\n",
+            "task": "SYSTEM: caught exception of type :MethodError\n",
+        }
+
+        for label, text in noisy_samples.items():
+            with self.subTest(label=label):
+                with self.assertRaises(AssertionError):
+                    verify_colab_bootstrap.validate_bootstrap_outputs(
+                        clean_outputs() + [stream(text, name="stderr")]
+                    )
