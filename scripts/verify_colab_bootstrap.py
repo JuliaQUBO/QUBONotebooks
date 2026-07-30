@@ -14,19 +14,22 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_PATH = Path("notebooks_jl/7-CanonicalProblems.ipynb")
+NOTEBOOK_PATHS = (
+    Path("notebooks_jl/6-QCi.ipynb"),
+    NOTEBOOK_PATH,
+    Path("notebooks_jl/8-OrderPartitioning.ipynb"),
+)
 BOOTSTRAP_MARKER = "function load_qubonotebooks_bootstrap()"
 KERNEL_NAME = "qubonotebooks-colab-smoke"
 IJULIA_PROJECT = """\
 [deps]
 IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
 """
-EXPECTED_OUTPUT = (
-    "Notebook project key: 7-CanonicalProblems",
+EXPECTED_COMMON_OUTPUT = (
     "Google Colab runtime detected: true",
-    "Manifest Julia version: 1.10.11",
-    "Refreshing Julia package registry",
-    "Resolving Julia packages for current runtime Julia 1.12",
+    "Manifest Julia version: 1.12.6",
     "Instantiating Julia packages",
+    "Loading notebook packages",
     "Notebook bootstrap complete",
 )
 FORBIDDEN_OUTPUT = (
@@ -48,9 +51,17 @@ FORBIDDEN_OUTPUT = (
     (
         "unsuppressed Pkg progress",
         re.compile(
-            r"(?im)^\s+(?:Activating project at|Resolving package versions|"
-            r"Precompiling project)"
+            r"(?im)^\s*(?:Activating project at|Resolving package versions|"
+            r"(?:\[ Info:\s*)?Precompiling\b)"
         ),
+    ),
+    (
+        "CondaPkg environment setup",
+        re.compile(r"(?i)(?:CondaPkg|micromamba|pixi\.toml)"),
+    ),
+    (
+        "Julia manifest mismatch warning",
+        re.compile(r"(?i)manifest.+targets Julia.+current kernel"),
     ),
     (
         "stack trace or failed-task printer output",
@@ -85,8 +96,27 @@ def text_value(value: object) -> str:
     return str(value)
 
 
-def bootstrap_cell_source(repo_root: Path) -> str:
-    notebook_path = repo_root / NOTEBOOK_PATH
+def notebook_cell_source(repo_root: Path, notebook: Path, cell_id: str) -> str:
+    notebook_path = repo_root / notebook
+    data = json.loads(notebook_path.read_text())
+    matches = [
+        text_value(cell.get("source"))
+        for cell in data["cells"]
+        if cell.get("cell_type") == "code" and cell.get("id") == cell_id
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"Expected exactly one {cell_id!r} cell in {notebook_path}, "
+            f"found {len(matches)}."
+        )
+    return matches[0]
+
+
+def bootstrap_cell_source(
+    repo_root: Path,
+    notebook: Path = NOTEBOOK_PATH,
+) -> str:
+    notebook_path = repo_root / notebook
     notebook = json.loads(notebook_path.read_text())
     matches = [
         text_value(cell.get("source"))
@@ -99,6 +129,13 @@ def bootstrap_cell_source(repo_root: Path) -> str:
             f"Expected exactly one bootstrap cell in {notebook_path}, found {len(matches)}."
         )
     return matches[0]
+
+
+def smoke_cell_sources(repo_root: Path, notebook: Path) -> list[str]:
+    return [
+        notebook_cell_source(repo_root, notebook, cell_id)
+        for cell_id in ("bootstrap", "activate", "imports")
+    ]
 
 
 def output_text(outputs: list[dict]) -> str:
@@ -116,7 +153,11 @@ def concise_line(text: str, *, limit: int = 240) -> str:
     return line[: limit - 3] + "..."
 
 
-def validate_bootstrap_outputs(outputs: list[dict]) -> str:
+def validate_bootstrap_outputs(
+    outputs: list[dict],
+    *,
+    project_key: str = "7-CanonicalProblems",
+) -> str:
     failures: list[str] = []
     rendered = output_text(outputs)
 
@@ -137,7 +178,11 @@ def validate_bootstrap_outputs(outputs: list[dict]) -> str:
                 )
             )
 
-    for expected in EXPECTED_OUTPUT:
+    expected_output = (
+        f"Notebook project key: {project_key}",
+        *EXPECTED_COMMON_OUTPUT,
+    )
+    for expected in expected_output:
         if expected not in rendered:
             failures.append(f"missing milestone: {expected}")
 
@@ -153,7 +198,7 @@ def validate_bootstrap_outputs(outputs: list[dict]) -> str:
     return rendered
 
 
-def write_cross_minor_fixture(repo_root: Path, workspace: Path) -> None:
+def write_colab_fixture(repo_root: Path, workspace: Path) -> None:
     scripts_dir = workspace / "scripts"
     notebooks_dir = workspace / "notebooks_jl"
     scripts_dir.mkdir(parents=True)
@@ -168,30 +213,28 @@ def write_cross_minor_fixture(repo_root: Path, workspace: Path) -> None:
         notebooks_dir / "Project.toml",
     )
 
-    source_manifest = (repo_root / "notebooks_jl" / "Manifest.toml").read_text()
-    fixture_manifest, replacements = re.subn(
-        r'^julia_version = "[^"]+"',
-        'julia_version = "1.10.11"',
-        source_manifest,
-        count=1,
-        flags=re.MULTILINE,
+    shutil.copy2(
+        repo_root / "notebooks_jl" / "Manifest.toml",
+        notebooks_dir / "Manifest.toml",
     )
-    if replacements != 1:
-        raise ValueError("Could not pin the smoke-test manifest to Julia 1.10.11.")
-    (notebooks_dir / "Manifest.toml").write_text(fixture_manifest)
+    shutil.copy2(
+        repo_root / "notebooks_jl" / "Manifest-v1.12.toml",
+        notebooks_dir / "Manifest-v1.12.toml",
+    )
 
 
-def write_smoke_notebook(source: str, path: Path) -> None:
+def write_smoke_notebook(sources: list[str], path: Path) -> None:
     notebook = {
         "cells": [
             {
                 "cell_type": "code",
                 "execution_count": None,
-                "id": "bootstrap",
+                "id": f"smoke-{index}",
                 "metadata": {},
                 "outputs": [],
                 "source": source.splitlines(keepends=True),
             }
+            for index, source in enumerate(sources, start=1)
         ],
         "metadata": {
             "kernelspec": {
@@ -290,7 +333,6 @@ def verify_colab_stderr_suppression(
 
 def main() -> int:
     repo_root = REPO_ROOT
-    source = bootstrap_cell_source(repo_root)
     julia = julia_command()
     timeout = os.environ.get("QUBONOTEBOOKS_NOTEBOOK_TIMEOUT", "1200")
     startup_timeout = os.environ.get(
@@ -304,11 +346,8 @@ def main() -> int:
         kernel_project = temp_root / "ijulia"
         kernels_root = temp_root / "jupyter"
         output_dir = temp_root / "output"
-        smoke_notebook = workspace / "colab-bootstrap-smoke.ipynb"
-        executed_notebook = output_dir / "colab-bootstrap-smoke.ipynb"
 
-        write_cross_minor_fixture(repo_root, workspace)
-        write_smoke_notebook(source, smoke_notebook)
+        write_colab_fixture(repo_root, workspace)
         kernel_project.mkdir()
         kernel_project.joinpath("Project.toml").write_text(IJULIA_PROJECT)
         output_dir.mkdir()
@@ -320,9 +359,9 @@ def main() -> int:
                 "JULIA_PKG_PRECOMPILE_AUTO": "0",
                 "QUBONOTEBOOKS_PRECOMPILE": "0",
                 "QUBONOTEBOOKS_REPO_DIR": str(workspace),
-                "QUBONOTEBOOKS_WARM_PACKAGES": "0",
             }
         )
+        env.pop("QUBONOTEBOOKS_WARM_PACKAGES", None)
         verify_julia_1_12(julia, cwd=workspace, env=env)
         verify_colab_stderr_suppression(
             julia,
@@ -353,7 +392,6 @@ def main() -> int:
                     "JULIA_PKG_PRECOMPILE_AUTO",
                     "QUBONOTEBOOKS_PRECOMPILE",
                     "QUBONOTEBOOKS_REPO_DIR",
-                    "QUBONOTEBOOKS_WARM_PACKAGES",
                 )
                 if key in env
             },
@@ -361,31 +399,48 @@ def main() -> int:
 
         jupyter_env = env.copy()
         jupyter_env["JUPYTER_PATH"] = str(kernels_root)
-        run(
-            [
-                sys.executable,
-                "-m",
-                "jupyter",
-                "nbconvert",
-                "--to",
-                "notebook",
-                "--execute",
-                f"--ExecutePreprocessor.timeout={timeout}",
-                f"--ExecutePreprocessor.startup_timeout={startup_timeout}",
-                f"--ExecutePreprocessor.kernel_name={KERNEL_NAME}",
-                f"--output-dir={output_dir}",
-                smoke_notebook.name,
-            ],
-            cwd=workspace,
-            env=jupyter_env,
-        )
+        for notebook_path in NOTEBOOK_PATHS:
+            project_key = notebook_path.stem
+            smoke_name = f"colab-{project_key.lower()}-smoke.ipynb"
+            smoke_notebook = workspace / smoke_name
+            executed_notebook = output_dir / smoke_name
+            write_smoke_notebook(
+                smoke_cell_sources(repo_root, notebook_path),
+                smoke_notebook,
+            )
+            run(
+                [
+                    sys.executable,
+                    "-m",
+                    "jupyter",
+                    "nbconvert",
+                    "--to",
+                    "notebook",
+                    "--execute",
+                    f"--ExecutePreprocessor.timeout={timeout}",
+                    f"--ExecutePreprocessor.startup_timeout={startup_timeout}",
+                    f"--ExecutePreprocessor.kernel_name={KERNEL_NAME}",
+                    f"--output-dir={output_dir}",
+                    smoke_notebook.name,
+                ],
+                cwd=workspace,
+                env=jupyter_env,
+            )
 
-        executed = json.loads(executed_notebook.read_text())
-        rendered = validate_bootstrap_outputs(executed["cells"][0]["outputs"])
-        print("Captured first-cell output:", flush=True)
-        print(rendered.rstrip(), flush=True)
+            executed = json.loads(executed_notebook.read_text())
+            outputs = [
+                output
+                for cell in executed["cells"]
+                for output in cell.get("outputs", [])
+            ]
+            rendered = validate_bootstrap_outputs(
+                outputs,
+                project_key=project_key,
+            )
+            print(f"Captured {project_key} smoke output:", flush=True)
+            print(rendered.rstrip(), flush=True)
 
-    print("Julia 1.12 Colab bootstrap output smoke passed.", flush=True)
+    print("Julia 1.12 Colab bootstrap and import smokes passed.", flush=True)
     return 0
 
 

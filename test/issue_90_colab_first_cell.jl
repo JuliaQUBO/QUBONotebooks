@@ -7,6 +7,16 @@ using Test
         "QUBONOTEBOOKS_PRECOMPILE" => nothing,
     ) do
         @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages()
+        @test QUBONotebooksBootstrap.default_bootstrap_warm_packages("6-QCi")
+        @test QUBONotebooksBootstrap.default_bootstrap_warm_packages(
+            "7-CanonicalProblems",
+        )
+        @test QUBONotebooksBootstrap.default_bootstrap_warm_packages(
+            "8-OrderPartitioning",
+        )
+        @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages(
+            "9-CancerGenomics",
+        )
         @test !QUBONotebooksBootstrap.default_bootstrap_precompile()
     end
 
@@ -22,6 +32,8 @@ using Test
     @test !QUBONotebooksBootstrap.notebook_requires_python("6-QCi")
     @test !QUBONotebooksBootstrap.notebook_requires_python("10-QAOA")
     @test QUBONotebooksBootstrap.notebook_requires_python("2-QUBO")
+    @test QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES["6-QCi"] ==
+        ["numpy", "requests"]
 
     for project_key in (
         "6-QCi",

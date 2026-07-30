@@ -36,6 +36,26 @@ using Test
         @test isempty(read(io, String))
     end
 
+    mktemp() do _, stdout_io
+        mktemp() do _, stderr_io
+            redirect_stdout(stdout_io) do
+                redirect_stderr(stderr_io) do
+                    QUBONotebooksBootstrap.with_suppressed_output() do
+                        println(stdout, "hidden package stdout")
+                        println(stderr, "hidden package stderr")
+                        @info "hidden package log"
+                    end
+                end
+            end
+            flush(stdout_io)
+            flush(stderr_io)
+            seekstart(stdout_io)
+            seekstart(stderr_io)
+            @test isempty(read(stdout_io, String))
+            @test isempty(read(stderr_io, String))
+        end
+    end
+
     for operation in (
         "Pkg.activate(project_dir; io = pkg_io)",
         "Pkg.update(; io = pkg_io)",

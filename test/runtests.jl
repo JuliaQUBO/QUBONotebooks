@@ -166,3 +166,67 @@ end
         @test !QUBONotebooksBootstrap.strip_manifest_stdlib_pins!(project_dir)
     end
 end
+
+@testset "Julia version-specific notebook manifests" begin
+    mktempdir() do project_dir
+        default_manifest = joinpath(project_dir, "Manifest.toml")
+        versioned_manifest = joinpath(project_dir, "Manifest-v1.12.toml")
+        write(
+            default_manifest,
+            """
+            julia_version = "1.10.11"
+            manifest_format = "2.0"
+            """,
+        )
+        write(
+            versioned_manifest,
+            """
+            julia_version = "1.12.6"
+            manifest_format = "2.0"
+            """,
+        )
+
+        @test QUBONotebooksBootstrap.manifest_path(
+            project_dir;
+            julia_version = v"1.10.11",
+        ) == default_manifest
+        @test QUBONotebooksBootstrap.manifest_path(
+            project_dir;
+            julia_version = v"1.12.7",
+        ) == versioned_manifest
+        @test QUBONotebooksBootstrap.manifest_julia_version(
+            project_dir;
+            julia_version = v"1.12.7",
+        ) == v"1.12.6"
+        @test QUBONotebooksBootstrap.same_julia_minor(v"1.12.6", v"1.12.7")
+        @test !QUBONotebooksBootstrap.same_julia_minor(v"1.10.11", v"1.12.6")
+    end
+
+    colab_manifest = joinpath(
+        repo_root,
+        "notebooks_jl",
+        "Manifest-v1.12.toml",
+    )
+    @test isfile(colab_manifest)
+    @test TOML.parsefile(colab_manifest)["julia_version"] == "1.12.6"
+    @test QUBONotebooksBootstrap.manifest_path(
+        joinpath(repo_root, "notebooks_jl");
+        julia_version = v"1.12.6",
+    ) == colab_manifest
+
+    julia_notebooks = sort(filter(
+        path -> endswith(path, ".ipynb"),
+        readdir(joinpath(repo_root, "notebooks_jl"); join = true),
+    ))
+    notebook_keys = [
+        splitext(basename(notebook_path))[1] for notebook_path in julia_notebooks
+    ]
+    @test "3-GAMA" in notebook_keys
+    for (notebook_path, project_key) in zip(julia_notebooks, notebook_keys)
+        notebook = read(notebook_path, String)
+        @test occursin(
+            "QUBONotebooksBootstrap.bootstrap_notebook, \\\"$project_key\\\"",
+            notebook,
+        )
+    end
+end
