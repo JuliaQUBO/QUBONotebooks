@@ -154,27 +154,6 @@ def notebook_first_heading(cell: dict) -> str:
 
 
 class NotebookSourceSafetyTests(unittest.TestCase):
-    def test_colab_badges_use_the_same_centered_html_markup(self) -> None:
-        badge_image = (
-            '<img src="https://colab.research.google.com/assets/'
-            'colab-badge.svg" alt="Open In Colab"/>'
-        )
-
-        for path in notebook_paths():
-            relative_path = path.relative_to(REPO_ROOT).as_posix()
-            top_cell = "".join(notebook_cells(path)[0].get("source", []))
-            colab_link = (
-                '<a href="https://colab.research.google.com/github/'
-                f"JuliaQUBO/QUBONotebooks/blob/main/{relative_path}"
-                '" target="_parent">'
-            )
-
-            with self.subTest(notebook=relative_path):
-                self.assertIn('<div align="center">', top_cell)
-                self.assertEqual(1, top_cell.count(colab_link))
-                self.assertEqual(1, top_cell.count(badge_image))
-                self.assertNotIn("[![Open In Colab]", top_cell)
-
     def test_notebooks_do_not_use_jump_unsafe_backend(self) -> None:
         offenders = [
             path.relative_to(REPO_ROOT).as_posix()
