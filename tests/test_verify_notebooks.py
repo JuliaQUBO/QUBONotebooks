@@ -5,6 +5,7 @@ import json
 import os
 import re
 import tempfile
+import tomllib
 import unittest
 import zipfile
 from pathlib import Path
@@ -153,6 +154,27 @@ def notebook_first_heading(cell: dict) -> str:
 
 
 class NotebookSourceSafetyTests(unittest.TestCase):
+    def test_colab_badges_use_the_same_centered_html_markup(self) -> None:
+        badge_image = (
+            '<img src="https://colab.research.google.com/assets/'
+            'colab-badge.svg" alt="Open In Colab"/>'
+        )
+
+        for path in notebook_paths():
+            relative_path = path.relative_to(REPO_ROOT).as_posix()
+            top_cell = "".join(notebook_cells(path)[0].get("source", []))
+            colab_link = (
+                '<a href="https://colab.research.google.com/github/'
+                f"JuliaQUBO/QUBONotebooks/blob/main/{relative_path}"
+                '" target="_parent">'
+            )
+
+            with self.subTest(notebook=relative_path):
+                self.assertIn('<div align="center">', top_cell)
+                self.assertEqual(1, top_cell.count(colab_link))
+                self.assertEqual(1, top_cell.count(badge_image))
+                self.assertNotIn("[![Open In Colab]", top_cell)
+
     def test_notebooks_do_not_use_jump_unsafe_backend(self) -> None:
         offenders = [
             path.relative_to(REPO_ROOT).as_posix()
@@ -1345,6 +1367,23 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn(f"julia-version: '{expected_version}'", deploy_workflow)
         self.assertIn(f'julia_version = "{expected_version}"', notebook_manifest)
 
+    def test_native_colab_has_a_julia_1_12_manifest(self) -> None:
+        manifest_path = (
+            REPO_ROOT / "notebooks_jl" / "Manifest-v1.12.toml"
+        )
+        manifest = tomllib.loads(manifest_path.read_text())
+        qci_entry = manifest["deps"]["QCIOpt"][0]
+
+        self.assertEqual("1.12.6", manifest["julia_version"])
+        self.assertEqual(
+            "30a6074fdd5bd75c3f1cf965329edd01c67e63fe",
+            qci_entry["repo-rev"],
+        )
+        self.assertEqual(
+            "https://github.com/SECQUOIA/QCIOpt.jl",
+            qci_entry["repo-url"],
+        )
+
     def test_sysimage_build_and_colab_kernel_use_matching_depot_path(self) -> None:
         install_script = (REPO_ROOT / "scripts" / "install-colab-julia.sh").read_text()
         deploy_workflow = (REPO_ROOT / ".github" / "workflows" / "deploy.yml").read_text()
@@ -1403,7 +1442,9 @@ class JuliaColabSetupTests(unittest.TestCase):
                     )
                 ]
                 activate_indexes = [
-                    i for i, source in enumerate(cells) if "Pkg.activate(JULIA_PROJECT_DIR)" in source
+                    i
+                    for i, source in enumerate(cells)
+                    if "Pkg.activate(JULIA_PROJECT_DIR" in source
                 ]
                 expected_call = (
                     "Base.invokelatest("

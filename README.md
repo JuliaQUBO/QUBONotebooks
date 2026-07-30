@@ -137,17 +137,21 @@ does not have a locked local make target because `eqc-models==0.19.0` requires
 specific to the Python notebook. The Julia counterpart does not install the
 Python `qci-client` distribution: QCIOpt uses its default CondaPkg environment
 and coexists with DWave and NetworkX 3 in the shared Julia project, guarded by
-`make test-qciopt-dwave-coexistence`.
+`make test-qciopt-dwave-coexistence`. In native Colab, notebook 6 instead binds
+PythonCall to the hosted Python runtime and ensures only `numpy` and `requests`,
+so unrelated Python-backed Julia packages do not expand its setup environment.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
-repository when needed, activate `notebooks_jl`, and resolve the checked-in
-manifest for the current hosted Julia runtime. Package imports and their
-automatic precompilation run in each notebook's dedicated import cell instead
-of the setup cell. Set `QUBONOTEBOOKS_WARM_PACKAGES=1` or
-`QUBONOTEBOOKS_PRECOMPILE=1` before setup to opt into either extra bootstrap
-step. `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the real
-canonical-problems setup cell through IJulia with Colab environment markers and
-fails on package/artifact transcripts, stack traces, cell errors, or a rendered
-result value.
+repository when needed, activate `notebooks_jl`, and select the checked-in
+manifest for the hosted Julia minor version. Notebooks 6–8 warm their imports
+during setup with package output suppressed, leaving their dedicated import
+cells concise; set `QUBONOTEBOOKS_WARM_PACKAGES=0` to disable that behavior or
+`QUBONOTEBOOKS_WARM_PACKAGES=1` to enable it for another notebook.
+`QUBONOTEBOOKS_PRECOMPILE=1` remains an explicit full-project precompile
+option. `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the
+real setup, activation, and import cells from notebooks 6–8 through IJulia with
+Colab environment markers. It fails on CondaPkg or package/artifact
+transcripts, manifest mismatch warnings, failed-task output, stack traces, cell
+errors, or unexpected rendered values.
 
 ```bash
 make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"
