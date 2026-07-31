@@ -94,6 +94,41 @@ using Test
         suppress_logs = true,
     )
 
+    warmup_test_key = "__quiet-default-test__"
+    @test !haskey(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS, warmup_test_key)
+    try
+        QUBONotebooksBootstrap.NOTEBOOK_IMPORTS[warmup_test_key] = :(begin
+            println(stdout, "hidden default warm-up stdout")
+            println(stderr, "hidden default warm-up stderr")
+            @info "hidden default warm-up log"
+        end)
+        mktemp() do _, stdout_io
+            mktemp() do _, stderr_io
+                loaded = redirect_stdout(stdout_io) do
+                    redirect_stderr(stderr_io) do
+                        Base.invokelatest(
+                            QUBONotebooksBootstrap.warm_notebook_packages!,
+                            warmup_test_key,
+                        )
+                    end
+                end
+                flush(stdout_io)
+                flush(stderr_io)
+                seekstart(stdout_io)
+                seekstart(stderr_io)
+                captured_stdout = read(stdout_io, String)
+                captured_stderr = read(stderr_io, String)
+
+                @test loaded === true
+                @test occursin("Loading notebook packages", captured_stdout)
+                @test !occursin("hidden default warm-up", captured_stdout)
+                @test isempty(captured_stderr)
+            end
+        end
+    finally
+        delete!(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS, warmup_test_key)
+    end
+
     for operation in (
         "Pkg.activate(project_dir; io = pkg_io)",
         "Pkg.update(; io = pkg_io)",

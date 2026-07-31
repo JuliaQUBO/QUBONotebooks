@@ -570,14 +570,14 @@ function load_notebook_packages!(
 end
 
 """
-    warm_notebook_packages!(project_key; suppress_logs=detect_colab())
+    warm_notebook_packages!(project_key; suppress_logs=true)
 
 Load the complete declared package set for a notebook. This remains an explicit
 opt-in warm-up; normal notebook execution loads packages from marked import cells.
 """
 function warm_notebook_packages!(
     project_key::AbstractString;
-    suppress_logs::Bool = detect_colab(),
+    suppress_logs::Bool = true,
 )
     import_expr = notebook_import_expr(project_key)
     import_expr === nothing && return false
