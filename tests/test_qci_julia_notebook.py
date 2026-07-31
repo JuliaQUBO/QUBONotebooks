@@ -233,7 +233,9 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         self.assertNotIn("qci", pyproject["dependency-groups"])
         self.assertNotIn("qiskit", pyproject["dependency-groups"])
         self.assertNotIn("conflicts", pyproject["tool"]["uv"])
-        self.assertIn('"6-QCi" => :(using JuMP, QCIOpt)', bootstrap)
+        self.assertIn('"6-QCi" => :(begin', bootstrap)
+        self.assertIn("using JuMP, QCIOpt", bootstrap)
+        self.assertIn("import MathOptInterface as MOI", bootstrap)
         self.assertNotIn("qci-client", bootstrap)
         self.assertIn(
             "env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE",

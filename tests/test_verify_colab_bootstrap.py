@@ -4,6 +4,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -55,6 +56,7 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         )[0]
 
         self.assertIn("--with pip", target)
+        self.assertIn("--with matplotlib", target)
         self.assertNotIn("--with dwave-ocean-sdk", target)
 
     def test_hosted_target_uses_a_fresh_auto_released_colab_vm(self) -> None:
@@ -72,6 +74,21 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         self.assertNotIn("--keep", command)
         self.assertIn("QUBONOTEBOOKS_HOSTED_COLAB_RUNNER=checkout", command)
         self.assertIn(f"QUBONOTEBOOKS_REPO_REF={'a' * 40}", command)
+
+    def test_hosted_all_notebook_plan_uses_one_fresh_vm_per_notebook(self) -> None:
+        commands = verify_hosted_colab.colab_run_commands(
+            script_path=HOSTED_MODULE_PATH,
+            auth="oauth2",
+            timeout=3600,
+            repo_ref="a" * 40,
+            repo_url="https://github.com/JuliaQUBO/QUBONotebooks.git",
+            notebook_keys=("1-MathProg", "2-QUBO"),
+        )
+
+        self.assertEqual(2, len(commands))
+        self.assertIn("QUBONOTEBOOKS_COLAB_NOTEBOOKS=1-MathProg", commands[0])
+        self.assertIn("QUBONOTEBOOKS_COLAB_NOTEBOOKS=2-QUBO", commands[1])
+        self.assertTrue(all("--keep" not in command for command in commands))
 
     def test_hosted_runner_loads_when_colab_does_not_define_file(self) -> None:
         source = HOSTED_MODULE_PATH.read_text()
@@ -119,13 +136,13 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
 
     def test_notebook_11_keeps_dwave_loading_out_of_bootstrap(self) -> None:
         notebook_path = Path("notebooks_jl/11-Annealing.ipynb")
-        sources = verify_colab_bootstrap.smoke_cell_sources(
+        cells = verify_colab_bootstrap.smoke_cells(
             REPO_ROOT,
             notebook_path,
         )
 
-        self.assertIn("warm_notebook_packages!", sources[2])
-        self.assertIn('"11-Annealing"', sources[2])
+        self.assertIn("warm_notebook_packages!", cells[2]["source"])
+        self.assertIn('"11-Annealing"', cells[2]["source"])
 
     def test_smoke_inventory_covers_every_julia_notebook(self) -> None:
         expected_paths = tuple(
@@ -166,37 +183,172 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         self.assertTrue(source.rstrip().endswith("IN_COLAB = BOOTSTRAP.in_colab;"))
 
     def test_extracts_bootstrap_activation_and_import_cells(self) -> None:
+        expected_import_ids = {
+            "1-MathProg": (
+                "imports-plots",
+                "imports-jump",
+                "imports-glpk",
+                "imports-cbc",
+                "imports-ipopt",
+                "imports-specialfunctions",
+                "imports-bonmin",
+                "imports-couenne",
+            ),
+            "2-QUBO": (
+                "imports-karnak",
+                "imports-linearalgebra",
+                "imports-graphs",
+                "imports-jump",
+                "imports-qubo",
+                "imports-plots",
+                "imports-glpk",
+                "imports-dwave",
+                "imports-luxor",
+            ),
+            "3-GAMA": (
+                "imports-delimited-random",
+                "imports-4ti2",
+                "imports-jump-dwave",
+                "imports-plots",
+            ),
+            "4-DWave": ("imports-linearalgebra", "imports-dwave-stack"),
+            "5-Benchmarking": (
+                "imports-modeling",
+                "imports-plots",
+                "imports-measures-energy",
+                "imports-dwave",
+                "imports-measures-schedule",
+                "imports-random",
+                "imports-statistics",
+                "imports-zipfile",
+                "imports-analysis",
+                "imports-runtime-plots",
+                "imports-ttt-plots",
+                "imports-statsbase",
+            ),
+            "6-QCi": ("imports",),
+            "7-CanonicalProblems": ("imports",),
+            "8-OrderPartitioning": ("imports",),
+            "9-CancerGenomics": ("imports",),
+            "10-QAOA": ("imports",),
+            "11-Annealing": ("imports",),
+        }
+
         for notebook_path in verify_colab_bootstrap.NOTEBOOK_PATHS:
             with self.subTest(notebook=notebook_path.as_posix()):
-                sources = verify_colab_bootstrap.smoke_cell_sources(
+                cells = verify_colab_bootstrap.smoke_cells(
                     REPO_ROOT,
                     notebook_path,
                 )
 
-                self.assertEqual(3, len(sources))
-                self.assertIn("bootstrap_notebook", sources[0])
-                self.assertIn("Pkg.instantiate", sources[1])
-                self.assertIn("io = devnull", sources[1])
-                self.assertIn("warm_notebook_packages!", sources[2])
-                self.assertIn(f'"{notebook_path.stem}"', sources[2])
+                self.assertEqual(
+                    ("bootstrap", "activate", *expected_import_ids[notebook_path.stem]),
+                    tuple(cell["id"] for cell in cells),
+                )
+                self.assertIn("bootstrap_notebook", cells[0]["source"])
+                self.assertIn("Pkg.instantiate", cells[1]["source"])
+                self.assertIn("io = devnull", cells[1]["source"])
+
+                notebook = verify_colab_bootstrap.json.loads(
+                    (REPO_ROOT / notebook_path).read_text()
+                )
+                for cell in cells:
+                    if cell["id"] == "bootstrap":
+                        notebook_source = verify_colab_bootstrap.bootstrap_cell_source(
+                            REPO_ROOT,
+                            notebook_path,
+                        )
+                    elif cell["id"] == "activate":
+                        notebook_source = verify_colab_bootstrap.activation_cell_source(
+                            REPO_ROOT,
+                            notebook_path,
+                        )
+                    else:
+                        notebook_source = verify_colab_bootstrap.text_value(
+                            next(
+                                notebook_cell["source"]
+                                for notebook_cell in notebook["cells"]
+                                if notebook_cell.get("metadata", {}).get(
+                                    verify_colab_bootstrap.IMPORT_CELL_METADATA_KEY
+                                )
+                                == cell["id"]
+                            )
+                        )
+                    self.assertEqual(notebook_source, cell["source"])
 
     def test_explicit_import_cells_use_the_quiet_shared_loader(self) -> None:
         for notebook_path in verify_colab_bootstrap.NOTEBOOK_PATHS:
-            data = verify_colab_bootstrap.json.loads(
-                (REPO_ROOT / notebook_path).read_text()
+            import_cells = verify_colab_bootstrap.notebook_import_cells(
+                REPO_ROOT,
+                notebook_path,
             )
-            import_cells = [
-                cell for cell in data["cells"] if cell.get("id") == "imports"
-            ]
-            if not import_cells:
-                continue
 
             with self.subTest(notebook=notebook_path.as_posix()):
-                source = verify_colab_bootstrap.text_value(import_cells[0]["source"])
-                self.assertIn("Base.invokelatest", source)
-                self.assertIn("warm_notebook_packages!", source)
-                self.assertIn(f'"{notebook_path.stem}"', source)
-                self.assertIn("suppress_logs = true", source)
+                self.assertGreaterEqual(len(import_cells), 1)
+                for cell in import_cells:
+                    source = verify_colab_bootstrap.text_value(cell["source"])
+                    self.assertIn(
+                        verify_colab_bootstrap.IMPORT_CELL_MARKER,
+                        source,
+                    )
+                    self.assertIn("Base.invokelatest", source)
+                    self.assertRegex(
+                        source,
+                        r"(?:load|warm)_notebook_packages!",
+                    )
+
+    def test_rejects_an_unmarked_real_import_cell(self) -> None:
+        notebook_path = Path("notebooks_jl/1-MathProg.ipynb")
+        notebook = verify_colab_bootstrap.json.loads(
+            (REPO_ROOT / notebook_path).read_text()
+        )
+        import_cell = next(
+            cell
+            for cell in notebook["cells"]
+            if cell.get("metadata", {}).get(
+                verify_colab_bootstrap.IMPORT_CELL_METADATA_KEY
+            )
+            == "imports-plots"
+        )
+        import_cell["source"] = ["using Plots\n"]
+        del import_cell["metadata"][
+            verify_colab_bootstrap.IMPORT_CELL_METADATA_KEY
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            destination = root / notebook_path
+            destination.parent.mkdir(parents=True)
+            destination.write_text(verify_colab_bootstrap.json.dumps(notebook))
+
+            with self.assertRaisesRegex(ValueError, "unmarked package import"):
+                verify_colab_bootstrap.notebook_import_cells(root, notebook_path)
+
+    def test_rejects_an_activation_cell_without_instantiation(self) -> None:
+        notebook_path = Path("notebooks_jl/1-MathProg.ipynb")
+        notebook = verify_colab_bootstrap.json.loads(
+            (REPO_ROOT / notebook_path).read_text()
+        )
+        activation_cell = next(
+            cell
+            for cell in notebook["cells"]
+            if "Pkg.activate(JULIA_PROJECT_DIR"
+            in verify_colab_bootstrap.text_value(cell.get("source"))
+        )
+        activation_cell["source"] = [
+            line
+            for line in activation_cell["source"]
+            if "Pkg.instantiate" not in line
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            destination = root / notebook_path
+            destination.parent.mkdir(parents=True)
+            destination.write_text(verify_colab_bootstrap.json.dumps(notebook))
+
+            with self.assertRaisesRegex(ValueError, "does not instantiate"):
+                verify_colab_bootstrap.activation_cell_source(root, notebook_path)
 
     def test_accepts_only_concise_bootstrap_output(self) -> None:
         rendered = verify_colab_bootstrap.validate_bootstrap_outputs(clean_outputs())
@@ -226,6 +378,21 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         ]
 
         with self.assertRaisesRegex(AssertionError, r"cell 2 \(imports\)"):
+            verify_colab_bootstrap.validate_notebook_execution(cells)
+
+    def test_notebook_validation_rejects_import_precompilation_output(self) -> None:
+        cells = [
+            {"id": "bootstrap", "outputs": clean_outputs()},
+            {
+                "id": "imports-plots",
+                "outputs": [stream("[ Info: Precompiling Plots [91a5bcdd]\n")],
+            },
+        ]
+
+        with self.assertRaisesRegex(
+            AssertionError,
+            r"cell 2 \(imports-plots\): package precompilation output",
+        ):
             verify_colab_bootstrap.validate_notebook_execution(cells)
 
     def test_rejects_execute_results_including_trailing_true(self) -> None:

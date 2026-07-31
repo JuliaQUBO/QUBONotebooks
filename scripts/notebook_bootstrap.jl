@@ -46,7 +46,10 @@ const NOTEBOOK_IMPORTS = Dict(
     "3-GAMA" => :(using BinaryWrappers, DelimitedFiles, Downloads, NPZ, JuMP, DWave, LinearAlgebra, Measures, Random, Plots, StatsBase, StatsPlots, lib4ti2_jll),
     "4-DWave" => :(using LinearAlgebra, Plots, JuMP, QUBO, DWave, Graphs),
     "5-Benchmarking" => :(using JuMP, QUBO, LinearAlgebra, Plots, Measures, DWave, Random, Statistics, ZipFile, JSON, StatsBase),
-    "6-QCi" => :(using JuMP, QCIOpt),
+    "6-QCi" => :(begin
+        using JuMP, QCIOpt
+        import MathOptInterface as MOI
+    end),
     "7-CanonicalProblems" => :(using JuMP, Plots, QUBO),
     "8-OrderPartitioning" => :(using JuMP, Printf, QUBO),
     "9-CancerGenomics" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
@@ -532,19 +535,24 @@ function instantiate_project!(
     return refreshed_for_current_julia
 end
 
-function warm_notebook_packages!(
-    project_key::AbstractString;
-    suppress_logs::Bool = true,
-)
-    import_expr = notebook_import_expr(project_key)
-    import_expr === nothing && return false
+"""
+    load_notebook_packages!(label, import_expr; project_key=nothing, suppress_logs=detect_colab())
 
+Evaluate one notebook import expression in `Main`. Colab import transcripts are
+suppressed when requested, while exceptions continue to propagate to the cell.
+"""
+function load_notebook_packages!(
+    label::AbstractString,
+    import_expr::Expr;
+    project_key::Union{Nothing,AbstractString} = nothing,
+    suppress_logs::Bool = detect_colab(),
+)
     function load_packages()
-        if project_key in CREDENTIAL_FREE_DWAVE_NOTEBOOKS
+        if project_key !== nothing && project_key in CREDENTIAL_FREE_DWAVE_NOTEBOOKS
             return withenv("DWAVE_API_TOKEN" => nothing) do
                 Core.eval(Main, import_expr)
             end
-        elseif project_key in CREDENTIAL_FREE_QCI_NOTEBOOKS
+        elseif project_key !== nothing && project_key in CREDENTIAL_FREE_QCI_NOTEBOOKS
             return withenv("QCI_TOKEN" => nothing) do
                 Core.eval(Main, import_expr)
             end
@@ -552,13 +560,33 @@ function warm_notebook_packages!(
         return Core.eval(Main, import_expr)
     end
 
-    log_step("Loading notebook packages")
+    log_step("Loading $label")
     if suppress_logs
         with_suppressed_output(load_packages)
     else
         load_packages()
     end
     return true
+end
+
+"""
+    warm_notebook_packages!(project_key; suppress_logs=true)
+
+Load the complete declared package set for a notebook. This remains an explicit
+opt-in warm-up; normal notebook execution loads packages from marked import cells.
+"""
+function warm_notebook_packages!(
+    project_key::AbstractString;
+    suppress_logs::Bool = true,
+)
+    import_expr = notebook_import_expr(project_key)
+    import_expr === nothing && return false
+    return load_notebook_packages!(
+        "notebook packages",
+        import_expr;
+        project_key = project_key,
+        suppress_logs = suppress_logs,
+    )
 end
 
 function bootstrap_notebook(
