@@ -28,7 +28,7 @@ using Test
     @test !QUBONotebooksBootstrap.notebook_requires_python("6-QCi")
     @test !QUBONotebooksBootstrap.notebook_requires_python("10-QAOA")
     @test QUBONotebooksBootstrap.notebook_requires_python("2-QUBO")
-    for project_key in ("6-QCi", "10-QAOA", "11-Annealing")
+    for project_key in ("6-QCi", "10-QAOA")
         @test QUBONotebooksBootstrap.requires_colab_python_preload(
             project_key;
             in_colab = true,

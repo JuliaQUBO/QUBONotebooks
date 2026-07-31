@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from datetime import datetime
 from pathlib import Path
 
 SOURCE_PATH = globals().get("__file__")
@@ -124,6 +125,22 @@ def validate_native_julia_kernel(kernel: dict, julia_exe: str) -> None:
         )
 
 
+def cell_elapsed_seconds(cell: dict) -> float:
+    execution = cell.get("metadata", {}).get("execution", {})
+    started = execution.get("iopub.execute_input")
+    finished = execution.get("iopub.status.idle") or execution.get(
+        "shell.execute_reply"
+    )
+    if not started or not finished:
+        cell_id = cell.get("id", "<unknown>")
+        raise AssertionError(f"Hosted Colab did not record timing for cell {cell_id}.")
+
+    def parse_timestamp(value: str) -> datetime:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+    return (parse_timestamp(finished) - parse_timestamp(started)).total_seconds()
+
+
 def execute_native_smoke(
     smoke,
     repo_root: Path,
@@ -166,6 +183,13 @@ def execute_native_smoke(
 
     executed = json.loads(executed_notebook.read_text())
     smoke.validate_notebook_execution(executed["cells"])
+    cell_timings = [cell_elapsed_seconds(cell) for cell in executed["cells"]]
+    bootstrap_limit = float(env.get("QUBONOTEBOOKS_BOOTSTRAP_MAX_SECONDS", "180"))
+    if cell_timings[0] > bootstrap_limit:
+        raise AssertionError(
+            f"Hosted Colab bootstrap took {cell_timings[0]:.1f}s; "
+            f"expected at most {bootstrap_limit:.1f}s."
+        )
     conda_environment = repo_root / "notebooks_jl" / ".CondaPkg"
     if conda_environment.exists():
         raise AssertionError(
@@ -178,6 +202,17 @@ def execute_native_smoke(
     )
     print(f"Captured {project_key} bootstrap output:", flush=True)
     print(rendered.rstrip(), flush=True)
+    print(
+        "Hosted cell timings: "
+        + ", ".join(
+            f"{cell.get('id', f'cell-{index}')}={seconds:.1f}s"
+            for index, (cell, seconds) in enumerate(
+                zip(executed["cells"], cell_timings),
+                start=1,
+            )
+        ),
+        flush=True,
+    )
     print(f"Hosted Colab {project_key} smoke passed in {elapsed:.1f}s.", flush=True)
     return elapsed
 

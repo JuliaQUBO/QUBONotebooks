@@ -103,6 +103,30 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
             source,
         )
 
+    def test_hosted_cell_timing_uses_iopub_lifecycle(self) -> None:
+        cell = {
+            "id": "bootstrap",
+            "metadata": {
+                "execution": {
+                    "iopub.execute_input": "2026-07-31T14:52:35.000000Z",
+                    "iopub.status.idle": "2026-07-31T14:53:08.250000Z",
+                    "shell.execute_reply": "2026-07-31T14:53:08.000000Z",
+                }
+            },
+        }
+
+        self.assertEqual(33.25, verify_hosted_colab.cell_elapsed_seconds(cell))
+
+    def test_notebook_11_keeps_dwave_loading_out_of_bootstrap(self) -> None:
+        notebook_path = Path("notebooks_jl/11-Annealing.ipynb")
+        sources = verify_colab_bootstrap.smoke_cell_sources(
+            REPO_ROOT,
+            notebook_path,
+        )
+
+        self.assertIn("warm_notebook_packages!", sources[2])
+        self.assertIn('"11-Annealing"', sources[2])
+
     def test_smoke_inventory_covers_every_julia_notebook(self) -> None:
         expected_paths = tuple(
             path.relative_to(REPO_ROOT)

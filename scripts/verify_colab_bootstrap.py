@@ -35,9 +35,7 @@ EXPECTED_COMMON_OUTPUT = (
     "Instantiating Julia packages",
     "Notebook bootstrap complete",
 )
-COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS = frozenset(
-    ("6-QCi", "10-QAOA", "11-Annealing")
-)
+COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS = frozenset(("6-QCi", "10-QAOA"))
 EXECUTION_FORBIDDEN_OUTPUT = (
     (
         "stack trace or failed-task printer output",

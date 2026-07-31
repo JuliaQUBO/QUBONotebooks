@@ -149,11 +149,13 @@ requests QiskitOpt's versioned Qiskit, Aer, IBM Runtime, Optimization, and SciPy
 stack (plus their transitive dependencies). This keeps unrelated dependencies
 from the shared Julia project's CondaPkg environment out of deferred import
 cells.
-On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, DWave, and the
+On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, and the
 IJulia/PythonCall extension can otherwise emit failed-task-printer notices
 during their first implicit compilation even when the imports succeed.
-Notebooks 6, 10, and 11 therefore perform one narrow, output-suppressed first
-load during setup; the other notebooks keep their package imports deferred.
+Notebooks 6 and 10 therefore perform one narrow, output-suppressed first load
+during setup. Notebook 11 keeps its expensive DWave load deferred to its import
+cell but runs that declared import set through the same output-suppressed helper;
+the other notebooks keep their package imports deferred.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and select the checked-in
 manifest for the hosted Julia minor version. Automatic full-project
@@ -166,10 +168,10 @@ Set `QUBONOTEBOOKS_WARM_PACKAGES=1` to warm a notebook's declared imports or
 setup and activation cells from all Julia notebooks through IJulia with Colab
 environment markers, plus a post-bootstrap package import check. It rejects
 CondaPkg or package/artifact transcripts, manifest mismatch warnings, and pip
-progress in the bootstrap output. It also requires the narrow notebook 6, 10,
-and 11 first-load workaround; later activation and import cells must remain
-free of CondaPkg environment setup, failed-task output, stack traces, cell
-errors, and unexpected rendered values.
+progress in the bootstrap output. It also requires the narrow notebook 6 and 10
+first-load workaround; later activation and import cells must remain free of
+CondaPkg environment setup, failed-task output, stack traces, cell errors, and
+unexpected rendered values.
 The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
 exercise their normal Colab D-Wave setup without adding the Ocean stack to the
 locked project environment.
@@ -185,9 +187,10 @@ make verify-colab-hosted
 The first invocation that contacts Colab prompts for Google OAuth. The target
 creates a fresh hosted CPU VM, fetches the exact current Git commit, executes
 the real bootstrap, activation, and import cells through Colab's native `julia`
-kernelspec, rejects CondaPkg setup and failed-task output, and releases the VM
-when the command finishes. It tests `11-Annealing` by default; select any
-committed notebook keys with, for example,
+kernelspec, rejects CondaPkg setup and failed-task output, rejects bootstrap
+cells slower than three minutes, and releases the VM when the command finishes.
+It tests `11-Annealing` by default; select any committed notebook keys with, for
+example,
 
 ```bash
 QUBONOTEBOOKS_COLAB_NOTEBOOKS="9-CancerGenomics,11-Annealing" \
