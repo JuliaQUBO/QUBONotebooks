@@ -152,10 +152,10 @@ cells.
 On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, and the
 IJulia/PythonCall extension can otherwise emit failed-task-printer notices
 during their first implicit compilation even when the imports succeed.
-Notebooks 6 and 10 therefore perform one narrow, output-suppressed first load
-during setup. Notebook 11 keeps its expensive DWave load deferred to its import
-cell but runs that declared import set through the same output-suppressed helper;
-the other notebooks keep their package imports deferred.
+Every notebook keeps package loading out of the default bootstrap. Notebooks
+6–11 route their explicit import cells through the shared output-suppressed
+loader, while notebooks 1–5 retain their lesson-scoped deferred imports. Real
+package-load failures still propagate from the helper.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and select the checked-in
 manifest for the hosted Julia minor version. Automatic full-project
@@ -168,8 +168,8 @@ Set `QUBONOTEBOOKS_WARM_PACKAGES=1` to warm a notebook's declared imports or
 setup and activation cells from all Julia notebooks through IJulia with Colab
 environment markers, plus a post-bootstrap package import check. It rejects
 CondaPkg or package/artifact transcripts, manifest mismatch warnings, and pip
-progress in the bootstrap output. It also requires the narrow notebook 6 and 10
-first-load workaround; later activation and import cells must remain free of
+progress in the bootstrap output. It then executes every notebook's declared
+post-bootstrap import set; activation and import cells must remain free of
 CondaPkg environment setup, failed-task output, stack traces, cell errors, and
 unexpected rendered values.
 The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
