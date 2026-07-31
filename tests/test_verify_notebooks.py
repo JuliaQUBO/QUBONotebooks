@@ -1434,6 +1434,14 @@ class JuliaColabSetupTests(unittest.TestCase):
                 self.assertEqual(1, len(setup_indexes))
                 self.assertIn(expected_call, cells[setup_indexes[0]])
                 self.assertTrue(activate_indexes)
+                self.assertIn(
+                    "Pkg.activate(JULIA_PROJECT_DIR; io = devnull)",
+                    cells[activate_indexes[0]],
+                )
+                self.assertIn(
+                    "Pkg.activate(@__DIR__; io = devnull)",
+                    cells[activate_indexes[0]],
+                )
                 self.assertLess(setup_indexes[0], min(activate_indexes))
                 self.assertNotIn("%%shell", notebook_source(path))
                 self.assertNotIn("install-colab-julia.sh", notebook_source(path))

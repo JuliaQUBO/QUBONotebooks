@@ -26,11 +26,6 @@ const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
 const COLAB_SYSTEM_PYTHON_PACKAGES = Dict(
     "6-QCi" => ["numpy", "requests"],
 )
-const COLAB_WARM_PACKAGE_NOTEBOOKS = Set((
-    "6-QCi",
-    "7-CanonicalProblems",
-    "8-OrderPartitioning",
-))
 const NOTEBOOK_IMPORTS = Dict(
     "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
     "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
@@ -98,7 +93,7 @@ function default_bootstrap_warm_packages(project_key::AbstractString = "")
     configured_warm_packages = env_bool("QUBONOTEBOOKS_WARM_PACKAGES")
     return something(
         configured_warm_packages,
-        detect_colab() && project_key in COLAB_WARM_PACKAGE_NOTEBOOKS,
+        detect_colab() && haskey(NOTEBOOK_IMPORTS, project_key),
     )
 end
 

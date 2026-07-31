@@ -36,6 +36,26 @@ def clean_outputs() -> list[dict]:
 
 
 class ColabBootstrapSmokeTests(unittest.TestCase):
+    def test_smoke_target_provides_colab_pip_without_locking_ocean(self) -> None:
+        makefile = (REPO_ROOT / "Makefile").read_text()
+        target = makefile.split("verify-colab-bootstrap-output:", 1)[1].split(
+            "\n\n", 1
+        )[0]
+
+        self.assertIn("--with pip", target)
+        self.assertNotIn("--with dwave-ocean-sdk", target)
+
+    def test_smoke_inventory_covers_every_julia_notebook(self) -> None:
+        expected_paths = tuple(
+            path.relative_to(REPO_ROOT)
+            for path in sorted(
+                (REPO_ROOT / "notebooks_jl").glob("*.ipynb"),
+                key=lambda path: int(path.stem.split("-", 1)[0]),
+            )
+        )
+
+        self.assertEqual(expected_paths, verify_colab_bootstrap.NOTEBOOK_PATHS)
+
     def test_extracts_real_bootstrap_cell(self) -> None:
         source = verify_colab_bootstrap.bootstrap_cell_source(REPO_ROOT)
 
@@ -54,10 +74,12 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
                     notebook_path,
                 )
 
-                self.assertEqual(3, len(sources))
+                self.assertIn(len(sources), (2, 3))
                 self.assertIn("bootstrap_notebook", sources[0])
                 self.assertIn("Pkg.instantiate", sources[1])
-                self.assertIn("using JuMP", sources[2])
+                self.assertIn("io = devnull", sources[1])
+                if len(sources) == 3:
+                    self.assertIn("using JuMP", sources[2])
 
     def test_accepts_only_concise_bootstrap_output(self) -> None:
         rendered = verify_colab_bootstrap.validate_bootstrap_outputs(clean_outputs())

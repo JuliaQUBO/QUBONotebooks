@@ -142,16 +142,18 @@ PythonCall to the hosted Python runtime and ensures only `numpy` and `requests`,
 so unrelated Python-backed Julia packages do not expand its setup environment.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and select the checked-in
-manifest for the hosted Julia minor version. Notebooks 6–8 warm their imports
-during setup with package output suppressed, leaving their dedicated import
-cells concise; set `QUBONOTEBOOKS_WARM_PACKAGES=0` to disable that behavior or
-`QUBONOTEBOOKS_WARM_PACKAGES=1` to enable it for another notebook.
+manifest for the hosted Julia minor version. All Julia notebooks warm their
+declared imports during setup with package output suppressed; set
+`QUBONOTEBOOKS_WARM_PACKAGES=0` to disable that behavior.
 `QUBONOTEBOOKS_PRECOMPILE=1` remains an explicit full-project precompile
 option. `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the
-real setup, activation, and import cells from notebooks 6–8 through IJulia with
-Colab environment markers. It fails on CondaPkg or package/artifact
-transcripts, manifest mismatch warnings, failed-task output, stack traces, cell
-errors, or unexpected rendered values.
+real setup and activation cells from all Julia notebooks through IJulia with
+Colab environment markers, plus the dedicated import cell where present. It
+fails on CondaPkg or package/artifact transcripts, manifest mismatch warnings,
+failed-task output, stack traces, cell errors, or unexpected rendered values.
+The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
+exercise their normal Colab D-Wave setup without adding the Ocean stack to the
+locked project environment.
 
 ```bash
 make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"

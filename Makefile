@@ -99,7 +99,7 @@ verify-five-starter-problems-julia-local:
 	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(FIVE_STARTER_JULIA_NOTEBOOKS)"
 
 verify-colab-bootstrap-output:
-	JULIA_BIN="$(JULIA)" UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked --group docs --with numpy --with requests python ./scripts/verify_colab_bootstrap.py
+	JULIA_BIN="$(JULIA)" UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked --group docs --with numpy --with requests --with pip python ./scripts/verify_colab_bootstrap.py
 
 verify-qci-julia-cloud:
 	@if [ "$${QUBONOTEBOOKS_QCI_ENABLE_CLOUD:-0}" != "1" ]; then \

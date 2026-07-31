@@ -14,12 +14,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_PATH = Path("notebooks_jl/7-CanonicalProblems.ipynb")
-NOTEBOOK_PATHS = (
-    Path("notebooks_jl/6-QCi.ipynb"),
-    NOTEBOOK_PATH,
-    Path("notebooks_jl/8-OrderPartitioning.ipynb"),
+NOTEBOOK_PATHS = tuple(
+    path.relative_to(REPO_ROOT)
+    for path in sorted(
+        (REPO_ROOT / "notebooks_jl").glob("*.ipynb"),
+        key=lambda path: int(path.stem.split("-", 1)[0]),
+    )
 )
 BOOTSTRAP_MARKER = "function load_qubonotebooks_bootstrap()"
+ACTIVATION_MARKER = "Pkg.activate(JULIA_PROJECT_DIR"
 KERNEL_NAME = "qubonotebooks-colab-smoke"
 IJULIA_PROJECT = """\
 [deps]
@@ -96,22 +99,6 @@ def text_value(value: object) -> str:
     return str(value)
 
 
-def notebook_cell_source(repo_root: Path, notebook: Path, cell_id: str) -> str:
-    notebook_path = repo_root / notebook
-    data = json.loads(notebook_path.read_text())
-    matches = [
-        text_value(cell.get("source"))
-        for cell in data["cells"]
-        if cell.get("cell_type") == "code" and cell.get("id") == cell_id
-    ]
-    if len(matches) != 1:
-        raise ValueError(
-            f"Expected exactly one {cell_id!r} cell in {notebook_path}, "
-            f"found {len(matches)}."
-        )
-    return matches[0]
-
-
 def bootstrap_cell_source(
     repo_root: Path,
     notebook: Path = NOTEBOOK_PATH,
@@ -131,11 +118,41 @@ def bootstrap_cell_source(
     return matches[0]
 
 
-def smoke_cell_sources(repo_root: Path, notebook: Path) -> list[str]:
-    return [
-        notebook_cell_source(repo_root, notebook, cell_id)
-        for cell_id in ("bootstrap", "activate", "imports")
+def activation_cell_source(repo_root: Path, notebook: Path) -> str:
+    notebook_path = repo_root / notebook
+    data = json.loads(notebook_path.read_text())
+    matches = [
+        text_value(cell.get("source"))
+        for cell in data["cells"]
+        if cell.get("cell_type") == "code"
+        and ACTIVATION_MARKER in text_value(cell.get("source"))
+        and "Pkg.instantiate" in text_value(cell.get("source"))
     ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"Expected exactly one activation cell in {notebook_path}, "
+            f"found {len(matches)}."
+        )
+    return matches[0]
+
+
+def smoke_cell_sources(repo_root: Path, notebook: Path) -> list[str]:
+    sources = [
+        bootstrap_cell_source(repo_root, notebook),
+        activation_cell_source(repo_root, notebook),
+    ]
+    data = json.loads((repo_root / notebook).read_text())
+    import_sources = [
+        text_value(cell.get("source"))
+        for cell in data["cells"]
+        if cell.get("cell_type") == "code" and cell.get("id") == "imports"
+    ]
+    if len(import_sources) > 1:
+        raise ValueError(
+            f"Expected at most one 'imports' cell in {repo_root / notebook}, "
+            f"found {len(import_sources)}."
+        )
+    return [*sources, *import_sources]
 
 
 def output_text(outputs: list[dict]) -> str:

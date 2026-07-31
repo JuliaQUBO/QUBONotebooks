@@ -7,16 +7,12 @@ using Test
         "QUBONOTEBOOKS_PRECOMPILE" => nothing,
     ) do
         @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages()
-        @test QUBONotebooksBootstrap.default_bootstrap_warm_packages("6-QCi")
-        @test QUBONotebooksBootstrap.default_bootstrap_warm_packages(
-            "7-CanonicalProblems",
-        )
-        @test QUBONotebooksBootstrap.default_bootstrap_warm_packages(
-            "8-OrderPartitioning",
-        )
-        @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages(
-            "9-CancerGenomics",
-        )
+        for project_key in keys(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS)
+            @test QUBONotebooksBootstrap.default_bootstrap_warm_packages(
+                project_key,
+            )
+        end
+        @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages("unknown")
         @test !QUBONotebooksBootstrap.default_bootstrap_precompile()
     end
 
@@ -35,6 +31,18 @@ using Test
     @test QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES["6-QCi"] ==
         ["numpy", "requests"]
 
+    for project_key in keys(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS)
+        notebook = read(
+            joinpath(repo_root, "notebooks_jl", "$project_key.ipynb"),
+            String,
+        )
+
+        @test occursin(
+            "QUBONotebooksBootstrap.bootstrap_notebook, \\\"$project_key\\\"",
+            notebook,
+        )
+    end
+
     for project_key in (
         "6-QCi",
         "7-CanonicalProblems",
@@ -46,11 +54,6 @@ using Test
         notebook = read(
             joinpath(repo_root, "notebooks_jl", "$project_key.ipynb"),
             String,
-        )
-
-        @test occursin(
-            "QUBONotebooksBootstrap.bootstrap_notebook, \\\"$project_key\\\"",
-            notebook,
         )
         @test occursin("\"id\": \"imports\"", notebook)
     end
