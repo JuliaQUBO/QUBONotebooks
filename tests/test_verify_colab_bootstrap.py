@@ -26,7 +26,6 @@ def clean_outputs() -> list[dict]:
                     "[12:00:00] Google Colab runtime detected: true",
                     "[12:00:00] Manifest Julia version: 1.12.6",
                     "[12:00:00] Instantiating Julia packages",
-                    "[12:00:00] Loading notebook packages",
                     "[12:00:00] Notebook bootstrap complete",
                 ]
             )
@@ -74,11 +73,11 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
                     notebook_path,
                 )
 
-                self.assertIn(len(sources), (2, 3))
+                self.assertEqual(3, len(sources))
                 self.assertIn("bootstrap_notebook", sources[0])
                 self.assertIn("Pkg.instantiate", sources[1])
                 self.assertIn("io = devnull", sources[1])
-                if len(sources) == 3:
+                if "warm_notebook_packages!" not in sources[2]:
                     self.assertIn("using JuMP", sources[2])
 
     def test_accepts_only_concise_bootstrap_output(self) -> None:
