@@ -59,7 +59,7 @@ using Test
     for operation in (
         "Pkg.activate(project_dir; io = pkg_io)",
         "Pkg.update(; io = pkg_io)",
-        "Pkg.instantiate(; io = pkg_io)",
+        "Pkg.instantiate(; io = pkg_io, allow_autoprecomp = false)",
         "Pkg.precompile(; io = pkg_io)",
     )
         has_quiet_colab_operation = occursin(operation, bootstrap_source)

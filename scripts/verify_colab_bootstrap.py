@@ -32,8 +32,13 @@ EXPECTED_COMMON_OUTPUT = (
     "Google Colab runtime detected: true",
     "Manifest Julia version: 1.12.6",
     "Instantiating Julia packages",
-    "Loading notebook packages",
     "Notebook bootstrap complete",
+)
+FATAL_OUTPUT = (
+    (
+        "stack trace or failed-task printer output",
+        re.compile(r"(?i)(?:Stacktrace:|SYSTEM: caught exception)"),
+    ),
 )
 FORBIDDEN_OUTPUT = (
     (
@@ -63,12 +68,16 @@ FORBIDDEN_OUTPUT = (
         re.compile(r"(?i)(?:CondaPkg|micromamba|pixi\.toml)"),
     ),
     (
-        "Julia manifest mismatch warning",
-        re.compile(r"(?i)manifest.+targets Julia.+current kernel"),
+        "eager package warm-up",
+        re.compile(r"(?im)^\s*Loading notebook packages\s*$"),
     ),
     (
-        "stack trace or failed-task printer output",
-        re.compile(r"(?i)(?:Stacktrace:|SYSTEM: caught exception)"),
+        "pip download progress",
+        re.compile(r"(?m)^\s*[━╺╸]{3,}.*$"),
+    ),
+    (
+        "Julia manifest mismatch warning",
+        re.compile(r"(?i)manifest.+targets Julia.+current kernel"),
     ),
 )
 
@@ -152,7 +161,18 @@ def smoke_cell_sources(repo_root: Path, notebook: Path) -> list[str]:
             f"Expected at most one 'imports' cell in {repo_root / notebook}, "
             f"found {len(import_sources)}."
         )
-    return [*sources, *import_sources]
+    if import_sources:
+        return [*sources, *import_sources]
+
+    project_key = notebook.stem
+    warmup_source = (
+        "Base.invokelatest(\n"
+        "    QUBONotebooksBootstrap.warm_notebook_packages!,\n"
+        f'    "{project_key}";\n'
+        "    suppress_logs = true,\n"
+        ");\n"
+    )
+    return [*sources, warmup_source]
 
 
 def output_text(outputs: list[dict]) -> str:
@@ -170,11 +190,7 @@ def concise_line(text: str, *, limit: int = 240) -> str:
     return line[: limit - 3] + "..."
 
 
-def validate_bootstrap_outputs(
-    outputs: list[dict],
-    *,
-    project_key: str = "7-CanonicalProblems",
-) -> str:
+def execution_output_failures(outputs: list[dict]) -> list[str]:
     failures: list[str] = []
     rendered = output_text(outputs)
 
@@ -194,6 +210,32 @@ def validate_bootstrap_outputs(
                     else ""
                 )
             )
+
+    for label, pattern in FATAL_OUTPUT:
+        match = pattern.search(rendered)
+        if match is not None:
+            failures.append(f"{label}: {concise_line(match.group(0))}")
+
+    return failures
+
+
+def validate_execution_outputs(outputs: list[dict]) -> str:
+    failures = execution_output_failures(outputs)
+    if failures:
+        raise AssertionError(
+            "Colab notebook execution validation failed:\n- "
+            + "\n- ".join(failures)
+        )
+    return output_text(outputs)
+
+
+def validate_bootstrap_outputs(
+    outputs: list[dict],
+    *,
+    project_key: str = "7-CanonicalProblems",
+) -> str:
+    failures = execution_output_failures(outputs)
+    rendered = output_text(outputs)
 
     expected_output = (
         f"Notebook project key: {project_key}",
@@ -373,12 +415,15 @@ def main() -> int:
         env.update(
             {
                 "COLAB_RELEASE_TAG": "ci-colab-bootstrap",
-                "JULIA_PKG_PRECOMPILE_AUTO": "0",
-                "QUBONOTEBOOKS_PRECOMPILE": "0",
                 "QUBONOTEBOOKS_REPO_DIR": str(workspace),
             }
         )
-        env.pop("QUBONOTEBOOKS_WARM_PACKAGES", None)
+        for variable in (
+            "JULIA_PKG_PRECOMPILE_AUTO",
+            "QUBONOTEBOOKS_PRECOMPILE",
+            "QUBONOTEBOOKS_WARM_PACKAGES",
+        ):
+            env.pop(variable, None)
         verify_julia_1_12(julia, cwd=workspace, env=env)
         verify_colab_stderr_suppression(
             julia,
@@ -406,8 +451,6 @@ def main() -> int:
                 for key in (
                     "COLAB_RELEASE_TAG",
                     "JULIA_DEPOT_PATH",
-                    "JULIA_PKG_PRECOMPILE_AUTO",
-                    "QUBONOTEBOOKS_PRECOMPILE",
                     "QUBONOTEBOOKS_REPO_DIR",
                 )
                 if key in env
@@ -445,13 +488,15 @@ def main() -> int:
             )
 
             executed = json.loads(executed_notebook.read_text())
-            outputs = [
+            all_outputs = [
                 output
                 for cell in executed["cells"]
                 for output in cell.get("outputs", [])
             ]
+            validate_execution_outputs(all_outputs)
+            bootstrap_outputs = executed["cells"][0].get("outputs", [])
             rendered = validate_bootstrap_outputs(
-                outputs,
+                bootstrap_outputs,
                 project_key=project_key,
             )
             print(f"Captured {project_key} smoke output:", flush=True)

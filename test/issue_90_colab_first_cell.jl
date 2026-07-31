@@ -8,7 +8,7 @@ using Test
     ) do
         @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages()
         for project_key in keys(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS)
-            @test QUBONotebooksBootstrap.default_bootstrap_warm_packages(
+            @test !QUBONotebooksBootstrap.default_bootstrap_warm_packages(
                 project_key,
             )
         end

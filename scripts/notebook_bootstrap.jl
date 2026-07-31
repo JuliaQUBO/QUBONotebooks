@@ -96,10 +96,7 @@ end
 
 function default_bootstrap_warm_packages(project_key::AbstractString = "")
     configured_warm_packages = env_bool("QUBONOTEBOOKS_WARM_PACKAGES")
-    return something(
-        configured_warm_packages,
-        detect_colab() && haskey(NOTEBOOK_IMPORTS, project_key),
-    )
+    return something(configured_warm_packages, false)
 end
 
 default_bootstrap_precompile() = something(env_bool(PRECOMPILE_ENV), false)
@@ -407,6 +404,7 @@ function configure_python_runtime!(
                     "pip",
                     "install",
                     "-q",
+                    "--progress-bar=off",
                     "--disable-pip-version-check",
                     "--root-user-action=ignore",
                     python_packages...,
@@ -449,11 +447,11 @@ function instantiate_project!(
     log_step("Instantiating Julia packages")
     if in_colab
         with_package_operation_io(in_colab) do pkg_io
-            Pkg.instantiate(; io = pkg_io)
+            Pkg.instantiate(; io = pkg_io, allow_autoprecomp = false)
         end
     else
         @time with_package_operation_io(in_colab) do pkg_io
-            Pkg.instantiate(; io = pkg_io)
+            Pkg.instantiate(; io = pkg_io, allow_autoprecomp = false)
         end
     end
     if precompile

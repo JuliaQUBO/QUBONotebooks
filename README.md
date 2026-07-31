@@ -142,15 +142,18 @@ PythonCall to the hosted Python runtime and ensures only `numpy` and `requests`,
 so unrelated Python-backed Julia packages do not expand its setup environment.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and select the checked-in
-manifest for the hosted Julia minor version. All Julia notebooks warm their
-declared imports during setup with package output suppressed; set
-`QUBONOTEBOOKS_WARM_PACKAGES=0` to disable that behavior.
-`QUBONOTEBOOKS_PRECOMPILE=1` remains an explicit full-project precompile
-option. `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the
-real setup and activation cells from all Julia notebooks through IJulia with
-Colab environment markers, plus the dedicated import cell where present. It
-fails on CondaPkg or package/artifact transcripts, manifest mismatch warnings,
-failed-task output, stack traces, cell errors, or unexpected rendered values.
+manifest for the hosted Julia minor version. Automatic full-project
+precompilation and eager import warm-up are disabled during setup so a fresh
+runtime does not front-load compilation for packages the learner may not use.
+Set `QUBONOTEBOOKS_WARM_PACKAGES=1` to warm a notebook's declared imports or
+`QUBONOTEBOOKS_PRECOMPILE=1` to explicitly precompile the full project.
+`make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the real
+setup and activation cells from all Julia notebooks through IJulia with Colab
+environment markers, plus a post-bootstrap package import check. It rejects
+CondaPkg or package/artifact transcripts, manifest mismatch warnings, and pip
+progress in the bootstrap output; later activation and import cells must remain
+free of failed-task output, stack traces, cell errors, and unexpected rendered
+values.
 The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
 exercise their normal Colab D-Wave setup without adding the Ocean stack to the
 locked project environment.
