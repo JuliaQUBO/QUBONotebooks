@@ -22,6 +22,7 @@ def qaoa_bootstrap_outputs(*, warm_packages: bool = False) -> list[dict]:
         "[12:00:00] Notebook project key: 10-QAOA",
         "[12:00:00] Google Colab runtime detected: true",
         "[12:00:00] Manifest Julia version: 1.12.6",
+        "[12:00:00] Activating project at `/content/QUBONotebooks/notebooks_jl/environments/10-QAOA`",
         "[12:00:00] Instantiating Julia packages",
     ]
     if warm_packages:
@@ -38,6 +39,7 @@ class QAOAColabPythonRuntimeTests(unittest.TestCase):
             " Downloading artifact: pixi\n",
             "             └ /content/QUBONotebooks/notebooks_jl/.CondaPkg\n",
             "✔ Created /content/QUBONotebooks/notebooks_jl/.CondaPkg/pixi.toml\n",
+            "✔ Created /content/QUBONotebooks/notebooks_jl/environments/10-QAOA/.CondaPkg/pixi.toml\n",
         )
 
         for output in environment_setup_samples:

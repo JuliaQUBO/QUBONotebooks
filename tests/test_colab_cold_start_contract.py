@@ -20,6 +20,7 @@ def concise_bootstrap_output(*extra_lines: str) -> list[dict]:
         "[12:00:00] Notebook project key: 3-GAMA",
         "[12:00:00] Google Colab runtime detected: true",
         "[12:00:00] Manifest Julia version: 1.12.6",
+        "[12:00:00] Activating project at `/content/QUBONotebooks/notebooks_jl/environments/3-GAMA`",
         "[12:00:00] Instantiating Julia packages",
         *extra_lines,
         "[12:00:00] Notebook bootstrap complete",

@@ -67,6 +67,11 @@ using Test
         "import qiskit, qiskit_aer, qiskit_ibm_runtime, qiskit_optimization, scipy"
     @test QUBONotebooksBootstrap.has_python_version_constraint("qiskit~=2.3.0")
     @test !QUBONotebooksBootstrap.has_python_version_constraint("requests")
+    @test_throws UndefKeywordError QUBONotebooksBootstrap.configure_python_runtime!(
+        repo_root;
+        in_colab = false,
+        python_packages = String[],
+    )
 
     mktempdir() do project_dir
         preferences_path = joinpath(project_dir, "LocalPreferences.toml")
@@ -85,7 +90,12 @@ using Test
     end
 
     mktempdir() do repo_dir
-        project_dir = joinpath(repo_dir, "notebooks_jl")
+        aggregate_project_dir = joinpath(repo_dir, "notebooks_jl")
+        project_dir = joinpath(
+            aggregate_project_dir,
+            "environments",
+            "10-QAOA",
+        )
         mkpath(project_dir)
         withenv(
             "JULIA_CONDAPKG_BACKEND" => nothing,
@@ -93,6 +103,7 @@ using Test
         ) do
             python_exe = QUBONotebooksBootstrap.configure_python_runtime!(
                 repo_dir;
+                project_dir = project_dir,
                 in_colab = true,
                 python_packages = String[],
             )
@@ -104,6 +115,7 @@ using Test
             @test ENV["JULIA_PYTHONCALL_EXE"] == python_exe
             @test preferences["PythonCall"]["exe"] == python_exe
             @test preferences["CondaPkg"]["backend"] == "Null"
+            @test !isfile(joinpath(aggregate_project_dir, "LocalPreferences.toml"))
         end
     end
 

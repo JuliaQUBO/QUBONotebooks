@@ -190,10 +190,11 @@ def execute_native_smoke(
             f"Hosted Colab bootstrap took {cell_timings[0]:.1f}s; "
             f"expected at most {bootstrap_limit:.1f}s."
         )
-    conda_environment = repo_root / "notebooks_jl" / ".CondaPkg"
-    if conda_environment.exists():
+    conda_environments = list((repo_root / "notebooks_jl").rglob(".CondaPkg"))
+    if conda_environments:
         raise AssertionError(
-            f"Hosted Colab smoke created a CondaPkg environment at {conda_environment}."
+            "Hosted Colab smoke created CondaPkg environments: "
+            + ", ".join(str(path) for path in conda_environments)
         )
     bootstrap_outputs = executed["cells"][0].get("outputs", [])
     rendered = smoke.validate_bootstrap_outputs(

@@ -1,0 +1,6 @@
+[deps]
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+QiskitOpt = "81b20daf-e62b-4502-a0d1-aa084de80e33"
+
+[compat]
+QiskitOpt = "0.7.1"

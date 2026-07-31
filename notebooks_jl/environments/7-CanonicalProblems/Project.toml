@@ -1,0 +1,4 @@
+[deps]
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+QUBO = "ce8c2e91-a970-4681-856b-16178c24a30c"

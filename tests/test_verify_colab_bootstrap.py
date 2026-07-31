@@ -39,6 +39,7 @@ def clean_outputs() -> list[dict]:
                     "[12:00:00] Notebook project key: 7-CanonicalProblems",
                     "[12:00:00] Google Colab runtime detected: true",
                     "[12:00:00] Manifest Julia version: 1.12.6",
+                    "[12:00:00] Activating project at `/content/QUBONotebooks/notebooks_jl/environments/7-CanonicalProblems`",
                     "[12:00:00] Instantiating Julia packages",
                     "[12:00:00] Notebook bootstrap complete",
                 ]

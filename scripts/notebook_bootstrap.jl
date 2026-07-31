@@ -7,6 +7,7 @@ import TOML
 
 const WORKSPACE = normpath(joinpath(@__DIR__, ".."))
 const NOTEBOOKS_DIRNAME = "notebooks_jl"
+const NOTEBOOK_ENVIRONMENTS_DIRNAME = "environments"
 const ALLOW_VERSION_MISMATCH_ENV = "QUBONOTEBOOKS_ALLOW_JULIA_VERSION_MISMATCH"
 const REPO_REF_ENV = "QUBONOTEBOOKS_REPO_REF"
 const PRECOMPILE_ENV = "QUBONOTEBOOKS_PRECOMPILE"
@@ -44,7 +45,7 @@ const NOTEBOOK_IMPORTS = Dict(
     "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
     "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
     "3-GAMA" => :(using BinaryWrappers, DelimitedFiles, Downloads, NPZ, JuMP, DWave, LinearAlgebra, Measures, Random, Plots, StatsBase, StatsPlots, lib4ti2_jll),
-    "4-DWave" => :(using LinearAlgebra, Plots, JuMP, QUBO, DWave, Graphs),
+    "4-DWave" => :(using LinearAlgebra, Plots, JuMP, QUBO, DWave),
     "5-Benchmarking" => :(using JuMP, QUBO, LinearAlgebra, Plots, Measures, DWave, Random, Statistics, ZipFile, JSON, StatsBase),
     "6-QCi" => :(begin
         using JuMP, QCIOpt
@@ -137,8 +138,19 @@ python_import_statement(python_packages::Vector{String}) =
 has_python_version_constraint(package::AbstractString) =
     python_distribution_name(package) != strip(package)
 
-function notebook_project_dir(; repo_dir::AbstractString = WORKSPACE)
+function aggregate_notebook_project_dir(; repo_dir::AbstractString = WORKSPACE)
     return joinpath(repo_dir, NOTEBOOKS_DIRNAME)
+end
+
+function notebook_project_dir(
+    project_key::AbstractString;
+    repo_dir::AbstractString = WORKSPACE,
+)
+    return joinpath(
+        aggregate_notebook_project_dir(repo_dir = repo_dir),
+        NOTEBOOK_ENVIRONMENTS_DIRNAME,
+        project_key,
+    )
 end
 
 function manifest_path(
@@ -438,6 +450,7 @@ end
 
 function configure_python_runtime!(
     repo_dir::AbstractString;
+    project_dir::AbstractString,
     in_colab::Bool = detect_colab(),
     python_packages::Vector{String} = ["dwave-ocean-sdk"],
 )
@@ -481,7 +494,7 @@ function configure_python_runtime!(
     ENV["JULIA_PYTHONCALL_EXE"] = python_exe
     if in_colab
         set_python_runtime_preferences!(
-            notebook_project_dir(repo_dir = repo_dir),
+            project_dir,
             python_exe,
         )
     end
@@ -601,7 +614,7 @@ function bootstrap_notebook(
     in_colab = detect_colab()
     repo_dir = ensure_repo_root(in_colab = in_colab)
     notebooks_dir = joinpath(repo_dir, NOTEBOOKS_DIRNAME)
-    project_dir = notebook_project_dir(repo_dir = repo_dir)
+    project_dir = notebook_project_dir(project_key; repo_dir = repo_dir)
 
     if !isdir(project_dir)
         error("Notebook project was not found at $project_dir.")
@@ -618,10 +631,16 @@ function bootstrap_notebook(
     validate_project_julia_version!(project_dir; in_colab = in_colab)
 
     if needs_python
-        configure_python_runtime!(repo_dir; in_colab = in_colab, python_packages = python_packages)
+        configure_python_runtime!(
+            repo_dir;
+            project_dir = project_dir,
+            in_colab = in_colab,
+            python_packages = python_packages,
+        )
     elseif in_colab && haskey(COLAB_SYSTEM_PYTHON_PACKAGES, project_key)
         configure_python_runtime!(
             repo_dir;
+            project_dir = project_dir,
             in_colab = true,
             python_packages = COLAB_SYSTEM_PYTHON_PACKAGES[project_key],
         )
@@ -657,10 +676,15 @@ function instantiate_notebook_project(
 )
     project_key = notebook_key(target)
     repo_dir = ensure_repo_root(in_colab = false)
-    project_dir = notebook_project_dir(repo_dir = repo_dir)
+    project_dir = notebook_project_dir(project_key; repo_dir = repo_dir)
 
     if needs_python
-        configure_python_runtime!(repo_dir; in_colab = false, python_packages = String[])
+        configure_python_runtime!(
+            repo_dir;
+            project_dir = project_dir,
+            in_colab = false,
+            python_packages = String[],
+        )
     end
 
     validate_project_julia_version!(project_dir; in_colab = false)
