@@ -28,20 +28,6 @@ using Test
     @test !QUBONotebooksBootstrap.notebook_requires_python("6-QCi")
     @test !QUBONotebooksBootstrap.notebook_requires_python("10-QAOA")
     @test QUBONotebooksBootstrap.notebook_requires_python("2-QUBO")
-    for project_key in ("6-QCi", "10-QAOA")
-        @test QUBONotebooksBootstrap.requires_colab_python_preload(
-            project_key;
-            in_colab = true,
-        )
-        @test !QUBONotebooksBootstrap.requires_colab_python_preload(
-            project_key;
-            in_colab = false,
-        )
-    end
-    @test !QUBONotebooksBootstrap.requires_colab_python_preload(
-        "3-GAMA";
-        in_colab = true,
-    )
     qaoa_python_packages = [
         "qiskit~=2.3.0",
         "qiskit-aer~=0.17.0",

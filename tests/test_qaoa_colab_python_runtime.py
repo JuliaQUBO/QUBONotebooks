@@ -17,7 +17,7 @@ def stream(text: str) -> dict:
     return {"name": "stderr", "output_type": "stream", "text": [text]}
 
 
-def qaoa_bootstrap_outputs(*, warm_packages: bool) -> list[dict]:
+def qaoa_bootstrap_outputs(*, warm_packages: bool = False) -> list[dict]:
     lines = [
         "[12:00:00] Notebook project key: 10-QAOA",
         "[12:00:00] Google Colab runtime detected: true",
@@ -50,16 +50,16 @@ class QAOAColabPythonRuntimeTests(unittest.TestCase):
                         [stream(output)]
                     )
 
-    def test_requires_the_narrow_qaoa_import_workaround(self) -> None:
+    def test_qaoa_defers_package_loading_to_its_quiet_import_cell(self) -> None:
         rendered = verify_colab_bootstrap.validate_bootstrap_outputs(
-            qaoa_bootstrap_outputs(warm_packages=True),
+            qaoa_bootstrap_outputs(),
             project_key="10-QAOA",
         )
 
-        self.assertIn("Loading notebook packages", rendered)
-        with self.assertRaisesRegex(AssertionError, "missing milestone"):
+        self.assertNotIn("Loading notebook packages", rendered)
+        with self.assertRaisesRegex(AssertionError, "eager package warm-up"):
             verify_colab_bootstrap.validate_bootstrap_outputs(
-                qaoa_bootstrap_outputs(warm_packages=False),
+                qaoa_bootstrap_outputs(warm_packages=True),
                 project_key="10-QAOA",
             )
 

@@ -35,7 +35,6 @@ EXPECTED_COMMON_OUTPUT = (
     "Instantiating Julia packages",
     "Notebook bootstrap complete",
 )
-COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS = frozenset(("6-QCi", "10-QAOA"))
 EXECUTION_FORBIDDEN_OUTPUT = (
     (
         "stack trace or failed-task printer output",
@@ -279,10 +278,7 @@ def validate_bootstrap_outputs(
             failures.append(f"{label}: {concise_line(match.group(0))}")
 
     warmup_message = "Loading notebook packages"
-    if project_key in COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS:
-        if warmup_message not in rendered:
-            failures.append(f"missing milestone: {warmup_message}")
-    elif warmup_message in rendered:
+    if warmup_message in rendered:
         failures.append(f"unexpected eager package warm-up: {warmup_message}")
 
     if failures:
