@@ -26,6 +26,7 @@ const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
 const COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS = Set((
     "6-QCi",
     "10-QAOA",
+    "11-Annealing",
 ))
 const COLAB_SYSTEM_PYTHON_PACKAGES = Dict(
     "6-QCi" => ["numpy", "requests"],
