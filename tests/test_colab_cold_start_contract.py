@@ -34,6 +34,22 @@ def concise_bootstrap_output(*extra_lines: str) -> list[dict]:
 
 
 class ColabColdStartContractTests(unittest.TestCase):
+    def test_readme_documents_deferred_package_loading(self) -> None:
+        readme = (REPO_ROOT / "README.md").read_text()
+
+        self.assertIn(
+            "Every notebook keeps package loading out of the default bootstrap",
+            readme,
+        )
+        self.assertNotIn(
+            "Notebooks 6 and 10 therefore perform one narrow",
+            readme,
+        )
+        self.assertNotIn(
+            "requires the narrow notebook 6 and 10 first-load workaround",
+            readme,
+        )
+
     def test_default_bootstrap_output_does_not_require_eager_warmup(self) -> None:
         rendered = verify_colab_bootstrap.validate_bootstrap_outputs(
             concise_bootstrap_output(),

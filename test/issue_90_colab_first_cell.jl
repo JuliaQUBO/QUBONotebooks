@@ -28,20 +28,6 @@ using Test
     @test !QUBONotebooksBootstrap.notebook_requires_python("6-QCi")
     @test !QUBONotebooksBootstrap.notebook_requires_python("10-QAOA")
     @test QUBONotebooksBootstrap.notebook_requires_python("2-QUBO")
-    for project_key in ("6-QCi", "10-QAOA")
-        @test QUBONotebooksBootstrap.requires_colab_python_preload(
-            project_key;
-            in_colab = true,
-        )
-        @test !QUBONotebooksBootstrap.requires_colab_python_preload(
-            project_key;
-            in_colab = false,
-        )
-    end
-    @test !QUBONotebooksBootstrap.requires_colab_python_preload(
-        "3-GAMA";
-        in_colab = true,
-    )
     qaoa_python_packages = [
         "qiskit~=2.3.0",
         "qiskit-aer~=0.17.0",
@@ -81,6 +67,45 @@ using Test
         "import qiskit, qiskit_aer, qiskit_ibm_runtime, qiskit_optimization, scipy"
     @test QUBONotebooksBootstrap.has_python_version_constraint("qiskit~=2.3.0")
     @test !QUBONotebooksBootstrap.has_python_version_constraint("requests")
+
+    mktempdir() do project_dir
+        preferences_path = joinpath(project_dir, "LocalPreferences.toml")
+        write(preferences_path, "[Unrelated]\nkeep = true\n")
+        returned_path =
+            QUBONotebooksBootstrap.set_python_runtime_preferences!(
+                project_dir,
+                "/usr/bin/python3",
+            )
+        preferences = TOML.parsefile(preferences_path)
+
+        @test returned_path == preferences_path
+        @test preferences["PythonCall"]["exe"] == "/usr/bin/python3"
+        @test preferences["CondaPkg"]["backend"] == "Null"
+        @test preferences["Unrelated"]["keep"]
+    end
+
+    mktempdir() do repo_dir
+        project_dir = joinpath(repo_dir, "notebooks_jl")
+        mkpath(project_dir)
+        withenv(
+            "JULIA_CONDAPKG_BACKEND" => nothing,
+            "JULIA_PYTHONCALL_EXE" => nothing,
+        ) do
+            python_exe = QUBONotebooksBootstrap.configure_python_runtime!(
+                repo_dir;
+                in_colab = true,
+                python_packages = String[],
+            )
+            preferences = TOML.parsefile(
+                joinpath(project_dir, "LocalPreferences.toml"),
+            )
+
+            @test ENV["JULIA_CONDAPKG_BACKEND"] == "Null"
+            @test ENV["JULIA_PYTHONCALL_EXE"] == python_exe
+            @test preferences["PythonCall"]["exe"] == python_exe
+            @test preferences["CondaPkg"]["backend"] == "Null"
+        end
+    end
 
     for project_key in keys(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS)
         notebook = read(

@@ -1,4 +1,4 @@
-.PHONY: test sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-qaoa-julia-ibm verify-annealing-julia-qpu
+.PHONY: test sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
 PYTHON ?= python3
 UV ?= uv
@@ -100,6 +100,9 @@ verify-five-starter-problems-julia-local:
 
 verify-colab-bootstrap-output:
 	JULIA_BIN="$(JULIA)" UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked --group docs --with numpy --with requests --with pip python ./scripts/verify_colab_bootstrap.py
+
+verify-colab-hosted:
+	$(PYTHON) ./scripts/verify_hosted_colab.py
 
 verify-qci-julia-cloud:
 	@if [ "$${QUBONOTEBOOKS_QCI_ENABLE_CLOUD:-0}" != "1" ]; then \

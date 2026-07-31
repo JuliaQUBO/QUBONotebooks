@@ -209,9 +209,13 @@ class CancerGenomicsNotebookSourceTests(unittest.TestCase):
                 self.assertNotIn(forbidden, source)
 
         imports = "".join(notebook_cell(data, "imports")["source"])
-        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', imports)
-        self.assertIn("Logging.with_logger(Logging.NullLogger())", imports)
-        self.assertIn("@eval using DWave", imports)
+        bootstrap = (
+            REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
+        ).read_text()
+        self.assertIn("warm_notebook_packages!", imports)
+        self.assertIn('"9-CancerGenomics"', imports)
+        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap)
+        self.assertIn('"9-CancerGenomics" => :(using DWave', bootstrap)
         self.assertNotIn('get(ENV, "DWAVE_API_TOKEN"', source)
 
     def test_notebook_commits_reproducible_outputs(self) -> None:

@@ -157,12 +157,24 @@ class AnnealingNotebookSourceTests(unittest.TestCase):
     def test_qpu_path_fails_closed_before_submission(self) -> None:
         data = notebook()
         imports_source = "".join(notebook_cell(data, "imports")["source"])
+        bootstrap_source = (
+            REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
+        ).read_text()
         guard_source = "".join(notebook_cell(data, "qpu-guard")["source"])
         qpu_source = "".join(notebook_cell(data, "qpu-run")["source"])
         full_source = notebook_source()
 
-        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', imports_source)
-        self.assertIn("@eval using DWave", imports_source)
+        self.assertIn("warm_notebook_packages!", imports_source)
+        self.assertIn('"11-Annealing"', imports_source)
+        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap_source)
+        self.assertIn(
+            '"11-Annealing" => :(using DWave',
+            bootstrap_source,
+        )
+        self.assertLess(
+            bootstrap_source.index('withenv("DWAVE_API_TOKEN" => nothing)'),
+            bootstrap_source.index("Core.eval(Main, import_expr)"),
+        )
         self.assertIn("QUBONOTEBOOKS_ANNEALING_ENABLE_QPU", guard_source)
         self.assertIn('get(ENV, "DWAVE_API_TOKEN", "")', guard_source)
         self.assertIn("isempty(strip(token)) && error(", guard_source)

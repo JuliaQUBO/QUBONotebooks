@@ -123,6 +123,7 @@ make verify-qaoa-julia-local
 make verify-annealing-julia-local
 make verify-five-starter-problems-julia-local
 make verify-colab-bootstrap-output JULIA="julia +1.12"
+make verify-colab-hosted
 ```
 
 The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`
@@ -139,16 +140,22 @@ Python `qci-client` distribution: QCIOpt uses its default CondaPkg environment
 and coexists with DWave and NetworkX 3 in the shared Julia project, guarded by
 `make test-qciopt-dwave-coexistence`. In native Colab, every Python-backed Julia
 notebook binds PythonCall to the hosted Python runtime before Julia package
-instantiation. Notebooks 2–5, 9, and 11 ensure the Ocean stack, notebook 6
-ensures only `numpy` and `requests`, and notebook 10 requests QiskitOpt's
-versioned Qiskit, Aer, IBM Runtime, Optimization, and SciPy stack (plus their
-transitive dependencies). This keeps unrelated dependencies from the shared
-Julia project's CondaPkg environment out of deferred import cells.
+instantiation. The bootstrap records both PythonCall's executable and
+CondaPkg's `Null` backend as Julia preferences, because these packages decide
+whether to compile CondaPkg and its micromamba or pixi backends before runtime
+environment variables alone can take effect. Notebooks 2–5, 9, and 11 ensure
+the Ocean stack, notebook 6 ensures only `numpy` and `requests`, and notebook 10
+requests QiskitOpt's versioned Qiskit, Aer, IBM Runtime, Optimization, and SciPy
+stack (plus their transitive dependencies). This keeps unrelated dependencies
+from the shared Julia project's CondaPkg environment out of deferred import
+cells.
 On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, and the
 IJulia/PythonCall extension can otherwise emit failed-task-printer notices
 during their first implicit compilation even when the imports succeed.
-Notebooks 6 and 10 therefore perform one narrow, output-suppressed first load
-during setup; the other notebooks keep their package imports deferred.
+Every notebook keeps package loading out of the default bootstrap. Notebooks
+6–11 route their explicit import cells through the shared output-suppressed
+loader, while notebooks 1–5 retain their lesson-scoped deferred imports. Real
+package-load failures still propagate from the helper.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and select the checked-in
 manifest for the hosted Julia minor version. Automatic full-project
@@ -161,13 +168,37 @@ Set `QUBONOTEBOOKS_WARM_PACKAGES=1` to warm a notebook's declared imports or
 setup and activation cells from all Julia notebooks through IJulia with Colab
 environment markers, plus a post-bootstrap package import check. It rejects
 CondaPkg or package/artifact transcripts, manifest mismatch warnings, and pip
-progress in the bootstrap output. It also requires the narrow notebook 6 and 10
-first-load workaround; later activation and import cells must remain free of
+progress in the bootstrap output. It then executes every notebook's declared
+post-bootstrap import set; activation and import cells must remain free of
 CondaPkg environment setup, failed-task output, stack traces, cell errors, and
 unexpected rendered values.
 The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
 exercise their normal Colab D-Wave setup without adding the Ocean stack to the
 locked project environment.
+
+For a cold test on Google's current hosted image, install the official Colab
+CLI and run the hosted target after pushing the commit under test:
+
+```bash
+uv tool install --force git+https://github.com/googlecolab/google-colab-cli
+make verify-colab-hosted
+```
+
+The first invocation that contacts Colab prompts for Google OAuth. The target
+creates a fresh hosted CPU VM, fetches the exact current Git commit, executes
+the real bootstrap, activation, and import cells through Colab's native `julia`
+kernelspec, rejects CondaPkg setup and failed-task output, rejects bootstrap
+cells slower than three minutes, and releases the VM when the command finishes.
+It tests `11-Annealing` by default; select any committed notebook keys with, for
+example,
+
+```bash
+QUBONOTEBOOKS_COLAB_NOTEBOOKS="9-CancerGenomics,11-Annealing" \
+  make verify-colab-hosted
+```
+
+The hosted target consumes Colab quota and is intentionally an explicit
+maintainer acceptance test rather than part of ordinary GitHub Actions.
 
 ```bash
 make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"

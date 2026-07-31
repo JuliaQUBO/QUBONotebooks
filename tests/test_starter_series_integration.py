@@ -299,15 +299,19 @@ class StarterSeriesSafetyTests(unittest.TestCase):
         cancer = notebook_source(STARTER_NOTEBOOK_PATHS[2], code_only=True)
         qaoa = notebook_source(STARTER_NOTEBOOK_PATHS[3], code_only=True)
         annealing = notebook_source(STARTER_NOTEBOOK_PATHS[4], code_only=True)
+        bootstrap = (REPO_ROOT / "scripts" / "notebook_bootstrap.jl").read_text()
 
         self.assertNotIn("cbioportal.org", cancer.lower())
         self.assertNotIn("Downloads.download", cancer)
-        for source in (cancer, annealing):
-            self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', source)
-            self.assertLess(
-                source.index('withenv("DWAVE_API_TOKEN" => nothing)'),
-                source.index("@eval using DWave"),
-            )
+        self.assertIn("warm_notebook_packages!", cancer)
+        self.assertIn('"9-CancerGenomics"', cancer)
+        self.assertIn("warm_notebook_packages!", annealing)
+        self.assertIn('"11-Annealing"', annealing)
+        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap)
+        self.assertLess(
+            bootstrap.index('withenv("DWAVE_API_TOKEN" => nothing)'),
+            bootstrap.index("Core.eval(Main, import_expr)"),
+        )
 
         self.assertLess(
             qaoa.index("partition_result = run_and_check_qaoa!"),
