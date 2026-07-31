@@ -137,9 +137,13 @@ does not have a locked local make target because `eqc-models==0.19.0` requires
 specific to the Python notebook. The Julia counterpart does not install the
 Python `qci-client` distribution: QCIOpt uses its default CondaPkg environment
 and coexists with DWave and NetworkX 3 in the shared Julia project, guarded by
-`make test-qciopt-dwave-coexistence`. In native Colab, notebook 6 instead binds
-PythonCall to the hosted Python runtime and ensures only `numpy` and `requests`,
-so unrelated Python-backed Julia packages do not expand its setup environment.
+`make test-qciopt-dwave-coexistence`. In native Colab, every Python-backed Julia
+notebook binds PythonCall to the hosted Python runtime before Julia package
+instantiation. Notebooks 2–5, 9, and 11 ensure the Ocean stack, notebook 6
+ensures only `numpy` and `requests`, and notebook 10 requests QiskitOpt's
+versioned Qiskit, Aer, IBM Runtime, Optimization, and SciPy stack (plus their
+transitive dependencies). This keeps unrelated dependencies from the shared
+Julia project's CondaPkg environment out of deferred import cells.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and select the checked-in
 manifest for the hosted Julia minor version. Automatic full-project
@@ -152,8 +156,8 @@ setup and activation cells from all Julia notebooks through IJulia with Colab
 environment markers, plus a post-bootstrap package import check. It rejects
 CondaPkg or package/artifact transcripts, manifest mismatch warnings, and pip
 progress in the bootstrap output; later activation and import cells must remain
-free of failed-task output, stack traces, cell errors, and unexpected rendered
-values.
+free of CondaPkg environment setup, failed-task output, stack traces, cell
+errors, and unexpected rendered values.
 The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
 exercise their normal Colab D-Wave setup without adding the Ocean stack to the
 locked project environment.

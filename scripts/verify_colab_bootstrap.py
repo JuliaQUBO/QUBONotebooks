@@ -34,10 +34,14 @@ EXPECTED_COMMON_OUTPUT = (
     "Instantiating Julia packages",
     "Notebook bootstrap complete",
 )
-FATAL_OUTPUT = (
+EXECUTION_FORBIDDEN_OUTPUT = (
     (
         "stack trace or failed-task printer output",
         re.compile(r"(?i)(?:Stacktrace:|SYSTEM: caught exception)"),
+    ),
+    (
+        "CondaPkg environment setup",
+        re.compile(r"(?i)(?:CondaPkg|micromamba|\bpixi\b|/\.CondaPkg)"),
     ),
 )
 FORBIDDEN_OUTPUT = (
@@ -62,10 +66,6 @@ FORBIDDEN_OUTPUT = (
             r"(?im)^\s*(?:Activating project at|Resolving package versions|"
             r"(?:\[ Info:\s*)?Precompiling\b)"
         ),
-    ),
-    (
-        "CondaPkg environment setup",
-        re.compile(r"(?i)(?:CondaPkg|micromamba|pixi\.toml)"),
     ),
     (
         "eager package warm-up",
@@ -211,7 +211,7 @@ def execution_output_failures(outputs: list[dict]) -> list[str]:
                 )
             )
 
-    for label, pattern in FATAL_OUTPUT:
+    for label, pattern in EXECUTION_FORBIDDEN_OUTPUT:
         match = pattern.search(rendered)
         if match is not None:
             failures.append(f"{label}: {concise_line(match.group(0))}")

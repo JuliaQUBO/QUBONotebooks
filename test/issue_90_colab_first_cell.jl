@@ -28,14 +28,45 @@ using Test
     @test !QUBONotebooksBootstrap.notebook_requires_python("6-QCi")
     @test !QUBONotebooksBootstrap.notebook_requires_python("10-QAOA")
     @test QUBONotebooksBootstrap.notebook_requires_python("2-QUBO")
-    @test QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES["6-QCi"] ==
-        ["numpy", "requests"]
+    qaoa_python_packages = [
+        "qiskit~=2.3.0",
+        "qiskit-aer~=0.17.0",
+        "qiskit-ibm-runtime~=0.46.0",
+        "qiskit-optimization~=0.7.0",
+        "scipy~=1.15.0",
+    ]
+    @test get(
+        QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES,
+        "6-QCi",
+        nothing,
+    ) == ["numpy", "requests"]
+    @test get(
+        QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES,
+        "9-CancerGenomics",
+        nothing,
+    ) == ["dwave-ocean-sdk"]
+    @test get(
+        QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES,
+        "10-QAOA",
+        nothing,
+    ) == qaoa_python_packages
+    @test get(
+        QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES,
+        "11-Annealing",
+        nothing,
+    ) == ["dwave-ocean-sdk"]
     @test QUBONotebooksBootstrap.python_import_statement(
         ["dwave-ocean-sdk"],
     ) == "import dwave"
     @test QUBONotebooksBootstrap.python_import_statement(
         ["numpy", "requests"],
     ) == "import numpy, requests"
+    @test QUBONotebooksBootstrap.python_import_statement(
+        qaoa_python_packages,
+    ) ==
+        "import qiskit, qiskit_aer, qiskit_ibm_runtime, qiskit_optimization, scipy"
+    @test QUBONotebooksBootstrap.has_python_version_constraint("qiskit~=2.3.0")
+    @test !QUBONotebooksBootstrap.has_python_version_constraint("requests")
 
     for project_key in keys(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS)
         notebook = read(
