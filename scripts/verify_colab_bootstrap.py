@@ -339,6 +339,7 @@ def validate_bootstrap_outputs(
 
     expected_output = (
         f"Notebook project key: {project_key}",
+        f"notebooks_jl/environments/{project_key}`",
         *EXPECTED_COMMON_OUTPUT,
     )
     for expected in expected_output:
@@ -371,18 +372,9 @@ def write_colab_fixture(repo_root: Path, workspace: Path) -> None:
         repo_root / "scripts" / "notebook_bootstrap.jl",
         scripts_dir / "notebook_bootstrap.jl",
     )
-    shutil.copy2(
-        repo_root / "notebooks_jl" / "Project.toml",
-        notebooks_dir / "Project.toml",
-    )
-
-    shutil.copy2(
-        repo_root / "notebooks_jl" / "Manifest.toml",
-        notebooks_dir / "Manifest.toml",
-    )
-    shutil.copy2(
-        repo_root / "notebooks_jl" / "Manifest-v1.12.toml",
-        notebooks_dir / "Manifest-v1.12.toml",
+    shutil.copytree(
+        repo_root / "notebooks_jl" / "environments",
+        notebooks_dir / "environments",
     )
 
 
@@ -590,11 +582,13 @@ def main() -> int:
 
             executed = json.loads(executed_notebook.read_text())
             validate_notebook_execution(executed["cells"])
-            conda_environment = workspace / "notebooks_jl" / ".CondaPkg"
-            if conda_environment.exists():
+            conda_environments = list(
+                (workspace / "notebooks_jl").rglob(".CondaPkg")
+            )
+            if conda_environments:
                 raise AssertionError(
-                    "Colab smoke unexpectedly created a CondaPkg environment at "
-                    f"{conda_environment}."
+                    "Colab smoke unexpectedly created CondaPkg environments: "
+                    + ", ".join(str(path) for path in conda_environments)
                 )
             bootstrap_outputs = executed["cells"][0].get("outputs", [])
             rendered = validate_bootstrap_outputs(

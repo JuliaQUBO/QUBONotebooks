@@ -1,0 +1,8 @@
+[deps]
+DWave = "4d534982-bf11-4157-9e48-fe3a62208a50"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+QUBO = "ce8c2e91-a970-4681-856b-16178c24a30c"

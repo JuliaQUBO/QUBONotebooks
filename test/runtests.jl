@@ -168,6 +168,29 @@ end
     end
 end
 
+function imported_package_names!(names::Set{String}, expression)
+    expression isa Expr || return names
+    if expression.head in (:using, :import)
+        for argument in expression.args
+            package_expression = if argument isa Expr && argument.head == :as
+                first(argument.args)
+            else
+                argument
+            end
+            if package_expression isa Expr &&
+                    package_expression.head == :. &&
+                    first(package_expression.args) isa Symbol
+                push!(names, string(first(package_expression.args)))
+            end
+        end
+        return names
+    end
+    for argument in expression.args
+        imported_package_names!(names, argument)
+    end
+    return names
+end
+
 @testset "Julia version-specific notebook manifests" begin
     mktempdir() do project_dir
         default_manifest = joinpath(project_dir, "Manifest.toml")
@@ -224,10 +247,41 @@ end
     ]
     @test "3-GAMA" in notebook_keys
     for (notebook_path, project_key) in zip(julia_notebooks, notebook_keys)
+        project_dir = QUBONotebooksBootstrap.notebook_project_dir(
+            project_key;
+            repo_dir = repo_root,
+        )
         notebook = read(notebook_path, String)
+        declared_dependencies = Set(keys(TOML.parsefile(
+            joinpath(project_dir, "Project.toml"),
+        )["deps"]))
+        imported_dependencies = imported_package_names!(
+            Set{String}(),
+            QUBONotebooksBootstrap.notebook_import_expr(project_key),
+        )
+        @test project_dir == joinpath(
+            repo_root,
+            "notebooks_jl",
+            "environments",
+            project_key,
+        )
+        @test isfile(joinpath(project_dir, "Project.toml"))
+        @test declared_dependencies == imported_dependencies
+        @test QUBONotebooksBootstrap.manifest_julia_version(
+            project_dir;
+            julia_version = v"1.10.11",
+        ) == v"1.10.11"
+        @test QUBONotebooksBootstrap.manifest_julia_version(
+            project_dir;
+            julia_version = v"1.12.6",
+        ) == v"1.12.6"
         @test occursin(
             "QUBONotebooksBootstrap.bootstrap_notebook, \\\"$project_key\\\"",
             notebook,
         )
     end
+
+    @test QUBONotebooksBootstrap.aggregate_notebook_project_dir(
+        repo_dir = repo_root,
+    ) == joinpath(repo_root, "notebooks_jl")
 end

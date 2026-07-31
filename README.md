@@ -42,11 +42,11 @@ Julia Five Starter Problems series starts at notebook 7.
 
 | Topic | Julia notebook | Python notebook | Local verification status |
 | --- | --- | --- | --- |
-| Linear and Integer Programming | [notebooks_jl/1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) | [notebooks_py/1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; local execution requires LP/NLP/MINLP solver binaries. |
-| QUBO and Ising | [notebooks_jl/2-QUBO.ipynb](notebooks_jl/2-QUBO.ipynb) | [notebooks_py/2-QUBO_python.ipynb](notebooks_py/2-QUBO_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; Python notebook is portable and covered by `make verify-qubo-python`. |
-| Graver Augmented Multiseed Algorithm | [notebooks_jl/3-GAMA.ipynb](notebooks_jl/3-GAMA.ipynb) | [notebooks_py/3-GAMA_python.ipynb](notebooks_py/3-GAMA_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; Python notebook is portable and covered by `make verify-gama-python`. |
-| D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; quantum annealer cells require D-Wave solver access. The Python D-Wave notebook requires a user-managed Ocean install and is not part of the locked Python verification environment. |
-| Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes native Colab setup through the shared notebook project; benchmark runs are long-running and generate artifacts. |
+| Linear and Integer Programming | [notebooks_jl/1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) | [notebooks_py/1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; local execution requires LP/NLP/MINLP solver binaries. |
+| QUBO and Ising | [notebooks_jl/2-QUBO.ipynb](notebooks_jl/2-QUBO.ipynb) | [notebooks_py/2-QUBO_python.ipynb](notebooks_py/2-QUBO_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; Python notebook is portable and covered by `make verify-qubo-python`. |
+| Graver Augmented Multiseed Algorithm | [notebooks_jl/3-GAMA.ipynb](notebooks_jl/3-GAMA.ipynb) | [notebooks_py/3-GAMA_python.ipynb](notebooks_py/3-GAMA_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; Python notebook is portable and covered by `make verify-gama-python`. |
+| D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; quantum annealer cells require D-Wave solver access. The Python D-Wave notebook requires a user-managed Ocean install and is not part of the locked Python verification environment. |
+| Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; benchmark runs are long-running and generate artifacts. |
 | QCi | [notebooks_jl/6-QCi.ipynb](notebooks_jl/6-QCi.ipynb) | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | The Julia notebook uses QCIOpt's default CondaPkg environment; its model-construction and exact-enumeration path is credential-free and covered by `make verify-qci-julia-local`. QCI submission is a separate explicit opt-in. The Python notebook requires its separate `eqc-models` stack and credentials for cloud examples. |
 | Canonical QUBO starter problems | [notebooks_jl/7-CanonicalProblems.ipynb](notebooks_jl/7-CanonicalProblems.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-canonical-problems-julia`; exhaustive checks validate number partitioning, Max-Cut, and minimum vertex cover. |
 | Order partitioning for A/B testing | [notebooks_jl/8-OrderPartitioning.ipynb](notebooks_jl/8-OrderPartitioning.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-order-partitioning-julia`; all 64 assignments validate the grouped value/risk objective and decoded balances. |
@@ -134,21 +134,26 @@ release. Separate targets exist for notebooks that do not require external
 solver credentials or longer-running jobs; those credentialed and long-running
 notebooks are not part of the default portable subset. The Python QCi notebook
 does not have a locked local make target because `eqc-models==0.19.0` requires
-`networkx<3`, which conflicts with the D-Wave Ocean stack. That isolation is
-specific to the Python notebook. The Julia counterpart does not install the
-Python `qci-client` distribution: QCIOpt uses its default CondaPkg environment
-and coexists with DWave and NetworkX 3 in the shared Julia project, guarded by
-`make test-qciopt-dwave-coexistence`. In native Colab, every Python-backed Julia
+`networkx<3`, which conflicts with the D-Wave Ocean stack. The Julia notebooks
+avoid that cross-notebook coupling by activating one focused environment from
+`notebooks_jl/environments/<notebook-key>`. The root `notebooks_jl` project is
+the aggregate IJulia/sysimage and compatibility-test environment; it is not the
+project shown to a notebook learner. Its QCIOpt/DWave coexistence contract is
+still guarded by `make test-qciopt-dwave-coexistence`. After changing an
+aggregate dependency, maintainers refresh both focused lock sets with
+`make refresh-julia-notebook-environments JULIA="julia +1.10"` and then
+`make refresh-julia-notebook-environments JULIA="julia +1.12"`. In native
+Colab, every Python-backed Julia
 notebook binds PythonCall to the hosted Python runtime before Julia package
 instantiation. The bootstrap records both PythonCall's executable and
 CondaPkg's `Null` backend as Julia preferences, because these packages decide
 whether to compile CondaPkg and its micromamba or pixi backends before runtime
-environment variables alone can take effect. Notebooks 2–5, 9, and 11 ensure
+environment variables alone can take effect. Those preferences are written to
+the selected notebook project. Notebooks 2–5, 9, and 11 ensure
 the Ocean stack, notebook 6 ensures only `numpy` and `requests`, and notebook 10
 requests QiskitOpt's versioned Qiskit, Aer, IBM Runtime, Optimization, and SciPy
-stack (plus their transitive dependencies). This keeps unrelated dependencies
-from the shared Julia project's CondaPkg environment out of deferred import
-cells.
+stack (plus their transitive dependencies). This keeps one notebook's Python
+bridge and compatibility constraints out of every other notebook's setup.
 On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, and the
 IJulia/PythonCall extension can otherwise emit failed-task-printer notices
 during their first implicit compilation even when the imports succeed.
@@ -158,13 +163,15 @@ Notebooks 1–5 retain their lesson-scoped deferred import boundaries, while
 notebooks 6–11 load one declared package group. Real package-load failures
 still propagate from the helper.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
-repository when needed, activate `notebooks_jl`, and select the checked-in
-manifest for the hosted Julia minor version. Automatic full-project
+repository when needed, activate
+`notebooks_jl/environments/<notebook-key>`, and select that project's checked-in
+manifest for the hosted Julia minor version. Every focused project has locks
+for Julia 1.10.11 and Julia 1.12.6. Automatic selected-project
 precompilation and broad eager import warm-up are disabled during setup so a
 fresh runtime does not front-load compilation for packages the learner may not
 use.
 Set `QUBONOTEBOOKS_WARM_PACKAGES=1` to warm a notebook's declared imports or
-`QUBONOTEBOOKS_PRECOMPILE=1` to explicitly precompile the full project.
+`QUBONOTEBOOKS_PRECOMPILE=1` to explicitly precompile the selected project.
 `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the real
 setup, activation, and every marked real import cell from all Julia notebooks
 through fresh IJulia kernels with Colab environment markers. It rejects

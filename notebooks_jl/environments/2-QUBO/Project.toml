@@ -1,0 +1,10 @@
+[deps]
+DWave = "4d534982-bf11-4157-9e48-fe3a62208a50"
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+Karnak = "cd156443-31ad-4f6f-850f-a93ee5f75905"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Luxor = "ae8d54c2-7ccd-5906-9d76-62fc9837b5bc"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+QUBO = "ce8c2e91-a970-4681-856b-16178c24a30c"

@@ -23,6 +23,7 @@ docs/site/
 # environment.
 Manifest.toml
 !notebooks_jl/Manifest.toml
+!notebooks_jl/environments/**/Manifest.toml
 !scripts/Manifest.toml
 
 # PythonCall
