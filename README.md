@@ -137,23 +137,34 @@ does not have a locked local make target because `eqc-models==0.19.0` requires
 specific to the Python notebook. The Julia counterpart does not install the
 Python `qci-client` distribution: QCIOpt uses its default CondaPkg environment
 and coexists with DWave and NetworkX 3 in the shared Julia project, guarded by
-`make test-qciopt-dwave-coexistence`. In native Colab, notebook 6 instead binds
-PythonCall to the hosted Python runtime and ensures only `numpy` and `requests`,
-so unrelated Python-backed Julia packages do not expand its setup environment.
+`make test-qciopt-dwave-coexistence`. In native Colab, every Python-backed Julia
+notebook binds PythonCall to the hosted Python runtime before Julia package
+instantiation. Notebooks 2–5, 9, and 11 ensure the Ocean stack, notebook 6
+ensures only `numpy` and `requests`, and notebook 10 requests QiskitOpt's
+versioned Qiskit, Aer, IBM Runtime, Optimization, and SciPy stack (plus their
+transitive dependencies). This keeps unrelated dependencies from the shared
+Julia project's CondaPkg environment out of deferred import cells.
+On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, and the
+IJulia/PythonCall extension can otherwise emit failed-task-printer notices
+during their first implicit compilation even when the imports succeed.
+Notebooks 6 and 10 therefore perform one narrow, output-suppressed first load
+during setup; the other notebooks keep their package imports deferred.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate `notebooks_jl`, and select the checked-in
 manifest for the hosted Julia minor version. Automatic full-project
-precompilation and eager import warm-up are disabled during setup so a fresh
-runtime does not front-load compilation for packages the learner may not use.
+precompilation and broad eager import warm-up are disabled during setup so a
+fresh runtime does not front-load compilation for packages the learner may not
+use.
 Set `QUBONOTEBOOKS_WARM_PACKAGES=1` to warm a notebook's declared imports or
 `QUBONOTEBOOKS_PRECOMPILE=1` to explicitly precompile the full project.
 `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the real
 setup and activation cells from all Julia notebooks through IJulia with Colab
 environment markers, plus a post-bootstrap package import check. It rejects
 CondaPkg or package/artifact transcripts, manifest mismatch warnings, and pip
-progress in the bootstrap output; later activation and import cells must remain
-free of failed-task output, stack traces, cell errors, and unexpected rendered
-values.
+progress in the bootstrap output. It also requires the narrow notebook 6 and 10
+first-load workaround; later activation and import cells must remain free of
+CondaPkg environment setup, failed-task output, stack traces, cell errors, and
+unexpected rendered values.
 The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
 exercise their normal Colab D-Wave setup without adding the Ocean stack to the
 locked project environment.

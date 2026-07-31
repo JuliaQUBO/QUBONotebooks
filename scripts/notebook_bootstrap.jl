@@ -23,8 +23,21 @@ const CREDENTIAL_FREE_DWAVE_NOTEBOOKS = Set((
 const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
     "6-QCi",
 ))
+const COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS = Set((
+    "6-QCi",
+    "10-QAOA",
+))
 const COLAB_SYSTEM_PYTHON_PACKAGES = Dict(
     "6-QCi" => ["numpy", "requests"],
+    "9-CancerGenomics" => ["dwave-ocean-sdk"],
+    "10-QAOA" => [
+        "qiskit~=2.3.0",
+        "qiskit-aer~=0.17.0",
+        "qiskit-ibm-runtime~=0.46.0",
+        "qiskit-optimization~=0.7.0",
+        "scipy~=1.15.0",
+    ],
+    "11-Annealing" => ["dwave-ocean-sdk"],
 )
 const PYTHON_PACKAGE_IMPORT_NAMES = Dict(
     "dwave-ocean-sdk" => "dwave",
@@ -100,6 +113,10 @@ function default_bootstrap_warm_packages(project_key::AbstractString = "")
 end
 
 default_bootstrap_precompile() = something(env_bool(PRECOMPILE_ENV), false)
+requires_colab_python_preload(
+    project_key::AbstractString;
+    in_colab::Bool = detect_colab(),
+) = in_colab && project_key in COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS
 
 function notebook_key(target::AbstractString)
     return splitext(basename(target))[1]
@@ -110,10 +127,20 @@ function notebook_requires_python(project_key::AbstractString)
 end
 
 notebook_import_expr(project_key::AbstractString) = get(NOTEBOOK_IMPORTS, project_key, nothing)
-python_import_name(package::AbstractString) =
-    get(PYTHON_PACKAGE_IMPORT_NAMES, package, replace(package, "-" => "_"))
+python_distribution_name(package::AbstractString) =
+    strip(first(split(package, r"[<>=!~]"; limit = 2)))
+python_import_name(package::AbstractString) = begin
+    distribution = python_distribution_name(package)
+    return get(
+        PYTHON_PACKAGE_IMPORT_NAMES,
+        distribution,
+        replace(distribution, "-" => "_"),
+    )
+end
 python_import_statement(python_packages::Vector{String}) =
     "import " * join(python_import_name.(python_packages), ", ")
+has_python_version_constraint(package::AbstractString) =
+    python_distribution_name(package) != strip(package)
 
 function notebook_project_dir(; repo_dir::AbstractString = WORKSPACE)
     return joinpath(repo_dir, NOTEBOOKS_DIRNAME)
@@ -397,7 +424,11 @@ function configure_python_runtime!(
                 stdout = devnull,
                 stderr = devnull,
             )
-            if !success(import_check)
+            packages_need_version_check = any(
+                has_python_version_constraint,
+                python_packages,
+            )
+            if packages_need_version_check || !success(import_check)
                 run(Cmd([
                     python_exe,
                     "-m",
@@ -543,6 +574,8 @@ function bootstrap_notebook(
     )
     if warm_packages
         warm_notebook_packages!(project_key; suppress_logs = suppress_warmup_logs)
+    elseif requires_colab_python_preload(project_key; in_colab = in_colab)
+        warm_notebook_packages!(project_key; suppress_logs = true)
     end
 
     if chdir_to_notebooks
