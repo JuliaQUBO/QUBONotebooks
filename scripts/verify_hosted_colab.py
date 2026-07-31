@@ -154,7 +154,7 @@ def execute_native_smoke(
     smoke_notebook = output_dir / smoke_name
     executed_notebook = output_dir / f"executed-{smoke_name}"
     smoke.write_smoke_notebook(
-        smoke.smoke_cell_sources(repo_root, notebook_path),
+        smoke.smoke_cells(repo_root, notebook_path),
         smoke_notebook,
     )
 
@@ -353,12 +353,38 @@ def colab_run_command(
     ]
 
 
+def colab_run_commands(
+    *,
+    script_path: Path,
+    auth: str,
+    timeout: float,
+    repo_ref: str,
+    repo_url: str,
+    notebook_keys: tuple[str, ...],
+) -> list[list[str]]:
+    """Build one auto-released Colab invocation per notebook key."""
+    return [
+        colab_run_command(
+            script_path=script_path,
+            auth=auth,
+            timeout=timeout,
+            repo_ref=repo_ref,
+            repo_url=repo_url,
+            notebooks=notebook_key,
+        )
+        for notebook_key in notebook_keys
+    ]
+
+
 def local_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--notebooks",
-        default=os.environ.get(SELECTED_NOTEBOOKS_ENV, "11-Annealing"),
-        help="Comma- or space-separated Julia notebook keys (default: 11-Annealing).",
+        default=os.environ.get(SELECTED_NOTEBOOKS_ENV, ""),
+        help=(
+            "Comma- or space-separated Julia notebook keys "
+            "(default: every Julia notebook)."
+        ),
     )
     parser.add_argument("--ref", default=os.environ.get(REPO_REF_ENV) or git_head())
     parser.add_argument(
@@ -376,17 +402,24 @@ def local_main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    run(
-        colab_run_command(
-            script_path=Path(__file__).resolve(),
-            auth=args.auth,
-            timeout=args.timeout,
-            repo_ref=args.ref,
-            repo_url=args.repo_url,
-            notebooks=args.notebooks,
-        ),
-        cwd=REPO_ROOT,
+    smoke = load_smoke_module(REPO_ROOT)
+    notebook_keys = tuple(
+        notebook_path.stem
+        for notebook_path in smoke.selected_notebook_paths(args.notebooks)
     )
+    commands = colab_run_commands(
+        script_path=Path(__file__).resolve(),
+        auth=args.auth,
+        timeout=args.timeout,
+        repo_ref=args.ref,
+        repo_url=args.repo_url,
+        notebook_keys=notebook_keys,
+    )
+    for command in commands:
+        run(
+            command,
+            cwd=REPO_ROOT,
+        )
     return 0
 
 

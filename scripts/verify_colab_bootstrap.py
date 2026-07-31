@@ -24,6 +24,11 @@ NOTEBOOK_PATHS = tuple(
 SELECTED_NOTEBOOKS_ENV = "QUBONOTEBOOKS_COLAB_NOTEBOOKS"
 BOOTSTRAP_MARKER = "function load_qubonotebooks_bootstrap()"
 ACTIVATION_MARKER = "Pkg.activate(JULIA_PROJECT_DIR"
+IMPORT_CELL_MARKER = "QUBONOTEBOOKS_COLAB_IMPORT_CELL"
+IMPORT_CELL_METADATA_KEY = "qubonotebooks_colab_import_id"
+PACKAGE_IMPORT_PATTERN = re.compile(
+    r"(?m)^\s*(?:@eval\s+)?(?:using|import)\s+[A-Za-z]"
+)
 KERNEL_NAME = "qubonotebooks-colab-smoke"
 IJULIA_PROJECT = """\
 [deps]
@@ -43,6 +48,10 @@ EXECUTION_FORBIDDEN_OUTPUT = (
     (
         "CondaPkg environment setup",
         re.compile(r"(?i)(?:CondaPkg|micromamba|\bpixi\b|/\.CondaPkg)"),
+    ),
+    (
+        "package precompilation output",
+        re.compile(r"(?im)^\s*(?:\[ Info:\s*)?Precompiling\b"),
     ),
 )
 FORBIDDEN_OUTPUT = (
@@ -122,71 +131,135 @@ def text_value(value: object) -> str:
     return str(value)
 
 
+def marked_code_cell(
+    repo_root: Path,
+    notebook: Path,
+    *,
+    marker: str,
+    description: str,
+    smoke_id: str,
+) -> dict[str, str]:
+    notebook_path = repo_root / notebook
+    data = json.loads(notebook_path.read_text())
+    matches = [
+        cell
+        for cell in data["cells"]
+        if cell.get("cell_type") == "code"
+        and marker in text_value(cell.get("source"))
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"Expected exactly one {description} cell in {notebook_path}, "
+            f"found {len(matches)}."
+        )
+    return {"id": smoke_id, "source": text_value(matches[0].get("source"))}
+
+
 def bootstrap_cell_source(
     repo_root: Path,
     notebook: Path = NOTEBOOK_PATH,
 ) -> str:
-    notebook_path = repo_root / notebook
-    notebook = json.loads(notebook_path.read_text())
-    matches = [
-        text_value(cell.get("source"))
-        for cell in notebook["cells"]
-        if cell.get("cell_type") == "code"
-        and BOOTSTRAP_MARKER in text_value(cell.get("source"))
-    ]
-    if len(matches) != 1:
-        raise ValueError(
-            f"Expected exactly one bootstrap cell in {notebook_path}, found {len(matches)}."
-        )
-    return matches[0]
+    return marked_code_cell(
+        repo_root,
+        notebook,
+        marker=BOOTSTRAP_MARKER,
+        description="bootstrap",
+        smoke_id="bootstrap",
+    )["source"]
 
 
 def activation_cell_source(repo_root: Path, notebook: Path) -> str:
+    source = marked_code_cell(
+        repo_root,
+        notebook,
+        marker=ACTIVATION_MARKER,
+        description="activation",
+        smoke_id="activate",
+    )["source"]
+    if "Pkg.instantiate" not in source:
+        raise ValueError(
+            f"Activation cell in {repo_root / notebook} does not instantiate "
+            "the notebook environment."
+        )
+    return source
+
+
+def notebook_import_cells(repo_root: Path, notebook: Path) -> list[dict]:
     notebook_path = repo_root / notebook
     data = json.loads(notebook_path.read_text())
-    matches = [
-        text_value(cell.get("source"))
+    import_cells = [
+        cell
         for cell in data["cells"]
         if cell.get("cell_type") == "code"
-        and ACTIVATION_MARKER in text_value(cell.get("source"))
-        and "Pkg.instantiate" in text_value(cell.get("source"))
-    ]
-    if len(matches) != 1:
-        raise ValueError(
-            f"Expected exactly one activation cell in {notebook_path}, "
-            f"found {len(matches)}."
+        and (
+            IMPORT_CELL_MARKER in text_value(cell.get("source"))
+            or cell.get("metadata", {}).get(IMPORT_CELL_METADATA_KEY)
         )
-    return matches[0]
-
-
-def smoke_cell_sources(repo_root: Path, notebook: Path) -> list[str]:
-    sources = [
-        bootstrap_cell_source(repo_root, notebook),
-        activation_cell_source(repo_root, notebook),
     ]
-    data = json.loads((repo_root / notebook).read_text())
-    import_sources = [
-        text_value(cell.get("source"))
-        for cell in data["cells"]
-        if cell.get("cell_type") == "code" and cell.get("id") == "imports"
+    if not import_cells:
+        raise ValueError(f"Expected at least one marked import cell in {notebook_path}.")
+
+    import_ids = [
+        cell.get("metadata", {}).get(IMPORT_CELL_METADATA_KEY)
+        for cell in import_cells
     ]
-    if len(import_sources) > 1:
+    if any(not cell_id for cell_id in import_ids):
         raise ValueError(
-            f"Expected at most one 'imports' cell in {repo_root / notebook}, "
-            f"found {len(import_sources)}."
+            f"Every marked import cell in {notebook_path} must have "
+            f"'{IMPORT_CELL_METADATA_KEY}' metadata."
         )
-    if import_sources:
-        return [*sources, *import_sources]
+    if len(import_ids) != len(set(import_ids)):
+        raise ValueError(f"Marked import cell ids are not unique in {notebook_path}.")
+    if any(not str(cell_id).startswith("imports") for cell_id in import_ids):
+        raise ValueError(
+            f"Marked import cell ids in {notebook_path} must start with 'imports'."
+        )
+    missing_source_markers = [
+        str(cell_id)
+        for cell_id, cell in zip(import_ids, import_cells)
+        if IMPORT_CELL_MARKER not in text_value(cell.get("source"))
+    ]
+    if missing_source_markers:
+        raise ValueError(
+            f"Marked import cell(s) in {notebook_path} are missing the source marker: "
+            + ", ".join(missing_source_markers)
+        )
 
-    project_key = notebook.stem
-    warmup_source = (
-        "Base.invokelatest(\n"
-        "    QUBONotebooksBootstrap.warm_notebook_packages!,\n"
-        f'    "{project_key}";\n'
-        "    suppress_logs = true,\n"
-        ");\n"
-    )
-    return [*sources, warmup_source]
+    unmarked_imports = []
+    for index, cell in enumerate(data["cells"], start=1):
+        if cell.get("cell_type") != "code":
+            continue
+        source = text_value(cell.get("source"))
+        if BOOTSTRAP_MARKER in source or ACTIVATION_MARKER in source:
+            continue
+        import_id = cell.get("metadata", {}).get(IMPORT_CELL_METADATA_KEY)
+        if PACKAGE_IMPORT_PATTERN.search(source) and not import_id:
+            unmarked_imports.append(str(cell.get("id") or f"cell-{index}"))
+    if unmarked_imports:
+        raise ValueError(
+            f"Found unmarked package import cell(s) in {notebook_path}: "
+            + ", ".join(unmarked_imports)
+        )
+    return import_cells
+
+
+def smoke_cells(repo_root: Path, notebook: Path) -> list[dict[str, str]]:
+    bootstrap = {
+        "id": "bootstrap",
+        "source": bootstrap_cell_source(repo_root, notebook),
+    }
+    activation = {
+        "id": "activate",
+        "source": activation_cell_source(repo_root, notebook),
+    }
+    imports = [
+        {
+            "id": str(cell["metadata"][IMPORT_CELL_METADATA_KEY]),
+            "source": text_value(cell.get("source")),
+        }
+        for cell in notebook_import_cells(repo_root, notebook)
+    ]
+    return [bootstrap, activation, *imports]
 
 
 def output_text(outputs: list[dict]) -> str:
@@ -313,18 +386,18 @@ def write_colab_fixture(repo_root: Path, workspace: Path) -> None:
     )
 
 
-def write_smoke_notebook(sources: list[str], path: Path) -> None:
+def write_smoke_notebook(cells: list[dict[str, str]], path: Path) -> None:
     notebook = {
         "cells": [
             {
                 "cell_type": "code",
                 "execution_count": None,
-                "id": f"smoke-{index}",
+                "id": cell["id"],
                 "metadata": {},
                 "outputs": [],
-                "source": source.splitlines(keepends=True),
+                "source": cell["source"].splitlines(keepends=True),
             }
-            for index, source in enumerate(sources, start=1)
+            for cell in cells
         ],
         "metadata": {
             "kernelspec": {
@@ -493,7 +566,7 @@ def main() -> int:
             smoke_notebook = workspace / smoke_name
             executed_notebook = output_dir / smoke_name
             write_smoke_notebook(
-                smoke_cell_sources(repo_root, notebook_path),
+                smoke_cells(repo_root, notebook_path),
                 smoke_notebook,
             )
             run(

@@ -56,6 +56,44 @@ using Test
         end
     end
 
+    mktemp() do _, stdout_io
+        mktemp() do _, stderr_io
+            loaded = redirect_stdout(stdout_io) do
+                redirect_stderr(stderr_io) do
+                    Base.invokelatest(
+                        QUBONotebooksBootstrap.load_notebook_packages!,
+                        "test packages",
+                        :(begin
+                            println(stdout, "hidden import stdout")
+                            println(stderr, "hidden import stderr")
+                            @info "hidden import log"
+                            17
+                        end);
+                        suppress_logs = true,
+                    )
+                end
+            end
+            flush(stdout_io)
+            flush(stderr_io)
+            seekstart(stdout_io)
+            seekstart(stderr_io)
+            captured_stdout = read(stdout_io, String)
+            captured_stderr = read(stderr_io, String)
+
+            @test loaded === true
+            @test occursin("Loading test packages", captured_stdout)
+            @test !occursin("hidden import", captured_stdout)
+            @test isempty(captured_stderr)
+        end
+    end
+
+    @test_throws ErrorException Base.invokelatest(
+        QUBONotebooksBootstrap.load_notebook_packages!,
+        "failing test package",
+        :(error("import failure must propagate"));
+        suppress_logs = true,
+    )
+
     for operation in (
         "Pkg.activate(project_dir; io = pkg_io)",
         "Pkg.update(; io = pkg_io)",
