@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -69,6 +72,23 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         self.assertNotIn("--keep", command)
         self.assertIn("QUBONOTEBOOKS_HOSTED_COLAB_RUNNER=checkout", command)
         self.assertIn(f"QUBONOTEBOOKS_REPO_REF={'a' * 40}", command)
+
+    def test_hosted_runner_loads_when_colab_does_not_define_file(self) -> None:
+        source = HOSTED_MODULE_PATH.read_text()
+        program = (
+            f"exec(compile({source!r}, '<colab-cell>', 'exec'), "
+            "{'__name__': 'colab_cell'})\n"
+        )
+
+        completed = subprocess.run(
+            [sys.executable, "-c", program],
+            cwd=REPO_ROOT,
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(0, completed.returncode, completed.stderr)
 
     def test_smoke_inventory_covers_every_julia_notebook(self) -> None:
         expected_paths = tuple(

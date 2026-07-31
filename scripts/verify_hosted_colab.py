@@ -15,7 +15,10 @@ import tempfile
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+SOURCE_PATH = globals().get("__file__")
+REPO_ROOT = (
+    Path(SOURCE_PATH).resolve().parents[1] if SOURCE_PATH is not None else Path.cwd()
+)
 DEFAULT_REPO_URL = "https://github.com/JuliaQUBO/QUBONotebooks.git"
 HOSTED_RUNNER_ENV = "QUBONOTEBOOKS_HOSTED_COLAB_RUNNER"
 REPO_REF_ENV = "QUBONOTEBOOKS_REPO_REF"
