@@ -30,6 +30,12 @@ using Test
     @test QUBONotebooksBootstrap.notebook_requires_python("2-QUBO")
     @test QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES["6-QCi"] ==
         ["numpy", "requests"]
+    @test QUBONotebooksBootstrap.python_import_statement(
+        ["dwave-ocean-sdk"],
+    ) == "import dwave"
+    @test QUBONotebooksBootstrap.python_import_statement(
+        ["numpy", "requests"],
+    ) == "import numpy, requests"
 
     for project_key in keys(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS)
         notebook = read(

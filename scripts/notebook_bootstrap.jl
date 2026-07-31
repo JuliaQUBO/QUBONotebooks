@@ -26,6 +26,11 @@ const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
 const COLAB_SYSTEM_PYTHON_PACKAGES = Dict(
     "6-QCi" => ["numpy", "requests"],
 )
+const PYTHON_PACKAGE_IMPORT_NAMES = Dict(
+    "dwave-ocean-sdk" => "dwave",
+    "numpy" => "numpy",
+    "requests" => "requests",
+)
 const NOTEBOOK_IMPORTS = Dict(
     "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
     "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
@@ -108,6 +113,10 @@ function notebook_requires_python(project_key::AbstractString)
 end
 
 notebook_import_expr(project_key::AbstractString) = get(NOTEBOOK_IMPORTS, project_key, nothing)
+python_import_name(package::AbstractString) =
+    get(PYTHON_PACKAGE_IMPORT_NAMES, package, replace(package, "-" => "_"))
+python_import_statement(python_packages::Vector{String}) =
+    "import " * join(python_import_name.(python_packages), ", ")
 
 function notebook_project_dir(; repo_dir::AbstractString = WORKSPACE)
     return joinpath(repo_dir, NOTEBOOKS_DIRNAME)
@@ -385,8 +394,7 @@ function configure_python_runtime!(
         python_exe = something(Sys.which("python3"), "python3")
         if !isempty(python_packages)
             log_step("Ensuring Python packages: $(join(python_packages, ", "))")
-            import_statement =
-                "import " * join(replace.(python_packages, "-" => "_"), ", ")
+            import_statement = python_import_statement(python_packages)
             import_check = pipeline(
                 Cmd([python_exe, "-c", import_statement]);
                 stdout = devnull,
