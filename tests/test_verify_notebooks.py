@@ -5,6 +5,7 @@ import json
 import os
 import re
 import tempfile
+import tomllib
 import unittest
 import zipfile
 from pathlib import Path
@@ -1345,6 +1346,23 @@ class RepositoryCommandTests(unittest.TestCase):
         self.assertIn(f"julia-version: '{expected_version}'", deploy_workflow)
         self.assertIn(f'julia_version = "{expected_version}"', notebook_manifest)
 
+    def test_native_colab_has_a_julia_1_12_manifest(self) -> None:
+        manifest_path = (
+            REPO_ROOT / "notebooks_jl" / "Manifest-v1.12.toml"
+        )
+        manifest = tomllib.loads(manifest_path.read_text())
+        qci_entry = manifest["deps"]["QCIOpt"][0]
+
+        self.assertEqual("1.12.6", manifest["julia_version"])
+        self.assertEqual(
+            "30a6074fdd5bd75c3f1cf965329edd01c67e63fe",
+            qci_entry["repo-rev"],
+        )
+        self.assertEqual(
+            "https://github.com/SECQUOIA/QCIOpt.jl",
+            qci_entry["repo-url"],
+        )
+
     def test_sysimage_build_and_colab_kernel_use_matching_depot_path(self) -> None:
         install_script = (REPO_ROOT / "scripts" / "install-colab-julia.sh").read_text()
         deploy_workflow = (REPO_ROOT / ".github" / "workflows" / "deploy.yml").read_text()
@@ -1403,7 +1421,9 @@ class JuliaColabSetupTests(unittest.TestCase):
                     )
                 ]
                 activate_indexes = [
-                    i for i, source in enumerate(cells) if "Pkg.activate(JULIA_PROJECT_DIR)" in source
+                    i
+                    for i, source in enumerate(cells)
+                    if "Pkg.activate(JULIA_PROJECT_DIR" in source
                 ]
                 expected_call = (
                     "Base.invokelatest("
@@ -1414,6 +1434,14 @@ class JuliaColabSetupTests(unittest.TestCase):
                 self.assertEqual(1, len(setup_indexes))
                 self.assertIn(expected_call, cells[setup_indexes[0]])
                 self.assertTrue(activate_indexes)
+                self.assertIn(
+                    "Pkg.activate(JULIA_PROJECT_DIR; io = devnull)",
+                    cells[activate_indexes[0]],
+                )
+                self.assertIn(
+                    "Pkg.activate(@__DIR__; io = devnull)",
+                    cells[activate_indexes[0]],
+                )
                 self.assertLess(setup_indexes[0], min(activate_indexes))
                 self.assertNotIn("%%shell", notebook_source(path))
                 self.assertNotIn("install-colab-julia.sh", notebook_source(path))

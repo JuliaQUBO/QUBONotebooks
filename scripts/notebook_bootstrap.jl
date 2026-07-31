@@ -23,6 +23,14 @@ const CREDENTIAL_FREE_DWAVE_NOTEBOOKS = Set((
 const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
     "6-QCi",
 ))
+const COLAB_SYSTEM_PYTHON_PACKAGES = Dict(
+    "6-QCi" => ["numpy", "requests"],
+)
+const PYTHON_PACKAGE_IMPORT_NAMES = Dict(
+    "dwave-ocean-sdk" => "dwave",
+    "numpy" => "numpy",
+    "requests" => "requests",
+)
 const NOTEBOOK_IMPORTS = Dict(
     "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
     "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
@@ -48,6 +56,16 @@ function with_package_operation_io(operation::Function, in_colab::Bool)
         end
     end
     return operation(pkg_io)
+end
+
+function with_suppressed_output(operation::Function)
+    return redirect_stdout(devnull) do
+        redirect_stderr(devnull) do
+            with_logger(NullLogger()) do
+                operation()
+            end
+        end
+    end
 end
 
 function log_step(message::AbstractString)
@@ -76,8 +94,13 @@ function env_bool(name::AbstractString)
     error("Expected `$name` to be one of 1/0/true/false/yes/no/on/off, got `$value`.")
 end
 
-default_bootstrap_warm_packages() =
-    something(env_bool("QUBONOTEBOOKS_WARM_PACKAGES"), false)
+function default_bootstrap_warm_packages(project_key::AbstractString = "")
+    configured_warm_packages = env_bool("QUBONOTEBOOKS_WARM_PACKAGES")
+    return something(
+        configured_warm_packages,
+        detect_colab() && haskey(NOTEBOOK_IMPORTS, project_key),
+    )
+end
 
 default_bootstrap_precompile() = something(env_bool(PRECOMPILE_ENV), false)
 
@@ -90,17 +113,32 @@ function notebook_requires_python(project_key::AbstractString)
 end
 
 notebook_import_expr(project_key::AbstractString) = get(NOTEBOOK_IMPORTS, project_key, nothing)
+python_import_name(package::AbstractString) =
+    get(PYTHON_PACKAGE_IMPORT_NAMES, package, replace(package, "-" => "_"))
+python_import_statement(python_packages::Vector{String}) =
+    "import " * join(python_import_name.(python_packages), ", ")
 
 function notebook_project_dir(; repo_dir::AbstractString = WORKSPACE)
     return joinpath(repo_dir, NOTEBOOKS_DIRNAME)
 end
 
-function manifest_path(project_dir::AbstractString)
+function manifest_path(
+    project_dir::AbstractString;
+    julia_version::VersionNumber = VERSION,
+)
+    versioned_path = joinpath(
+        project_dir,
+        "Manifest-v$(julia_version.major).$(julia_version.minor).toml",
+    )
+    isfile(versioned_path) && return versioned_path
     return joinpath(project_dir, "Manifest.toml")
 end
 
-function manifest_julia_version(project_dir::AbstractString)
-    path = manifest_path(project_dir)
+function manifest_julia_version(
+    project_dir::AbstractString;
+    julia_version::VersionNumber = VERSION,
+)
+    path = manifest_path(project_dir; julia_version = julia_version)
     if !isfile(path)
         return nothing
     end
@@ -109,6 +147,9 @@ function manifest_julia_version(project_dir::AbstractString)
     version_string = get(manifest, "julia_version", nothing)
     return version_string === nothing ? nothing : VersionNumber(version_string)
 end
+
+same_julia_minor(left::VersionNumber, right::VersionNumber) =
+    left.major == right.major && left.minor == right.minor
 
 function requested_repo_ref()
     value = strip(get(ENV, REPO_REF_ENV, ""))
@@ -185,7 +226,7 @@ end
 function validate_project_julia_version!(project_dir::AbstractString; in_colab::Bool = detect_colab())
     manifest_version = manifest_julia_version(project_dir)
     manifest_version === nothing && return nothing
-    manifest_version == VERSION && return nothing
+    same_julia_minor(manifest_version, VERSION) && return nothing
 
     configured_allow_mismatch = env_bool(ALLOW_VERSION_MISMATCH_ENV)
     allow_mismatch = something(configured_allow_mismatch, in_colab)
@@ -203,7 +244,9 @@ end
 
 function should_resolve_project_for_current_julia(project_dir::AbstractString; in_colab::Bool = detect_colab())
     manifest_version = manifest_julia_version(project_dir)
-    return in_colab && manifest_version !== nothing && manifest_version != VERSION
+    return in_colab &&
+        manifest_version !== nothing &&
+        !same_julia_minor(manifest_version, VERSION)
 end
 
 active_stdlib_names() = Set(readdir(Base.load_path_expand("@stdlib")))
@@ -348,11 +391,28 @@ function configure_python_runtime!(
     ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
 
     if in_colab
-        if !isempty(python_packages)
-            log_step("Installing Python packages: $(join(python_packages, ", "))")
-            run(`python3 -m pip install -q $(python_packages...)`)
-        end
         python_exe = something(Sys.which("python3"), "python3")
+        if !isempty(python_packages)
+            log_step("Ensuring Python packages: $(join(python_packages, ", "))")
+            import_statement = python_import_statement(python_packages)
+            import_check = pipeline(
+                Cmd([python_exe, "-c", import_statement]);
+                stdout = devnull,
+                stderr = devnull,
+            )
+            if !success(import_check)
+                run(Cmd([
+                    python_exe,
+                    "-m",
+                    "pip",
+                    "install",
+                    "-q",
+                    "--disable-pip-version-check",
+                    "--root-user-action=ignore",
+                    python_packages...,
+                ]))
+            end
+        end
     else
         python_exe = joinpath(repo_dir, ".venv", "bin", "python3")
         if !isfile(python_exe)
@@ -433,9 +493,7 @@ function warm_notebook_packages!(
 
     log_step("Loading notebook packages")
     if suppress_logs
-        with_logger(NullLogger()) do
-            load_packages()
-        end
+        with_suppressed_output(load_packages)
     else
         load_packages()
     end
@@ -446,7 +504,7 @@ function bootstrap_notebook(
     project_key::AbstractString;
     needs_python::Bool = notebook_requires_python(project_key),
     python_packages::Vector{String} = ["dwave-ocean-sdk"],
-    warm_packages::Bool = default_bootstrap_warm_packages(),
+    warm_packages::Bool = default_bootstrap_warm_packages(project_key),
     precompile::Bool = default_bootstrap_precompile(),
     suppress_warmup_logs::Bool = warm_packages,
     chdir_to_notebooks::Bool = true,
@@ -472,6 +530,12 @@ function bootstrap_notebook(
 
     if needs_python
         configure_python_runtime!(repo_dir; in_colab = in_colab, python_packages = python_packages)
+    elseif in_colab && haskey(COLAB_SYSTEM_PYTHON_PACKAGES, project_key)
+        configure_python_runtime!(
+            repo_dir;
+            in_colab = true,
+            python_packages = COLAB_SYSTEM_PYTHON_PACKAGES[project_key],
+        )
     end
 
     refreshed_for_current_julia = instantiate_project!(

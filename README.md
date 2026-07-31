@@ -137,17 +137,23 @@ does not have a locked local make target because `eqc-models==0.19.0` requires
 specific to the Python notebook. The Julia counterpart does not install the
 Python `qci-client` distribution: QCIOpt uses its default CondaPkg environment
 and coexists with DWave and NetworkX 3 in the shared Julia project, guarded by
-`make test-qciopt-dwave-coexistence`.
+`make test-qciopt-dwave-coexistence`. In native Colab, notebook 6 instead binds
+PythonCall to the hosted Python runtime and ensures only `numpy` and `requests`,
+so unrelated Python-backed Julia packages do not expand its setup environment.
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
-repository when needed, activate `notebooks_jl`, and resolve the checked-in
-manifest for the current hosted Julia runtime. Package imports and their
-automatic precompilation run in each notebook's dedicated import cell instead
-of the setup cell. Set `QUBONOTEBOOKS_WARM_PACKAGES=1` or
-`QUBONOTEBOOKS_PRECOMPILE=1` before setup to opt into either extra bootstrap
-step. `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the real
-canonical-problems setup cell through IJulia with Colab environment markers and
-fails on package/artifact transcripts, stack traces, cell errors, or a rendered
-result value.
+repository when needed, activate `notebooks_jl`, and select the checked-in
+manifest for the hosted Julia minor version. All Julia notebooks warm their
+declared imports during setup with package output suppressed; set
+`QUBONOTEBOOKS_WARM_PACKAGES=0` to disable that behavior.
+`QUBONOTEBOOKS_PRECOMPILE=1` remains an explicit full-project precompile
+option. `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the
+real setup and activation cells from all Julia notebooks through IJulia with
+Colab environment markers, plus the dedicated import cell where present. It
+fails on CondaPkg or package/artifact transcripts, manifest mismatch warnings,
+failed-task output, stack traces, cell errors, or unexpected rendered values.
+The smoke provides `pip` only in its isolated runtime so notebooks 2–5 can
+exercise their normal Colab D-Wave setup without adding the Ocean stack to the
+locked project environment.
 
 ```bash
 make verify-notebooks NOTEBOOKS="notebooks_py/2-QUBO_python.ipynb" UV_GROUP_FLAGS="--group docs --group qubo"
