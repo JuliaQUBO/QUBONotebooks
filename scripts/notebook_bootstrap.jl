@@ -23,6 +23,10 @@ const CREDENTIAL_FREE_DWAVE_NOTEBOOKS = Set((
 const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
     "6-QCi",
 ))
+const COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS = Set((
+    "6-QCi",
+    "10-QAOA",
+))
 const COLAB_SYSTEM_PYTHON_PACKAGES = Dict(
     "6-QCi" => ["numpy", "requests"],
     "9-CancerGenomics" => ["dwave-ocean-sdk"],
@@ -109,6 +113,10 @@ function default_bootstrap_warm_packages(project_key::AbstractString = "")
 end
 
 default_bootstrap_precompile() = something(env_bool(PRECOMPILE_ENV), false)
+requires_colab_python_preload(
+    project_key::AbstractString;
+    in_colab::Bool = detect_colab(),
+) = in_colab && project_key in COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS
 
 function notebook_key(target::AbstractString)
     return splitext(basename(target))[1]
@@ -566,6 +574,8 @@ function bootstrap_notebook(
     )
     if warm_packages
         warm_notebook_packages!(project_key; suppress_logs = suppress_warmup_logs)
+    elseif requires_colab_python_preload(project_key; in_colab = in_colab)
+        warm_notebook_packages!(project_key; suppress_logs = true)
     end
 
     if chdir_to_notebooks

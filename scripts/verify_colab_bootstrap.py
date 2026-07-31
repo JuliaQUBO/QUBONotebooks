@@ -34,6 +34,7 @@ EXPECTED_COMMON_OUTPUT = (
     "Instantiating Julia packages",
     "Notebook bootstrap complete",
 )
+COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS = frozenset(("6-QCi", "10-QAOA"))
 EXECUTION_FORBIDDEN_OUTPUT = (
     (
         "stack trace or failed-task printer output",
@@ -66,10 +67,6 @@ FORBIDDEN_OUTPUT = (
             r"(?im)^\s*(?:Activating project at|Resolving package versions|"
             r"(?:\[ Info:\s*)?Precompiling\b)"
         ),
-    ),
-    (
-        "eager package warm-up",
-        re.compile(r"(?im)^\s*Loading notebook packages\s*$"),
     ),
     (
         "pip download progress",
@@ -249,6 +246,13 @@ def validate_bootstrap_outputs(
         match = pattern.search(rendered)
         if match is not None:
             failures.append(f"{label}: {concise_line(match.group(0))}")
+
+    warmup_message = "Loading notebook packages"
+    if project_key in COLAB_IJULIA_PYTHON_PRELOAD_NOTEBOOKS:
+        if warmup_message not in rendered:
+            failures.append(f"missing milestone: {warmup_message}")
+    elif warmup_message in rendered:
+        failures.append(f"unexpected eager package warm-up: {warmup_message}")
 
     if failures:
         raise AssertionError(

@@ -17,6 +17,19 @@ def stream(text: str) -> dict:
     return {"name": "stderr", "output_type": "stream", "text": [text]}
 
 
+def qaoa_bootstrap_outputs(*, warm_packages: bool) -> list[dict]:
+    lines = [
+        "[12:00:00] Notebook project key: 10-QAOA",
+        "[12:00:00] Google Colab runtime detected: true",
+        "[12:00:00] Manifest Julia version: 1.12.6",
+        "[12:00:00] Instantiating Julia packages",
+    ]
+    if warm_packages:
+        lines.append("[12:00:00] Loading notebook packages")
+    lines.append("[12:00:00] Notebook bootstrap complete")
+    return [stream("\n".join(lines) + "\n")]
+
+
 class QAOAColabPythonRuntimeTests(unittest.TestCase):
     def test_rejects_condapkg_setup_from_deferred_import_cells(self) -> None:
         environment_setup_samples = (
@@ -36,6 +49,19 @@ class QAOAColabPythonRuntimeTests(unittest.TestCase):
                     verify_colab_bootstrap.validate_execution_outputs(
                         [stream(output)]
                     )
+
+    def test_requires_the_narrow_qaoa_import_workaround(self) -> None:
+        rendered = verify_colab_bootstrap.validate_bootstrap_outputs(
+            qaoa_bootstrap_outputs(warm_packages=True),
+            project_key="10-QAOA",
+        )
+
+        self.assertIn("Loading notebook packages", rendered)
+        with self.assertRaisesRegex(AssertionError, "missing milestone"):
+            verify_colab_bootstrap.validate_bootstrap_outputs(
+                qaoa_bootstrap_outputs(warm_packages=False),
+                project_key="10-QAOA",
+            )
 
 
 if __name__ == "__main__":
