@@ -177,8 +177,26 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
                 self.assertIn("bootstrap_notebook", sources[0])
                 self.assertIn("Pkg.instantiate", sources[1])
                 self.assertIn("io = devnull", sources[1])
-                if "warm_notebook_packages!" not in sources[2]:
-                    self.assertIn("using JuMP", sources[2])
+                self.assertIn("warm_notebook_packages!", sources[2])
+                self.assertIn(f'"{notebook_path.stem}"', sources[2])
+
+    def test_explicit_import_cells_use_the_quiet_shared_loader(self) -> None:
+        for notebook_path in verify_colab_bootstrap.NOTEBOOK_PATHS:
+            data = verify_colab_bootstrap.json.loads(
+                (REPO_ROOT / notebook_path).read_text()
+            )
+            import_cells = [
+                cell for cell in data["cells"] if cell.get("id") == "imports"
+            ]
+            if not import_cells:
+                continue
+
+            with self.subTest(notebook=notebook_path.as_posix()):
+                source = verify_colab_bootstrap.text_value(import_cells[0]["source"])
+                self.assertIn("Base.invokelatest", source)
+                self.assertIn("warm_notebook_packages!", source)
+                self.assertIn(f'"{notebook_path.stem}"', source)
+                self.assertIn("suppress_logs = true", source)
 
     def test_accepts_only_concise_bootstrap_output(self) -> None:
         rendered = verify_colab_bootstrap.validate_bootstrap_outputs(clean_outputs())

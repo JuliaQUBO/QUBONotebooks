@@ -303,11 +303,8 @@ class StarterSeriesSafetyTests(unittest.TestCase):
 
         self.assertNotIn("cbioportal.org", cancer.lower())
         self.assertNotIn("Downloads.download", cancer)
-        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', cancer)
-        self.assertLess(
-            cancer.index('withenv("DWAVE_API_TOKEN" => nothing)'),
-            cancer.index("@eval using DWave"),
-        )
+        self.assertIn("warm_notebook_packages!", cancer)
+        self.assertIn('"9-CancerGenomics"', cancer)
         self.assertIn("warm_notebook_packages!", annealing)
         self.assertIn('"11-Annealing"', annealing)
         self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap)
