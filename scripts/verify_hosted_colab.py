@@ -42,6 +42,7 @@ def command_output(
     *,
     cwd: Path,
     env: dict[str, str] | None = None,
+    timeout: float | None = None,
 ) -> str:
     return subprocess.run(
         command,
@@ -50,6 +51,7 @@ def command_output(
         check=True,
         capture_output=True,
         text=True,
+        timeout=timeout,
     ).stdout.strip()
 
 
@@ -70,6 +72,19 @@ def load_smoke_module(repo_root: Path):
     return module
 
 
+def load_hosted_module(repo_root: Path):
+    module_path = repo_root / "scripts" / "verify_hosted_colab.py"
+    spec = importlib.util.spec_from_file_location(
+        "qubonotebooks_verify_hosted_colab",
+        module_path,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Could not load hosted verifier from {module_path}.")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def require_hosted_colab(env: dict[str, str]) -> None:
     markers = ("COLAB_RELEASE_TAG", "COLAB_JUPYTER_IP")
     if not any(env.get(marker) for marker in markers):
@@ -83,6 +98,7 @@ def native_julia_kernel(*, cwd: Path, env: dict[str, str]) -> dict:
         [sys.executable, "-m", "jupyter", "kernelspec", "list", "--json"],
         cwd=cwd,
         env=env,
+        timeout=60,
     )
     kernelspecs = json.loads(rendered).get("kernelspecs", {})
     if NATIVE_KERNEL_NAME not in kernelspecs:
@@ -166,16 +182,35 @@ def execute_native_smoke(
     return elapsed
 
 
-def hosted_verify_main() -> int:
-    repo_root = REPO_ROOT
-    env = os.environ.copy()
+def hosted_verify_main(
+    *,
+    repo_root: Path = REPO_ROOT,
+    env: dict[str, str] | None = None,
+) -> int:
+    env = os.environ.copy() if env is None else env.copy()
     require_hosted_colab(env)
     smoke = load_smoke_module(repo_root)
 
     julia_exe = shutil.which("julia")
     if julia_exe is None:
         raise RuntimeError("The hosted Colab runtime does not provide Julia on PATH.")
-    smoke.verify_julia_1_12([julia_exe], cwd=repo_root, env=env)
+    print("Probing hosted Julia 1.12...", flush=True)
+    julia_minor = command_output(
+        [
+            julia_exe,
+            "--startup-file=no",
+            "-e",
+            'print("$(VERSION.major).$(VERSION.minor)")',
+        ],
+        cwd=repo_root,
+        env=env,
+        timeout=120,
+    )
+    if julia_minor != "1.12":
+        raise RuntimeError(
+            f"Expected Julia 1.12 for the hosted smoke, got {julia_minor}."
+        )
+    print("Inspecting Colab's native Julia kernelspec...", flush=True)
     validate_native_julia_kernel(
         native_julia_kernel(cwd=repo_root, env=env),
         julia_exe,
@@ -250,12 +285,8 @@ def hosted_checkout_main() -> int:
         print(f"Hosted Colab checkout: {actual_ref}", flush=True)
 
         env[REPO_REF_ENV] = actual_ref
-        env[HOSTED_RUNNER_ENV] = "verify"
-        run(
-            [sys.executable, str(checkout / "scripts" / "verify_hosted_colab.py")],
-            cwd=checkout,
-            env=env,
-        )
+        hosted_module = load_hosted_module(checkout)
+        hosted_module.hosted_verify_main(repo_root=checkout, env=env)
     return 0
 
 

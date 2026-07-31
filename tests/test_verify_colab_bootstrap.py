@@ -90,6 +90,19 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
 
         self.assertEqual(0, completed.returncode, completed.stderr)
 
+    def test_hosted_checkout_calls_exact_ref_module_in_process(self) -> None:
+        source = HOSTED_MODULE_PATH.read_text()
+
+        self.assertIn("hosted_module = load_hosted_module(checkout)", source)
+        self.assertIn(
+            "hosted_module.hosted_verify_main(repo_root=checkout, env=env)",
+            source,
+        )
+        self.assertNotIn(
+            '[sys.executable, str(checkout / "scripts" / "verify_hosted_colab.py")]',
+            source,
+        )
+
     def test_smoke_inventory_covers_every_julia_notebook(self) -> None:
         expected_paths = tuple(
             path.relative_to(REPO_ROOT)
