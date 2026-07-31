@@ -21,6 +21,7 @@ NOTEBOOK_PATHS = tuple(
         key=lambda path: int(path.stem.split("-", 1)[0]),
     )
 )
+SELECTED_NOTEBOOKS_ENV = "QUBONOTEBOOKS_COLAB_NOTEBOOKS"
 BOOTSTRAP_MARKER = "function load_qubonotebooks_bootstrap()"
 ACTIVATION_MARKER = "Pkg.activate(JULIA_PROJECT_DIR"
 KERNEL_NAME = "qubonotebooks-colab-smoke"
@@ -85,6 +86,23 @@ def julia_command() -> list[str]:
     if not command:
         raise ValueError("JULIA_BIN/JULIA must name a Julia executable.")
     return command
+
+
+def selected_notebook_paths(configured: str | None = None) -> tuple[Path, ...]:
+    if configured is None:
+        configured = os.environ.get(SELECTED_NOTEBOOKS_ENV, "")
+    requested = tuple(filter(None, re.split(r"[,\s]+", configured.strip())))
+    if not requested:
+        return NOTEBOOK_PATHS
+
+    available = {path.stem: path for path in NOTEBOOK_PATHS}
+    unknown = [project_key for project_key in requested if project_key not in available]
+    if unknown:
+        raise ValueError(
+            f"Unknown Julia notebook key(s): {', '.join(unknown)}. "
+            f"Expected one or more of: {', '.join(available)}."
+        )
+    return tuple(available[project_key] for project_key in requested)
 
 
 def run(
@@ -220,10 +238,23 @@ def validate_execution_outputs(outputs: list[dict]) -> str:
     failures = execution_output_failures(outputs)
     if failures:
         raise AssertionError(
-            "Colab notebook execution validation failed:\n- "
-            + "\n- ".join(failures)
+            "Colab notebook execution validation failed:\n- " + "\n- ".join(failures)
         )
     return output_text(outputs)
+
+
+def validate_notebook_execution(cells: list[dict]) -> None:
+    failures: list[str] = []
+    for index, cell in enumerate(cells, start=1):
+        cell_id = cell.get("id", f"cell-{index}")
+        failures.extend(
+            f"cell {index} ({cell_id}): {failure}"
+            for failure in execution_output_failures(cell.get("outputs", []))
+        )
+    if failures:
+        raise AssertionError(
+            "Colab notebook execution validation failed:\n- " + "\n- ".join(failures)
+        )
 
 
 def validate_bootstrap_outputs(
@@ -416,12 +447,8 @@ def main() -> int:
         output_dir.mkdir()
 
         env = os.environ.copy()
-        env.update(
-            {
-                "COLAB_RELEASE_TAG": "ci-colab-bootstrap",
-                "QUBONOTEBOOKS_REPO_DIR": str(workspace),
-            }
-        )
+        env.setdefault("COLAB_RELEASE_TAG", "ci-colab-bootstrap")
+        env["QUBONOTEBOOKS_REPO_DIR"] = str(workspace)
         for variable in (
             "JULIA_PKG_PRECOMPILE_AUTO",
             "QUBONOTEBOOKS_PRECOMPILE",
@@ -463,7 +490,8 @@ def main() -> int:
 
         jupyter_env = env.copy()
         jupyter_env["JUPYTER_PATH"] = str(kernels_root)
-        for notebook_path in NOTEBOOK_PATHS:
+        notebook_paths = selected_notebook_paths()
+        for notebook_path in notebook_paths:
             project_key = notebook_path.stem
             smoke_name = f"colab-{project_key.lower()}-smoke.ipynb"
             smoke_notebook = workspace / smoke_name
@@ -492,12 +520,13 @@ def main() -> int:
             )
 
             executed = json.loads(executed_notebook.read_text())
-            all_outputs = [
-                output
-                for cell in executed["cells"]
-                for output in cell.get("outputs", [])
-            ]
-            validate_execution_outputs(all_outputs)
+            validate_notebook_execution(executed["cells"])
+            conda_environment = workspace / "notebooks_jl" / ".CondaPkg"
+            if conda_environment.exists():
+                raise AssertionError(
+                    "Colab smoke unexpectedly created a CondaPkg environment at "
+                    f"{conda_environment}."
+                )
             bootstrap_outputs = executed["cells"][0].get("outputs", [])
             rendered = validate_bootstrap_outputs(
                 bootstrap_outputs,
@@ -506,7 +535,11 @@ def main() -> int:
             print(f"Captured {project_key} smoke output:", flush=True)
             print(rendered.rstrip(), flush=True)
 
-    print("Julia 1.12 Colab bootstrap and import smokes passed.", flush=True)
+    print(
+        f"Julia 1.12 Colab bootstrap and import smokes passed for "
+        f"{len(notebook_paths)} notebook(s).",
+        flush=True,
+    )
     return 0
 
 

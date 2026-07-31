@@ -12,6 +12,16 @@ assert SPEC.loader is not None
 verify_colab_bootstrap = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify_colab_bootstrap)
 
+HOSTED_MODULE_PATH = REPO_ROOT / "scripts" / "verify_hosted_colab.py"
+HOSTED_SPEC = importlib.util.spec_from_file_location(
+    "verify_hosted_colab",
+    HOSTED_MODULE_PATH,
+)
+assert HOSTED_SPEC is not None
+assert HOSTED_SPEC.loader is not None
+verify_hosted_colab = importlib.util.module_from_spec(HOSTED_SPEC)
+HOSTED_SPEC.loader.exec_module(verify_hosted_colab)
+
 
 def stream(text: str, *, name: str = "stdout") -> dict:
     return {"name": name, "output_type": "stream", "text": [text]}
@@ -44,6 +54,22 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         self.assertIn("--with pip", target)
         self.assertNotIn("--with dwave-ocean-sdk", target)
 
+    def test_hosted_target_uses_a_fresh_auto_released_colab_vm(self) -> None:
+        command = verify_hosted_colab.colab_run_command(
+            script_path=HOSTED_MODULE_PATH,
+            auth="oauth2",
+            timeout=3600,
+            repo_ref="a" * 40,
+            repo_url="https://github.com/JuliaQUBO/QUBONotebooks.git",
+            notebooks="11-Annealing",
+        )
+
+        self.assertIn("run", command)
+        self.assertNotIn("exec", command)
+        self.assertNotIn("--keep", command)
+        self.assertIn("QUBONOTEBOOKS_HOSTED_COLAB_RUNNER=checkout", command)
+        self.assertIn(f"QUBONOTEBOOKS_REPO_REF={'a' * 40}", command)
+
     def test_smoke_inventory_covers_every_julia_notebook(self) -> None:
         expected_paths = tuple(
             path.relative_to(REPO_ROOT)
@@ -54,6 +80,23 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         )
 
         self.assertEqual(expected_paths, verify_colab_bootstrap.NOTEBOOK_PATHS)
+
+    def test_smoke_can_select_one_or_more_notebooks(self) -> None:
+        selected = verify_colab_bootstrap.selected_notebook_paths(
+            "11-Annealing, 9-CancerGenomics"
+        )
+
+        self.assertEqual(
+            (
+                Path("notebooks_jl/11-Annealing.ipynb"),
+                Path("notebooks_jl/9-CancerGenomics.ipynb"),
+            ),
+            selected,
+        )
+
+    def test_smoke_rejects_unknown_notebook_keys(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unknown Julia notebook key"):
+            verify_colab_bootstrap.selected_notebook_paths("1-MathProg,12-Unknown")
 
     def test_extracts_real_bootstrap_cell(self) -> None:
         source = verify_colab_bootstrap.bootstrap_cell_source(REPO_ROOT)
@@ -97,6 +140,18 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
 
         with self.assertRaisesRegex(AssertionError, "cell error: MethodError"):
             verify_colab_bootstrap.validate_bootstrap_outputs(outputs)
+
+    def test_notebook_validation_identifies_the_failing_cell(self) -> None:
+        cells = [
+            {"id": "bootstrap", "outputs": clean_outputs()},
+            {
+                "id": "imports",
+                "outputs": [stream("SYSTEM: caught exception\n", name="stderr")],
+            },
+        ]
+
+        with self.assertRaisesRegex(AssertionError, r"cell 2 \(imports\)"):
+            verify_colab_bootstrap.validate_notebook_execution(cells)
 
     def test_rejects_execute_results_including_trailing_true(self) -> None:
         outputs = clean_outputs() + [

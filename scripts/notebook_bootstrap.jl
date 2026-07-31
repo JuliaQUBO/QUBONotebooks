@@ -407,6 +407,40 @@ function ensure_repo_root(; in_colab::Bool = detect_colab())
     return normpath(repo_dir)
 end
 
+function set_python_runtime_preferences!(
+    project_dir::AbstractString,
+    python_exe::AbstractString,
+)
+    preferences_path = joinpath(project_dir, "LocalPreferences.toml")
+    preferences = if isfile(preferences_path)
+        TOML.parsefile(preferences_path)
+    else
+        Dict{String,Any}()
+    end
+    pythoncall_preferences = get!(preferences, "PythonCall", Dict{String,Any}())
+    condapkg_preferences = get!(preferences, "CondaPkg", Dict{String,Any}())
+    for (package, package_preferences) in (
+        "PythonCall" => pythoncall_preferences,
+        "CondaPkg" => condapkg_preferences,
+    )
+        package_preferences isa AbstractDict || error(
+            "Expected the $package entry in $preferences_path to be a TOML table.",
+        )
+    end
+    normalized_executable = normpath(python_exe)
+    preferences_changed =
+        get(pythoncall_preferences, "exe", nothing) != normalized_executable ||
+        get(condapkg_preferences, "backend", nothing) != "Null"
+    if preferences_changed
+        pythoncall_preferences["exe"] = normalized_executable
+        condapkg_preferences["backend"] = "Null"
+        open(preferences_path, "w") do io
+            TOML.print(io, preferences)
+        end
+    end
+    return preferences_path
+end
+
 function configure_python_runtime!(
     repo_dir::AbstractString;
     in_colab::Bool = detect_colab(),
@@ -450,6 +484,12 @@ function configure_python_runtime!(
     end
 
     ENV["JULIA_PYTHONCALL_EXE"] = python_exe
+    if in_colab
+        set_python_runtime_preferences!(
+            notebook_project_dir(repo_dir = repo_dir),
+            python_exe,
+        )
+    end
     log_step("Using Python runtime: $python_exe")
     return python_exe
 end
