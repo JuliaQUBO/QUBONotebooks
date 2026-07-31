@@ -450,7 +450,7 @@ end
 
 function configure_python_runtime!(
     repo_dir::AbstractString;
-    project_dir::AbstractString = aggregate_notebook_project_dir(repo_dir = repo_dir),
+    project_dir::AbstractString,
     in_colab::Bool = detect_colab(),
     python_packages::Vector{String} = ["dwave-ocean-sdk"],
 )

@@ -67,6 +67,11 @@ using Test
         "import qiskit, qiskit_aer, qiskit_ibm_runtime, qiskit_optimization, scipy"
     @test QUBONotebooksBootstrap.has_python_version_constraint("qiskit~=2.3.0")
     @test !QUBONotebooksBootstrap.has_python_version_constraint("requests")
+    @test_throws UndefKeywordError QUBONotebooksBootstrap.configure_python_runtime!(
+        repo_root;
+        in_colab = false,
+        python_packages = String[],
+    )
 
     mktempdir() do project_dir
         preferences_path = joinpath(project_dir, "LocalPreferences.toml")
