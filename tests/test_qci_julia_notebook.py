@@ -152,6 +152,8 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             "small_qubo_energy(bits)",
             "isapprox(recomputed_energy, reported_energy",
             "qci_cloud_submitted",
+            '"  result $result_index: bits=$(collect(row.bits)), "',
+            '"energy=$(row.energy), multiplicity=$(row.multiplicity)"',
         )
         for marker in required_live_markers:
             self.assertIn(marker, live_source)
@@ -266,7 +268,7 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             data["metadata"]["kernelspec"],
         )
 
-    def test_committed_outputs_are_credential_free(self) -> None:
+    def test_committed_outputs_publish_sanitized_qci_results(self) -> None:
         data = notebook()
         code_cells = [
             cell for cell in data["cells"] if cell.get("cell_type") == "code"
@@ -278,7 +280,12 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         self.assertTrue(
             all(cell.get("execution_count") is not None for cell in code_cells)
         )
-        self.assertIn("QCI cloud submission skipped", cell_output_text(live_cell))
+        live_output = cell_output_text(live_cell)
+        self.assertIn("Validated", live_output)
+        self.assertRegex(live_output, re.compile(r"result 1: bits=\[[01, ]+\]"))
+        self.assertIn("energy=", live_output)
+        self.assertIn("multiplicity=", live_output)
+        self.assertNotIn("QCI cloud submission skipped", live_output)
         self.assertNotRegex(output_text, re.compile(r"(?i)bearer\s+[a-z0-9._-]+"))
         self.assertNotRegex(output_text, re.compile(r"(?i)\bjob[_ -]?id\b"))
         self.assertNotRegex(output_text, re.compile(r"(?i)\baccount\b"))
