@@ -1,0 +1,32 @@
+################################################################################
+# Jupyter Book configuration for the QUBONotebooks collection
+# Docs: https://jupyterbook.org/en/stable/customize/config.html
+################################################################################
+
+title: "QUBONotebooks: Quantum Integer Programming"
+author: David E. Bernal Neira and Pedro Maciel Xavier
+copyright: "2026"
+
+repository:
+  url: https://github.com/JuliaQUBO/QUBONotebooks
+  path_to_book: .
+  branch: main
+
+execute:
+  execute_notebooks: "off"
+
+html:
+  use_repository_button: true
+  use_issues_button: true
+  use_edit_page_button: false
+  extra_navbar: |
+    Built with <a href="https://jupyterbook.org/">Jupyter Book</a>.
+
+launch_buttons:
+  colab_url: https://colab.research.google.com
+
+sphinx:
+  config:
+    html_show_copyright: false
+    suppress_warnings:
+      - "myst.xref_missing"

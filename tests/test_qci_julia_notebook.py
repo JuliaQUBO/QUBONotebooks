@@ -58,7 +58,7 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             "## Summary",
             "## References",
             "Continuous constrained Dirac-3",
-            "QUBO through DIRAC-1",
+            "QUBO through DIRAC-3",
             "manual penalty reformulation",
             "Python-only",
             "https://github.com/SECQUOIA/QCIOpt.jl",
@@ -119,6 +119,7 @@ class QCIJuliaNotebookTests(unittest.TestCase):
 
         required_attribute_markers = (
             "QCIOpt.DeviceType()",
+            '"dirac-3"',
             'MOI.RawOptimizerAttribute("num_samples")',
             "get_attribute(qci_model, QCIOpt.DeviceType())",
         )
@@ -142,6 +143,8 @@ class QCIJuliaNotebookTests(unittest.TestCase):
 
         required_live_markers = (
             'MOI.RawOptimizerAttribute("api_token")',
+            "QCIOpt.qci_default_token!(token)",
+            "QCIOpt.qci_default_token!(previous_default_token)",
             "result_count(qci_model)",
             "value.(x; result=result_index)",
             "objective_value(qci_model; result=result_index)",
@@ -156,6 +159,14 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         self.assertLess(
             live_source.index("require_qci_credentials()"),
             live_source.index("optimize!(qci_model)"),
+        )
+        self.assertLess(
+            live_source.index("QCIOpt.qci_default_token!(token)"),
+            live_source.index("optimize!(qci_model)"),
+        )
+        self.assertLess(
+            live_source.index("optimize!(qci_model)"),
+            live_source.index("QCIOpt.qci_default_token!(previous_default_token)"),
         )
         self.assertNotIn("NumberOfReads()", live_source)
         self.assertNotIn("job_id", live_source.lower())

@@ -1,0 +1,92 @@
+name: Build and Deploy Jupyter Book
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.ipynb"
+      - "**/*.md"
+      - ".github/workflows/jupyter-book.yml"
+      - ".python-version"
+      - "_config.yml"
+      - "myst.yml"
+      - "pyproject.toml"
+      - "requirements-book.txt"
+      - "uv.lock"
+      - ".gitignore"
+      - "colab.html"
+      - "Makefile"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.ipynb"
+      - "**/*.md"
+      - ".github/workflows/jupyter-book.yml"
+      - ".python-version"
+      - "_config.yml"
+      - "myst.yml"
+      - "pyproject.toml"
+      - "requirements-book.txt"
+      - "uv.lock"
+      - ".gitignore"
+      - "colab.html"
+      - "Makefile"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v9
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      - name: Check Python lockfile
+        run: uv lock --check
+
+      - name: Sync documentation environment
+        run: uv sync --locked --group docs
+
+      - name: Build Jupyter Book
+        run: make build-book
+        env:
+          BASE_URL: /QUBONotebooks
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: "_build/html"
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

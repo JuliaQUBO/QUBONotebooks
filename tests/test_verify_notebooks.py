@@ -198,6 +198,13 @@ class NotebookSourceSafetyTests(unittest.TestCase):
 
         self.assertEqual([], offenders)
 
+    def test_qci_python_outputs_omit_provider_identifiers(self) -> None:
+        output = notebook_output_text(QCI_NOTEBOOK_PATH)
+
+        self.assertNotRegex(output, re.compile(r"(?i)job[_ -]?id"))
+        self.assertNotRegex(output, re.compile(r"(?i)file[_ -]?id"))
+        self.assertNotRegex(output, re.compile(r"(?i)bearer\s+[a-z0-9._-]+"))
+
     def test_julia_notebooks_filter_python_invalid_escape_warnings(self) -> None:
         filter_text = "ignore:invalid escape sequence:SyntaxWarning"
         dwave_import_markers = ("using DWave", "import DWave", "@eval using DWave")
@@ -1524,6 +1531,9 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertIn("### QCI API token", source)
         self.assertIn("Set the QCI_TOKEN environment variable or Colab Secret", source)
         self.assertIn("The Dirac cloud examples require a QCI token", source)
+        self.assertIn("def solve_without_provider_identifiers", source)
+        self.assertIn("with redirect_stdout(io.StringIO())", source)
+        self.assertIn("provider identifiers are omitted", source)
         self.assertNotIn("QCI_API_TOKEN", source)
         self.assertNotIn('api_token = ""', source)
         self.assertIn("IPOPT not found", ipopt_cell)
@@ -1572,8 +1582,9 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
             "constraint_model = ScalarConstrainedPolynomialModel",
             model_cell,
         )
-        self.assertIn("response = solver.solve(constraint_model", model_cell)
-        self.assertNotIn("response = solver.solve(model", model_cell)
+        self.assertIn("response = solve_without_provider_identifiers(", model_cell)
+        self.assertIn("constraint_model,", model_cell)
+        self.assertNotIn("solver.solve(model", model_cell)
         self.assertIn(
             "constraint_model.offset * constraint_model.penalty_multiplier",
             result_cell,
