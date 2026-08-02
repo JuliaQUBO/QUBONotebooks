@@ -15,7 +15,14 @@ make build-book
 
 Jupyter Book 2 also uses Node.js; confirm that `node` and `npm` are available
 if the build reports a missing frontend tool. The generated site is written to
-`_build/html/index.html`.
+`_build/html/`. Serve it instead of opening `index.html` directly:
+
+```bash
+python -m http.server --directory _build/html
+```
+
+Open the URL printed by the server. `make build-book` targets a site root by
+default; CI sets `BASE_URL=/QUBONotebooks` for the GitHub Pages project path.
 
 ## Execute notebooks
 
@@ -29,9 +36,10 @@ make verify-five-starter-problems-julia-local
 ```
 
 Additional targets and environment details are listed in the repository
-[README](README.md). In particular, Julia notebooks activate their own focused
-projects, and the Python QCI notebook uses a separate dependency environment
-from the D-Wave notebooks because their NetworkX constraints conflict.
+[README](https://github.com/JuliaQUBO/QUBONotebooks/blob/main/README.md). In
+particular, Julia notebooks activate their own focused projects, and the Python
+QCI notebook uses a separate dependency environment from the D-Wave notebooks
+because their NetworkX constraints conflict.
 
 Cloud execution is always explicit. Provide credentials only through the
 process environment or an approved secret store. QCI submission requires

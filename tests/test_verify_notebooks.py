@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import ast
 import importlib.util
+import io
 import json
 import os
 import re
+import sys
 import tempfile
 import tomllib
 import unittest
 import zipfile
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -153,6 +157,60 @@ def notebook_first_heading(cell: dict) -> str:
     return ""
 
 
+class JupyterBookConfigurationTests(unittest.TestCase):
+    def test_jupyter_book_uses_myst_and_the_locked_docs_environment(self) -> None:
+        workflow_source = (
+            REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml"
+        ).read_text()
+
+        self.assertFalse((REPO_ROOT / "_config.yml").exists())
+        self.assertFalse((REPO_ROOT / "requirements-book.txt").exists())
+        self.assertNotIn('"_config.yml"', workflow_source)
+        self.assertNotIn('"requirements-book.txt"', workflow_source)
+        self.assertIn("uv sync --locked --group docs", workflow_source)
+
+    def test_pages_deployments_are_not_cancelled_in_progress(self) -> None:
+        workflow_source = (
+            REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml"
+        ).read_text()
+
+        self.assertIn(
+            "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+            workflow_source,
+        )
+
+    def test_colab_map_covers_every_toc_notebook_route(self) -> None:
+        myst_source = (REPO_ROOT / "myst.yml").read_text()
+        colab_source = (REPO_ROOT / "colab.html").read_text()
+        toc_notebooks = re.findall(
+            r"^\s*-\s+file:\s+([^\s#]+\.ipynb)\s*$",
+            myst_source,
+            flags=re.MULTILINE,
+        )
+        map_entries = re.findall(
+            r'^\s*"([^"]+)":\s*"([^"]+\.ipynb)",?\s*$',
+            colab_source,
+            flags=re.MULTILINE,
+        )
+        colab_map = dict(map_entries)
+
+        self.assertTrue(toc_notebooks)
+        self.assertEqual(len(map_entries), len(colab_map), "duplicate Colab route key")
+        self.assertEqual(set(toc_notebooks), set(colab_map.values()))
+
+        for notebook in toc_notebooks:
+            with self.subTest(notebook=notebook):
+                path = Path(notebook)
+                directory = path.parent.as_posix().replace("_", "-").lower()
+                slug = re.sub(r"^\d+-", "", path.stem).replace("_", "-").lower()
+                slash_route = f"{directory}/{slug}"
+                dot_route = slash_route.replace("/", ".")
+
+                self.assertEqual(notebook, colab_map.get(slash_route))
+                self.assertEqual(notebook, colab_map.get(dot_route))
+                self.assertTrue((REPO_ROOT / notebook).is_file())
+
+
 class NotebookSourceSafetyTests(unittest.TestCase):
     def test_notebooks_do_not_use_jump_unsafe_backend(self) -> None:
         offenders = [
@@ -204,6 +262,48 @@ class NotebookSourceSafetyTests(unittest.TestCase):
         self.assertNotRegex(output, re.compile(r"(?i)job[_ -]?id"))
         self.assertNotRegex(output, re.compile(r"(?i)file[_ -]?id"))
         self.assertNotRegex(output, re.compile(r"(?i)bearer\s+[a-z0-9._-]+"))
+
+    def test_qci_python_solve_suppresses_identifiers_from_both_streams(self) -> None:
+        cell_source = notebook_cell_source(
+            QCI_NOTEBOOK_PATH,
+            "def solve_without_provider_identifiers",
+        )
+        function_node = next(
+            node
+            for node in ast.parse(cell_source).body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "solve_without_provider_identifiers"
+        )
+        function_source = ast.get_source_segment(cell_source, function_node)
+        assert function_source is not None
+        namespace = {
+            "io": io,
+            "redirect_stderr": redirect_stderr,
+            "redirect_stdout": redirect_stdout,
+        }
+        exec(function_source, namespace)
+
+        class IdentifierPrintingSolver:
+            def solve(self, model, **kwargs):
+                print("job_id: provider-job-123")
+                print("file_id: provider-file-456", file=sys.stderr)
+                return model, kwargs
+
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            response = namespace["solve_without_provider_identifiers"](
+                IdentifierPrintingSolver(),
+                "model",
+                num_samples=10,
+            )
+
+        self.assertEqual(("model", {"num_samples": 10}), response)
+        self.assertEqual(
+            "QCI job completed; provider identifiers are omitted from notebook output.\n",
+            stdout.getvalue(),
+        )
+        self.assertEqual("", stderr.getvalue())
 
     def test_julia_notebooks_filter_python_invalid_escape_warnings(self) -> None:
         filter_text = "ignore:invalid escape sequence:SyntaxWarning"
@@ -1564,7 +1664,10 @@ class PythonNotebookDependencySetupTests(unittest.TestCase):
         self.assertIn("Set the QCI_TOKEN environment variable or Colab Secret", source)
         self.assertIn("The Dirac cloud examples require a QCI token", source)
         self.assertIn("def solve_without_provider_identifiers", source)
-        self.assertIn("with redirect_stdout(io.StringIO())", source)
+        self.assertIn(
+            "with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO())",
+            source,
+        )
         self.assertIn("provider identifiers are omitted", source)
         self.assertNotIn("QCI_API_TOKEN", source)
         self.assertNotIn('api_token = ""', source)

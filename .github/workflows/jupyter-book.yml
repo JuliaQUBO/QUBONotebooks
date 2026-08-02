@@ -8,10 +8,8 @@ on:
       - "**/*.md"
       - ".github/workflows/jupyter-book.yml"
       - ".python-version"
-      - "_config.yml"
       - "myst.yml"
       - "pyproject.toml"
-      - "requirements-book.txt"
       - "uv.lock"
       - ".gitignore"
       - "colab.html"
@@ -23,10 +21,8 @@ on:
       - "**/*.md"
       - ".github/workflows/jupyter-book.yml"
       - ".python-version"
-      - "_config.yml"
       - "myst.yml"
       - "pyproject.toml"
-      - "requirements-book.txt"
       - "uv.lock"
       - ".gitignore"
       - "colab.html"
@@ -38,7 +34,7 @@ permissions:
 
 concurrency:
   group: "pages-${{ github.ref }}"
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:

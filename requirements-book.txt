@@ -1,3 +1,0 @@
-# Primary environment management lives in pyproject.toml + uv.lock.
-# This file is kept as a minimal mirror of the docs dependency set.
-jupyter-book==2.1.0
