@@ -647,6 +647,38 @@ class NotebookPythonJuliaParityTests(unittest.TestCase):
 
 
 class PythonPlotSamplesNotebookTests(unittest.TestCase):
+    def test_qubo_python_plot_helpers_limit_x_axis_labels(self) -> None:
+        cell_source = notebook_cell_source(QUBO_NOTEBOOK_PATH, "def plot_enumerate")
+        enumerate_source = notebook_function_source(QUBO_NOTEBOOK_PATH, "plot_enumerate")
+        energies_source = notebook_function_source(QUBO_NOTEBOOK_PATH, "plot_energies")
+
+        self.assertIn("def sparse_tick_positions(count, max_ticks=10):", cell_source)
+        self.assertIn(
+            "def binary_sample_label(sample, variables, max_length=18):",
+            cell_source,
+        )
+        self.assertIn("bitstring[:side_length]", cell_source)
+        self.assertIn("bitstring[-side_length:]", cell_source)
+        self.assertIn(
+            "records = list(results.data(['sample', 'energy'], sorted_by='energy'))",
+            enumerate_source,
+        )
+        self.assertIn(
+            "tick_positions = sparse_tick_positions(len(records), max_xticks)",
+            enumerate_source,
+        )
+        self.assertIn("for datum in records", enumerate_source)
+        self.assertNotIn("plt.xticks(rotation=90)", enumerate_source)
+        self.assertIn(
+            "def plot_energies(results, title=None, max_xticks=10):",
+            energies_source,
+        )
+        self.assertIn(
+            "tick_positions = sparse_tick_positions(len(energy_values), max_xticks)",
+            energies_source,
+        )
+        self.assertNotIn("set_xticklabels", energies_source)
+
     def assert_plot_samples_uses_initialized_energies(self, path: Path) -> None:
         cell_source = notebook_cell_source(path, "def plot_samples")
         function_source = notebook_function_source(path, "plot_samples")
