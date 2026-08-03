@@ -92,6 +92,43 @@ class StarterSeriesNavigationTests(unittest.TestCase):
 
         self.assertIn("clean-room", readme.lower())
 
+    def test_five_starter_problems_source_is_cited_correctly(self) -> None:
+        # Verified against Crossref metadata for doi:10.1287/educ.2025.0288.
+        correct_title = (
+            "Five Starter Problems: Solving Quadratic Unconstrained Binary "
+            "Optimization Models on Quantum Computers"
+        )
+        wrong_forms = (
+            # earlier drafts misnamed the tutorial, its authors, and its venue
+            "Five Starter Problems: Quantum Computing for Operations",
+            "W. P. Tayur",
+            "INFORMS Transactions on Education",
+        )
+
+        def flatten(text: str) -> str:
+            # Citations wrap across lines and blockquote prefixes, so compare on
+            # collapsed whitespace rather than the literal source layout.
+            return re.sub(r"\s+", " ", text.replace("\n>", " ").replace("*", ""))
+
+        readme = flatten(README_PATH.read_text())
+        self.assertIn(correct_title, readme)
+        self.assertIn("TutORials in Operations Research", readme)
+        self.assertIn("INFORMS", readme)
+
+        documents = {"README.md": readme}
+        documents.update(
+            {path.name: flatten(notebook_source(path)) for path in STARTER_NOTEBOOK_PATHS}
+        )
+        for name, text in documents.items():
+            for wrong in wrong_forms:
+                with self.subTest(document=name, wrong=wrong):
+                    self.assertNotIn(wrong, text)
+
+        # Every starter notebook must cite the tutorial it reimplements.
+        for path in STARTER_NOTEBOOK_PATHS:
+            with self.subTest(notebook=path.name):
+                self.assertIn("10.1287/educ.2025.0288", notebook_source(path))
+
     def test_starter_notebooks_link_to_the_canonical_main_branch(self) -> None:
         for path in STARTER_NOTEBOOK_PATHS:
             with self.subTest(notebook=path.name):

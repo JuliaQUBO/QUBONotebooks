@@ -72,7 +72,9 @@ long benchmark runs.
 Notebook 6 has Julia and Python variants. The Julia notebook uses the
 supported QCIOpt.jl QUBO workflow and explicitly maps the continuous or
 constrained Python examples that do not have direct Julia equivalents. The
-Julia Five Starter Problems series starts at notebook 7.
+Julia Five Starter Problems series starts at notebook 7 and reimplements the
+tutorial cited under [Source of the Five Starter
+Problems](#source-of-the-five-starter-problems).
 
 | Topic | Julia notebook | Python notebook | Local verification status |
 | --- | --- | --- | --- |
@@ -118,17 +120,28 @@ are set in the caller's environment; the aggregate target also never refreshes
 data. All six Julia notebook badges in this matrix target
 `JuliaQUBO/QUBONotebooks` on the current default branch, `main`.
 
-### Attribution and clean-room reimplementation
+## Source of the Five Starter Problems
 
-This series is based on Mazumder and Tayur's
-[*Five Starter Problems: Quantum Computing for Operations
-Research*](https://doi.org/10.1287/educ.2025.0288), also available as an
-[arXiv preprint](https://arxiv.org/abs/2401.08989). The
+Notebooks 7 through 11 reimplement the five starter problems introduced in:
+
+> A. R. Mazumder and S. Tayur, *Five Starter Problems: Solving Quadratic
+> Unconstrained Binary Optimization Models on Quantum Computers*, in
+> **TutORials in Operations Research**, INFORMS (2025), pp. 145–183.
+> DOI: [10.1287/educ.2025.0288](https://doi.org/10.1287/educ.2025.0288)
+
+The tutorial is also available as an
+[arXiv preprint](https://arxiv.org/abs/2401.08989), and the authors publish a
 [companion repository](https://github.com/arulrhikm/Solving-QUBOs-on-Quantum-Computers)
-is cited for context. The Julia notebooks are a clean-room reimplementation:
-their code, prose, fixtures, and validation were written independently, with
-the mathematical formulations checked against the published tutorial and cited
-primary sources.
+that is cited here for context.
+
+### Clean-room reimplementation
+
+The Julia notebooks are a clean-room reimplementation: their code, prose,
+fixtures, and validation were written independently, with the mathematical
+formulations checked against the published tutorial and cited primary sources.
+No source cells, prose, saved output, or assets were copied from the companion
+repository. Each of notebooks 7 through 11 repeats this citation in its own
+References section.
 
 ## Local verification
 
