@@ -6,6 +6,19 @@ project:
     - name: Pedro Maciel Xavier
   copyright: "2026"
   github: JuliaQUBO/QUBONotebooks
+  # The build gates every merge and every Pages deployment, so it must depend
+  # only on this repository. Reaching ~190 third-party URLs made it fail on
+  # other people's uptime (observed: doi.org 403, img.shields.io ECONNRESET,
+  # transient Colab and D-Wave timeouts) even with no content change. External
+  # reachability is reported as a warning; unresolved internal links and
+  # cross-references still fail the build.
+  error_rules:
+    - id: link-resolves
+      severity: warn
+    - id: doi-link-valid
+      severity: warn
+    - id: reference-target-resolves
+      severity: error
   settings:
     output_matplotlib_strings: remove
   toc:

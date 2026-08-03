@@ -35,7 +35,7 @@ test:
 	fi
 
 build-book:
-	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked --group docs jupyter book build --html --ci
+	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked --group docs jupyter book build --html --ci --strict
 
 sysimage:
 	$(JULIA) -e 'using InteractiveUtils; versioninfo()'
