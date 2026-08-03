@@ -1,0 +1,69 @@
+version: 1
+project:
+  title: "QUBONotebooks: Quantum Integer Programming"
+  authors:
+    - name: David E. Bernal Neira
+    - name: Pedro Maciel Xavier
+  copyright: "2026"
+  github: JuliaQUBO/QUBONotebooks
+  settings:
+    output_matplotlib_strings: remove
+  toc:
+    - file: index.md
+    - file: local-setup.md
+    - title: Mathematical Programming
+      children:
+        - file: notebooks_py/1-MathProg_python.ipynb
+          title: Mathematical Programming (Python)
+        - file: notebooks_jl/1-MathProg.ipynb
+          title: Mathematical Programming (Julia)
+    - title: QUBO and Ising Models
+      children:
+        - file: notebooks_py/2-QUBO_python.ipynb
+          title: QUBO and Ising Models (Python)
+        - file: notebooks_jl/2-QUBO.ipynb
+          title: QUBO and Ising Models (Julia)
+    - title: GAMA
+      children:
+        - file: notebooks_py/3-GAMA_python.ipynb
+          title: Graver Augmentation Multiseed Algorithm (Python)
+        - file: notebooks_jl/3-GAMA.ipynb
+          title: Graver Augmentation Multiseed Algorithm (Julia)
+    - title: D-Wave
+      children:
+        - file: notebooks_py/4-DWAVE_python.ipynb
+          title: Quantum Annealing via D-Wave (Python)
+        - file: notebooks_jl/4-DWave.ipynb
+          title: Quantum Annealing via D-Wave (Julia)
+    - title: Benchmarking
+      children:
+        - file: notebooks_py/5-Benchmarking_python.ipynb
+          title: Benchmarking (Python)
+        - file: notebooks_jl/5-Benchmarking.ipynb
+          title: Benchmarking (Julia)
+    - title: QCI
+      children:
+        - file: notebooks_py/6-QCi_python.ipynb
+          title: Entropy Computing via QCI (Python)
+        - file: notebooks_jl/6-QCi.ipynb
+          title: QCI Optimization with QCIOpt.jl (Julia)
+    - title: Julia Starter Problems
+      children:
+        - file: notebooks_jl/7-CanonicalProblems.ipynb
+          title: Canonical QUBO Problems
+        - file: notebooks_jl/8-OrderPartitioning.ipynb
+          title: Order Partitioning for A/B Testing
+        - file: notebooks_jl/9-CancerGenomics.ipynb
+          title: Altered Cancer Pathways
+        - file: notebooks_jl/10-QAOA.ipynb
+          title: Local-first QAOA
+        - file: notebooks_jl/11-Annealing.ipynb
+          title: Local and Quantum Annealing
+site:
+  template: book-theme
+  options:
+    folders: true
+  actions:
+    - title: Open in Colab
+      url: colab.html
+      static: true

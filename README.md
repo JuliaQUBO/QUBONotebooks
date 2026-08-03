@@ -28,6 +28,23 @@
   <br>
 </div>
 
+## Jupyter Book
+
+The notebooks are assembled into a static Jupyter Book with navigation across
+the Julia and Python series. The source landing page is [index.md](index.md),
+and [local-setup.md](local-setup.md) documents the local book build and
+notebook-output workflow.
+
+Build the book from the repository root with:
+
+```bash
+uv sync --locked --group docs
+make build-book
+```
+
+The site build uses committed notebook outputs and does not execute notebooks
+or contact external solvers.
+
 ## Notebooks
 
 This repository keeps Julia and Python variants of the QuIP/QuIPML notebook

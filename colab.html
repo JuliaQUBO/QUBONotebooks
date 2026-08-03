@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open in Colab</title>
+  </head>
+  <body>
+    <p>Redirecting to Colab...</p>
+    <p>
+      If you are not redirected,
+      <a href="https://colab.research.google.com/github/JuliaQUBO/QUBONotebooks">
+        open the repository in Colab
+      </a>.
+    </p>
+    <script>
+      (function () {
+        const fallback = "https://colab.research.google.com/github/JuliaQUBO/QUBONotebooks";
+        const colabBlobBase = "https://colab.research.google.com/github/JuliaQUBO/QUBONotebooks/blob/main/";
+        const map = {
+          "notebooks-py/mathprog-python": "notebooks_py/1-MathProg_python.ipynb",
+          "notebooks-py.mathprog-python": "notebooks_py/1-MathProg_python.ipynb",
+          "notebooks-jl/mathprog": "notebooks_jl/1-MathProg.ipynb",
+          "notebooks-jl.mathprog": "notebooks_jl/1-MathProg.ipynb",
+          "notebooks-py/qubo-python": "notebooks_py/2-QUBO_python.ipynb",
+          "notebooks-py.qubo-python": "notebooks_py/2-QUBO_python.ipynb",
+          "notebooks-jl/qubo": "notebooks_jl/2-QUBO.ipynb",
+          "notebooks-jl.qubo": "notebooks_jl/2-QUBO.ipynb",
+          "notebooks-py/gama-python": "notebooks_py/3-GAMA_python.ipynb",
+          "notebooks-py.gama-python": "notebooks_py/3-GAMA_python.ipynb",
+          "notebooks-jl/gama": "notebooks_jl/3-GAMA.ipynb",
+          "notebooks-jl.gama": "notebooks_jl/3-GAMA.ipynb",
+          "notebooks-py/dwave-python": "notebooks_py/4-DWAVE_python.ipynb",
+          "notebooks-py.dwave-python": "notebooks_py/4-DWAVE_python.ipynb",
+          "notebooks-jl/dwave": "notebooks_jl/4-DWave.ipynb",
+          "notebooks-jl.dwave": "notebooks_jl/4-DWave.ipynb",
+          "notebooks-py/benchmarking-python": "notebooks_py/5-Benchmarking_python.ipynb",
+          "notebooks-py.benchmarking-python": "notebooks_py/5-Benchmarking_python.ipynb",
+          "notebooks-jl/benchmarking": "notebooks_jl/5-Benchmarking.ipynb",
+          "notebooks-jl.benchmarking": "notebooks_jl/5-Benchmarking.ipynb",
+          "notebooks-py/qci-python": "notebooks_py/6-QCi_python.ipynb",
+          "notebooks-py.qci-python": "notebooks_py/6-QCi_python.ipynb",
+          "notebooks-jl/qci": "notebooks_jl/6-QCi.ipynb",
+          "notebooks-jl.qci": "notebooks_jl/6-QCi.ipynb",
+          "notebooks-jl/canonicalproblems": "notebooks_jl/7-CanonicalProblems.ipynb",
+          "notebooks-jl.canonicalproblems": "notebooks_jl/7-CanonicalProblems.ipynb",
+          "notebooks-jl/orderpartitioning": "notebooks_jl/8-OrderPartitioning.ipynb",
+          "notebooks-jl.orderpartitioning": "notebooks_jl/8-OrderPartitioning.ipynb",
+          "notebooks-jl/cancergenomics": "notebooks_jl/9-CancerGenomics.ipynb",
+          "notebooks-jl.cancergenomics": "notebooks_jl/9-CancerGenomics.ipynb",
+          "notebooks-jl/qaoa": "notebooks_jl/10-QAOA.ipynb",
+          "notebooks-jl.qaoa": "notebooks_jl/10-QAOA.ipynb",
+          "notebooks-jl/annealing": "notebooks_jl/11-Annealing.ipynb",
+          "notebooks-jl.annealing": "notebooks_jl/11-Annealing.ipynb"
+        };
+
+        const ref = document.referrer || "";
+        if (!ref) {
+          window.location.replace(fallback);
+          return;
+        }
+
+        let refUrl;
+        try {
+          refUrl = new URL(ref);
+        } catch (err) {
+          window.location.replace(fallback);
+          return;
+        }
+
+        let parts = refUrl.pathname.split("/").filter(Boolean);
+        if (parts[0] === "QUBONotebooks") {
+          parts = parts.slice(1);
+        }
+
+        if (parts.length === 0) {
+          window.location.replace(fallback);
+          return;
+        }
+
+        const last = parts[parts.length - 1].replace(/\.html$/i, "");
+        if (last === "index") {
+          parts = parts.slice(0, -1);
+        } else {
+          parts[parts.length - 1] = last;
+        }
+
+        if (parts.length === 0) {
+          window.location.replace(fallback);
+          return;
+        }
+
+        const keySlash = parts.join("/");
+        const keyDot = parts.join(".");
+        const nbPath = map[keySlash] || map[keyDot];
+        if (!nbPath) {
+          window.location.replace(fallback);
+          return;
+        }
+
+        window.location.replace(colabBlobBase + nbPath);
+      })();
+    </script>
+  </body>
+</html>

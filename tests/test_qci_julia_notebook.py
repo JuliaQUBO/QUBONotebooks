@@ -58,7 +58,7 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             "## Summary",
             "## References",
             "Continuous constrained Dirac-3",
-            "QUBO through DIRAC-1",
+            "QUBO through DIRAC-3",
             "manual penalty reformulation",
             "Python-only",
             "https://github.com/SECQUOIA/QCIOpt.jl",
@@ -119,6 +119,7 @@ class QCIJuliaNotebookTests(unittest.TestCase):
 
         required_attribute_markers = (
             "QCIOpt.DeviceType()",
+            '"dirac-3"',
             'MOI.RawOptimizerAttribute("num_samples")',
             "get_attribute(qci_model, QCIOpt.DeviceType())",
         )
@@ -142,6 +143,8 @@ class QCIJuliaNotebookTests(unittest.TestCase):
 
         required_live_markers = (
             'MOI.RawOptimizerAttribute("api_token")',
+            "QCIOpt.qci_default_token!(token)",
+            "QCIOpt.qci_default_token!(previous_default_token)",
             "result_count(qci_model)",
             "value.(x; result=result_index)",
             "objective_value(qci_model; result=result_index)",
@@ -149,6 +152,8 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             "small_qubo_energy(bits)",
             "isapprox(recomputed_energy, reported_energy",
             "qci_cloud_submitted",
+            '"  result $result_index: bits=$(collect(row.bits)), "',
+            '"energy=$(row.energy), multiplicity=$(row.multiplicity)"',
         )
         for marker in required_live_markers:
             self.assertIn(marker, live_source)
@@ -156,6 +161,14 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         self.assertLess(
             live_source.index("require_qci_credentials()"),
             live_source.index("optimize!(qci_model)"),
+        )
+        self.assertLess(
+            live_source.index("QCIOpt.qci_default_token!(token)"),
+            live_source.index("optimize!(qci_model)"),
+        )
+        self.assertLess(
+            live_source.index("optimize!(qci_model)"),
+            live_source.index("QCIOpt.qci_default_token!(previous_default_token)"),
         )
         self.assertNotIn("NumberOfReads()", live_source)
         self.assertNotIn("job_id", live_source.lower())
@@ -255,7 +268,7 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             data["metadata"]["kernelspec"],
         )
 
-    def test_committed_outputs_are_credential_free(self) -> None:
+    def test_committed_outputs_publish_sanitized_qci_results(self) -> None:
         data = notebook()
         code_cells = [
             cell for cell in data["cells"] if cell.get("cell_type") == "code"
@@ -267,7 +280,12 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         self.assertTrue(
             all(cell.get("execution_count") is not None for cell in code_cells)
         )
-        self.assertIn("QCI cloud submission skipped", cell_output_text(live_cell))
+        live_output = cell_output_text(live_cell)
+        self.assertIn("Validated", live_output)
+        self.assertRegex(live_output, re.compile(r"result 1: bits=\[[01, ]+\]"))
+        self.assertIn("energy=", live_output)
+        self.assertIn("multiplicity=", live_output)
+        self.assertNotIn("QCI cloud submission skipped", live_output)
         self.assertNotRegex(output_text, re.compile(r"(?i)bearer\s+[a-z0-9._-]+"))
         self.assertNotRegex(output_text, re.compile(r"(?i)\bjob[_ -]?id\b"))
         self.assertNotRegex(output_text, re.compile(r"(?i)\baccount\b"))
