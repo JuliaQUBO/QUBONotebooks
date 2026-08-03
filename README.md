@@ -8,25 +8,21 @@
   <span>Quantum Integer Programming Notebooks using <a href="https://jump.dev">JuMP</a> and <a href="https://github.com/JuliaQUBO/QUBO.jl">QUBO.jl</a>.</span>
   <br>
   <br>
-  <a href="https://bernalde.github.io">David E. Bernal Neira</a>
-  <br>
-  <i>Davidson School of Chemical Engineering, Purdue University</i>
-  <br>
-  <i>Universities Space Research Association</i>
-  <br>
-  <i>NASA QuAIL</i>
+  <b>Maintained by the <a href="https://github.com/JuliaQUBO">JuliaQUBO</a> organization</b>
   <br>
   <br>
-  <a href="https://pedromxavier.github.io">Pedro Maciel Xavier</a>
-  <br>
-  <i>Davidson School of Chemical Engineering, Purdue University</i>
-  <br>
-  <i>Computer Science &amp; Systems Engineering Program, Federal University of Rio de Janeiro</i>
-  <br>
-  <i>PSR Energy Consulting &amp; Analytics</i>
+  <a href="https://secquoia.github.io/">SECQUOIA</a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://www.psr-inc.com/">PSR Energy</a>
   <br>
   <br>
 </div>
+
+This collection is maintained by the
+[JuliaQUBO](https://github.com/JuliaQUBO) organization, in collaboration with
+[SECQUOIA](https://secquoia.github.io/) and
+[PSR Energy](https://www.psr-inc.com/). Individual notebook contributors are
+credited in the Acknowledgments section at the end of each notebook.
 
 ## Read the notebooks online
 

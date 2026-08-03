@@ -142,6 +142,14 @@ def notebook_solution_output_texts(path: Path) -> list[str]:
     return outputs
 
 
+def is_notebook_footer(cell: dict) -> bool:
+    source = "".join(cell.get("source", []))
+    return (
+        notebook_first_heading(cell) == "## Acknowledgments"
+        or "Go back to the top" in source
+    )
+
+
 def notebook_markdown(path: Path) -> str:
     return "\n".join(
         "".join(cell.get("source", []))
@@ -821,7 +829,14 @@ class NotebookPedagogyCellTests(unittest.TestCase):
                 if reference_indices:
                     self.assertEqual(reference_indices[0] - 1, summary_index)
                 else:
-                    self.assertEqual(len(cells) - 1, summary_index)
+                    # Acknowledgments and the back-to-top link are footers, not
+                    # learning content, so they may follow the summary.
+                    last_content = len(cells) - 1
+                    while last_content > summary_index and is_notebook_footer(
+                        cells[last_content]
+                    ):
+                        last_content -= 1
+                    self.assertEqual(last_content, summary_index)
 
 
 class NotebookPythonJuliaParityTests(unittest.TestCase):
