@@ -142,12 +142,25 @@ def notebook_solution_output_texts(path: Path) -> list[str]:
     return outputs
 
 
+BACK_TO_TOP_CELL = re.compile(
+    r'<div align="center">\s*'
+    r'<a href="#top-[0-9a-z-]+">\U0001f51d Go back to the top \U0001f51d</a>\s*'
+    r"</div>\Z"
+)
+
+
 def is_notebook_footer(cell: dict) -> bool:
-    source = "".join(cell.get("source", []))
-    return (
-        notebook_first_heading(cell) == "## Acknowledgments"
-        or "Go back to the top" in source
-    )
+    """Whether a cell is a trailing footer rather than learning content.
+
+    Matched narrowly on purpose: a substring test would accept a code cell or a
+    lesson that merely mentions the phrase, and callers drop trailing footers
+    when checking that a summary closes the learning content.
+    """
+    if cell.get("cell_type") != "markdown":
+        return False
+    if notebook_first_heading(cell) == "## Acknowledgments":
+        return True
+    return BACK_TO_TOP_CELL.fullmatch("".join(cell.get("source", [])).strip()) is not None
 
 
 def notebook_markdown(path: Path) -> str:
@@ -225,6 +238,55 @@ class JupyterBookConfigurationTests(unittest.TestCase):
                 self.assertEqual(notebook, colab_map.get(slash_route))
                 self.assertEqual(notebook, colab_map.get(dot_route))
                 self.assertTrue((REPO_ROOT / notebook).is_file())
+
+    def test_notebook_footer_helper_accepts_only_real_footers(self) -> None:
+        accepted = {
+            "acknowledgments": {
+                "cell_type": "markdown",
+                "source": ["## Acknowledgments\n", "\n", "- [Someone](https://github.com/x)\n"],
+            },
+            "back to top": {
+                "cell_type": "markdown",
+                "source": [
+                    '<div align="center">\n',
+                    '    <a href="#top-jl-2-qubo">\U0001f51d Go back to the top \U0001f51d</a>\n',
+                    "</div>",
+                ],
+            },
+        }
+        rejected = {
+            "code cell printing the phrase": {
+                "cell_type": "code",
+                "source": ['print("\U0001f51d Go back to the top \U0001f51d")\n'],
+            },
+            "lesson prose mentioning the phrase": {
+                "cell_type": "markdown",
+                "source": ["Scroll up and Go back to the top of the derivation.\n"],
+            },
+            "acknowledgments in body text only": {
+                "cell_type": "markdown",
+                "source": ["See the ## Acknowledgments section below.\n"],
+            },
+        }
+
+        for label, cell in accepted.items():
+            with self.subTest(accepted=label):
+                self.assertTrue(is_notebook_footer(cell))
+        for label, cell in rejected.items():
+            with self.subTest(rejected=label):
+                self.assertFalse(is_notebook_footer(cell))
+
+        # The real cells in the repository must still be recognised.
+        real = [
+            cell
+            for path in notebook_paths()
+            for cell in notebook_cells(path)
+            if notebook_first_heading(cell) == "## Acknowledgments"
+            or "Go back to the top" in "".join(cell.get("source", []))
+        ]
+        self.assertTrue(real)
+        for cell in real:
+            self.assertTrue(is_notebook_footer(cell))
 
     def test_build_book_target_builds_in_strict_mode(self) -> None:
         makefile_source = (REPO_ROOT / "Makefile").read_text()
