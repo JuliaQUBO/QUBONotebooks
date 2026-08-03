@@ -142,6 +142,14 @@ def notebook_solution_output_texts(path: Path) -> list[str]:
     return outputs
 
 
+def notebook_markdown(path: Path) -> str:
+    return "\n".join(
+        "".join(cell.get("source", []))
+        for cell in notebook_cells(path)
+        if cell.get("cell_type") == "markdown"
+    )
+
+
 def notebook_paths() -> list[Path]:
     return sorted(path for directory in NOTEBOOK_DIRS for path in directory.glob("*.ipynb"))
 
@@ -215,18 +223,68 @@ class JupyterBookConfigurationTests(unittest.TestCase):
 
         self.assertIn("jupyter book build --html --ci --strict", makefile_source)
 
+    def test_strict_build_does_not_gate_on_third_party_availability(self) -> None:
+        myst_source = (REPO_ROOT / "myst.yml").read_text()
+        severities = dict(
+            re.findall(
+                r"-\s+id:\s+([a-z0-9-]+)\s*\n\s+severity:\s+([a-z]+)",
+                myst_source,
+            )
+        )
+
+        # Reaching third-party URLs must not decide whether the build passes;
+        # the build gates every merge and every Pages deployment.
+        self.assertEqual("warn", severities.get("link-resolves"))
+        self.assertEqual("warn", severities.get("doi-link-valid"))
+        # Unresolved cross-references are a repository defect, so they stay fatal.
+        self.assertEqual("error", severities.get("reference-target-resolves"))
+
     def test_notebooks_do_not_reference_retired_vendor_doc_domains(self) -> None:
         retired_domains = (
             "docs.dwavesys.com",
             "docs.ocean.dwavesys.com",
             "docs.quantumcomputinginc.com",
         )
-        offenders = [
-            f"{path.name}: {domain}"
-            for path in notebook_paths()
-            for domain in retired_domains
-            if domain in path.read_text(encoding="utf-8")
+        # Scoped to markdown so a domain that legitimately appears in committed
+        # cell output cannot fail a documentation-link guard.
+        offenders = []
+        for path in notebook_paths():
+            markdown = "\n".join(
+                "".join(cell.get("source", []))
+                for cell in notebook_cells(path)
+                if cell.get("cell_type") == "markdown"
+            )
+            offenders.extend(
+                f"{path.name}: {domain}"
+                for domain in retired_domains
+                if domain in markdown
+            )
+
+        self.assertEqual([], offenders)
+
+    def test_relative_links_point_at_files_that_exist(self) -> None:
+        # The book build reports unreachable URLs as warnings so third-party
+        # downtime cannot gate a merge. Internal link integrity is this
+        # repository's own responsibility, so it is checked here instead, with
+        # no network access and therefore no flakiness.
+        relative_link = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+        skipped_schemes = ("http://", "https://", "mailto:", "data:", "attachment:", "#")
+        offenders = []
+
+        documents = [(path, path.parent, notebook_markdown(path)) for path in notebook_paths()]
+        documents += [
+            (REPO_ROOT / name, REPO_ROOT, (REPO_ROOT / name).read_text(encoding="utf-8"))
+            for name in ("index.md", "local-setup.md", "README.md")
+            if (REPO_ROOT / name).is_file()
         ]
+
+        for source_path, base_dir, text in documents:
+            for target in relative_link.findall(text):
+                if target.startswith(skipped_schemes):
+                    continue
+                resolved = (base_dir / target.split("#", 1)[0]).resolve()
+                if not resolved.exists():
+                    offenders.append(f"{source_path.name} -> {target}")
 
         self.assertEqual([], offenders)
 
