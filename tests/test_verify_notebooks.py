@@ -210,6 +210,51 @@ class JupyterBookConfigurationTests(unittest.TestCase):
                 self.assertEqual(notebook, colab_map.get(dot_route))
                 self.assertTrue((REPO_ROOT / notebook).is_file())
 
+    def test_build_book_target_builds_in_strict_mode(self) -> None:
+        makefile_source = (REPO_ROOT / "Makefile").read_text()
+
+        self.assertIn("jupyter book build --html --ci --strict", makefile_source)
+
+    def test_notebooks_do_not_reference_retired_vendor_doc_domains(self) -> None:
+        retired_domains = (
+            "docs.dwavesys.com",
+            "docs.ocean.dwavesys.com",
+            "docs.quantumcomputinginc.com",
+        )
+        offenders = [
+            f"{path.name}: {domain}"
+            for path in notebook_paths()
+            for domain in retired_domains
+            if domain in path.read_text(encoding="utf-8")
+        ]
+
+        self.assertEqual([], offenders)
+
+    def test_in_page_anchor_links_resolve_within_their_own_notebook(self) -> None:
+        anchor_definition = re.compile(r'<div id="([^"]+)"></div>')
+        in_page_link = re.compile(r'href="#([^"]+)"')
+        all_identifiers: list[str] = []
+
+        for path in notebook_paths():
+            markdown = "\n".join(
+                "".join(cell.get("source", []))
+                for cell in notebook_cells(path)
+                if cell.get("cell_type") == "markdown"
+            )
+            identifiers = anchor_definition.findall(markdown)
+            targets = in_page_link.findall(markdown)
+            all_identifiers.extend(identifiers)
+
+            with self.subTest(notebook=path.name):
+                # A link to #x must find its target in the same notebook, or the
+                # rendered book resolves it against another notebook's page.
+                self.assertEqual([], sorted(set(targets) - set(identifiers)))
+                self.assertEqual(sorted(set(identifiers)), sorted(identifiers))
+
+        # Identifiers are project-global in MyST, so a repeated one silently
+        # retargets every in-page link that uses it to a different notebook.
+        self.assertEqual(sorted(set(all_identifiers)), sorted(all_identifiers))
+
 
 class NotebookSourceSafetyTests(unittest.TestCase):
     def test_notebooks_do_not_use_jump_unsafe_backend(self) -> None:
@@ -1592,8 +1637,10 @@ class JuliaColabSetupTests(unittest.TestCase):
     def test_dwave_installation_badge_targets_existing_anchor(self) -> None:
         source = notebook_source(DWAVE_JULIA_NOTEBOOK_PATH)
 
-        self.assertIn('href="#installation"', source)
-        self.assertRegex(source, r'<a\b[^>]*(?:id|name)="installation"')
+        # Anchor identifiers are notebook-scoped so MyST cannot resolve an
+        # in-page link against a different notebook's page.
+        self.assertIn('href="#installation-jl-4-dwave"', source)
+        self.assertIn('<div id="installation-jl-4-dwave"></div>', source)
 
     def test_bootstrap_supports_native_colab_runtime_failure_modes(self) -> None:
         source = BOOTSTRAP_PATH.read_text()
