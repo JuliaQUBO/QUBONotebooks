@@ -187,26 +187,38 @@ def notebook_first_heading(cell: dict) -> str:
 
 
 class JupyterBookConfigurationTests(unittest.TestCase):
-    def test_jupyter_book_uses_myst_and_the_locked_docs_environment(self) -> None:
-        workflow_source = (
-            REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml"
-        ).read_text()
+    def test_book_build_gate_is_configured_as_intended(self) -> None:
+        """The book build is a merge gate, so its policy is asserted in one place.
 
-        self.assertFalse((REPO_ROOT / "_config.yml").exists())
-        self.assertFalse((REPO_ROOT / "requirements-book.txt").exists())
-        self.assertNotIn('"_config.yml"', workflow_source)
-        self.assertNotIn('"requirements-book.txt"', workflow_source)
-        self.assertIn("uv sync --locked --group docs", workflow_source)
+        Each setting below is silent if reverted: the build still succeeds, so
+        only this test would notice the gate weakening.
+        """
+        workflow = (REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml").read_text()
+        makefile = (REPO_ROOT / "Makefile").read_text()
+        severities = dict(
+            re.findall(
+                r"-\s+id:\s+([a-z0-9-]+)\s*\n\s+severity:\s+([a-z]+)",
+                (REPO_ROOT / "myst.yml").read_text(),
+            )
+        )
 
-    def test_pages_deployments_are_not_cancelled_in_progress(self) -> None:
-        workflow_source = (
-            REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml"
-        ).read_text()
-
+        # Strict mode is what turns the build into a gate at all.
+        self.assertIn("jupyter book build --html --ci --strict", makefile)
+        # ...but reaching third-party hosts must not decide whether a merge passes.
+        self.assertEqual("warn", severities.get("link-resolves"))
+        self.assertEqual("warn", severities.get("doi-link-valid"))
+        self.assertEqual("error", severities.get("reference-target-resolves"))
+        # A cancelled deploy can leave Pages half-published.
         self.assertIn(
             "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
-            workflow_source,
+            workflow,
         )
+        # Jupyter Book 2 reads myst.yml; the JB1 files must stay deleted.
+        self.assertFalse((REPO_ROOT / "_config.yml").exists())
+        self.assertFalse((REPO_ROOT / "requirements-book.txt").exists())
+        self.assertIn("uv sync --locked --group docs", workflow)
+
+
 
     def test_colab_map_covers_every_toc_notebook_route(self) -> None:
         myst_source = (REPO_ROOT / "myst.yml").read_text()
@@ -288,26 +300,7 @@ class JupyterBookConfigurationTests(unittest.TestCase):
         for cell in real:
             self.assertTrue(is_notebook_footer(cell))
 
-    def test_build_book_target_builds_in_strict_mode(self) -> None:
-        makefile_source = (REPO_ROOT / "Makefile").read_text()
 
-        self.assertIn("jupyter book build --html --ci --strict", makefile_source)
-
-    def test_strict_build_does_not_gate_on_third_party_availability(self) -> None:
-        myst_source = (REPO_ROOT / "myst.yml").read_text()
-        severities = dict(
-            re.findall(
-                r"-\s+id:\s+([a-z0-9-]+)\s*\n\s+severity:\s+([a-z]+)",
-                myst_source,
-            )
-        )
-
-        # Reaching third-party URLs must not decide whether the build passes;
-        # the build gates every merge and every Pages deployment.
-        self.assertEqual("warn", severities.get("link-resolves"))
-        self.assertEqual("warn", severities.get("doi-link-valid"))
-        # Unresolved cross-references are a repository defect, so they stay fatal.
-        self.assertEqual("error", severities.get("reference-target-resolves"))
 
     def test_notebooks_do_not_reference_retired_vendor_doc_domains(self) -> None:
         retired_domains = (
