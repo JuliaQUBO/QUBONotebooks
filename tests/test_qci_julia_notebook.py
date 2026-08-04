@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import itertools
 import json
+import os
 import re
+import subprocess
 import tomllib
 import unittest
 from pathlib import Path
+
+from makefile_support import command_with_assignment
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -208,7 +212,7 @@ class QCIJuliaNotebookTests(unittest.TestCase):
             live_source,
         )
 
-    def test_environment_readme_makefile_and_bootstrap_are_linked(self) -> None:
+    def test_environment_readme_and_bootstrap_are_linked(self) -> None:
         data = notebook()
         source = notebook_source()
         project = tomllib.loads(
@@ -217,7 +221,6 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
         manifest = (REPO_ROOT / "notebooks_jl" / "Manifest.toml").read_text()
         readme = (REPO_ROOT / "README.md").read_text()
-        makefile = (REPO_ROOT / "Makefile").read_text()
         bootstrap = (
             REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
         ).read_text()
@@ -234,15 +237,6 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         )
         self.assertIn("notebooks_jl/6-QCi.ipynb", readme)
         self.assertIn("make verify-qci-julia-local", readme)
-        self.assertIn("verify-qci-julia-local:", makefile)
-        self.assertIn("verify-qci-julia-cloud:", makefile)
-        self.assertIn(
-            "QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 "
-            "QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0",
-            makefile,
-        )
-        self.assertIn('UV_GROUP_FLAGS="--group docs"', makefile)
-        self.assertIn('NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"', makefile)
         self.assertNotIn("qci", pyproject["dependency-groups"])
         self.assertNotIn("qiskit", pyproject["dependency-groups"])
         self.assertNotIn("conflicts", pyproject["tool"]["uv"])
@@ -250,10 +244,6 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         self.assertIn("using JuMP, QCIOpt", bootstrap)
         self.assertIn("import MathOptInterface as MOI", bootstrap)
         self.assertNotIn("qci-client", bootstrap)
-        self.assertIn(
-            "env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE",
-            makefile,
-        )
         self.assertIn('withenv("QCI_TOKEN" => nothing)', bootstrap)
         self.assertNotIn("qci-client>=", source)
         self.assertNotIn("pip install qci-client", source)
@@ -266,6 +256,74 @@ class QCIJuliaNotebookTests(unittest.TestCase):
         self.assertEqual(
             {"display_name": "Julia", "language": "julia", "name": "julia"},
             data["metadata"]["kernelspec"],
+        )
+
+    def test_local_target_masks_cloud_state_and_selects_qci_notebook(self) -> None:
+        env = os.environ.copy()
+        env.pop("MAKEFLAGS", None)
+        env.pop("MFLAGS", None)
+        # Hostile ambient values must not turn the local check into a QCI job.
+        env.update(
+            {
+                "QCI_TOKEN": "test-only",
+                "QUBONOTEBOOKS_QCI_ENABLE_CLOUD": "1",
+                "QUBONOTEBOOKS_QCI_REQUIRE_CLOUD": "1",
+            }
+        )
+        completed = subprocess.run(
+            ["make", "--dry-run", "verify-qci-julia-local"],
+            cwd=REPO_ROOT,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        command = command_with_assignment(completed.stdout, "NOTEBOOKS")
+        assignments = dict(
+            token.split("=", 1) for token in command if "=" in token
+        )
+
+        self.assertEqual(
+            [
+                "env",
+                "-u",
+                "JULIA_CONDAPKG_BACKEND",
+                "-u",
+                "JULIA_PYTHONCALL_EXE",
+                "-u",
+                "QCI_TOKEN",
+            ],
+            command[:7],
+        )
+        self.assertEqual("0", assignments["QUBONOTEBOOKS_QCI_ENABLE_CLOUD"])
+        self.assertEqual("0", assignments["QUBONOTEBOOKS_QCI_REQUIRE_CLOUD"])
+        self.assertEqual("--group docs", assignments["UV_GROUP_FLAGS"])
+        self.assertEqual("notebooks_jl/6-QCi.ipynb", assignments["NOTEBOOKS"])
+
+    def test_cloud_target_fails_closed_without_opt_in(self) -> None:
+        env = os.environ.copy()
+        env.pop("MAKEFLAGS", None)
+        env.pop("MFLAGS", None)
+        for variable in (
+            "QCI_TOKEN",
+            "QUBONOTEBOOKS_QCI_ENABLE_CLOUD",
+            "QUBONOTEBOOKS_QCI_REQUIRE_CLOUD",
+        ):
+            env.pop(variable, None)
+        completed = subprocess.run(
+            ["make", "verify-qci-julia-cloud"],
+            cwd=REPO_ROOT,
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(2, completed.returncode)
+        self.assertIn(
+            "QUBONOTEBOOKS_QCI_ENABLE_CLOUD",
+            completed.stdout + completed.stderr,
         )
 
     def test_committed_outputs_publish_sanitized_qci_results(self) -> None:

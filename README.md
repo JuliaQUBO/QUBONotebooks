@@ -173,6 +173,21 @@ make verify-colab-bootstrap-output JULIA="julia +1.12"
 make verify-colab-hosted
 ```
 
+### Test design
+
+Add a test when it protects a contract that can fail silently:
+
+- derive and compare both sides of a relationship that must stay synchronized;
+- execute behavior and assert its result; or
+- guard a deliberate policy whose removal would otherwise leave every check
+  green.
+
+Avoid pinning documentation wording, literal notebook source lines, or build
+target declarations. Invoking a build target is the behavioral check for
+whether it exists. When a literal is unavoidable, use the narrowest stable
+symbol or configuration key and leave a comment naming the recurring defect
+class it protects.
+
 ### Python verification environment
 
 The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`

@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
 import unittest
 from pathlib import Path
+
+from makefile_support import command_with_assignment
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 README_PATH = REPO_ROOT / "README.md"
-MAKEFILE_PATH = REPO_ROOT / "Makefile"
 BOOTSTRAP_PATH = REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
 
 STARTER_NOTEBOOK_IMPORTS = {
@@ -139,74 +142,82 @@ class StarterSeriesBootstrapTests(unittest.TestCase):
 
 
 class StarterSeriesVerificationTargetTests(unittest.TestCase):
-    def test_makefile_exposes_local_aggregate_and_opt_in_targets(self) -> None:
-        makefile = MAKEFILE_PATH.read_text()
+    def test_local_aggregate_selects_each_notebook_and_disables_remote_paths(
+        self,
+    ) -> None:
+        env = os.environ.copy()
+        env.pop("MAKEFLAGS", None)
+        env.pop("MFLAGS", None)
+        # Hostile ambient values must not turn the local aggregate into a
+        # remote-service submission.
+        env.update(
+            {
+                "QUBONOTEBOOKS_QAOA_ENABLE_IBM": "1",
+                "QUBONOTEBOOKS_QAOA_REQUIRE_IBM": "1",
+                "QUBONOTEBOOKS_ANNEALING_ENABLE_QPU": "1",
+                "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU": "1",
+            }
+        )
+        completed = subprocess.run(
+            ["make", "--dry-run", "verify-five-starter-problems-julia-local"],
+            cwd=REPO_ROOT,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
-        for target in (
-            "verify-canonical-problems-julia:",
-            "verify-order-partitioning-julia:",
-            "verify-cancer-genomics-julia:",
-            "verify-qaoa-julia-local:",
-            "verify-annealing-julia-local:",
-            "verify-five-starter-problems-julia-local:",
-            "verify-qaoa-julia-ibm:",
-            "verify-annealing-julia-qpu:",
+        command = command_with_assignment(completed.stdout, "NOTEBOOKS")
+        assignments = dict(
+            token.split("=", 1) for token in command if "=" in token
+        )
+        expected_notebooks = {
+            str(path.relative_to(REPO_ROOT)) for path in STARTER_NOTEBOOK_PATHS
+        }
+
+        self.assertEqual(
+            expected_notebooks,
+            set(assignments["NOTEBOOKS"].split()),
+        )
+        self.assertEqual("0", assignments["QUBONOTEBOOKS_QAOA_ENABLE_IBM"])
+        self.assertEqual("0", assignments["QUBONOTEBOOKS_QAOA_REQUIRE_IBM"])
+        self.assertEqual("0", assignments["QUBONOTEBOOKS_ANNEALING_ENABLE_QPU"])
+        self.assertEqual("0", assignments["QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU"])
+
+    def test_remote_hardware_targets_fail_closed_without_opt_in(self) -> None:
+        env = os.environ.copy()
+        env.pop("MAKEFLAGS", None)
+        env.pop("MFLAGS", None)
+        for variable in (
+            "QUBONOTEBOOKS_QAOA_ENABLE_IBM",
+            "QUBONOTEBOOKS_QAOA_REQUIRE_IBM",
+            "QUBONOTEBOOKS_QAOA_IBM_BACKEND",
+            "QISKIT_IBM_TOKEN",
+            "QUBONOTEBOOKS_ANNEALING_ENABLE_QPU",
+            "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU",
+            "DWAVE_API_TOKEN",
+        ):
+            env.pop(variable, None)
+
+        for target, required_opt_in in (
+            ("verify-qaoa-julia-ibm", "QUBONOTEBOOKS_QAOA_ENABLE_IBM"),
+            ("verify-annealing-julia-qpu", "QUBONOTEBOOKS_ANNEALING_ENABLE_QPU"),
         ):
             with self.subTest(target=target):
-                self.assertIn(target, makefile)
+                completed = subprocess.run(
+                    ["make", target],
+                    cwd=REPO_ROOT,
+                    env=env,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
 
-        self.assertIn("FIVE_STARTER_JULIA_NOTEBOOKS", makefile)
-        for path in STARTER_NOTEBOOK_PATHS:
-            with self.subTest(notebook=path.name):
-                self.assertIn(f"notebooks_jl/{path.name}", makefile)
-
-        self.assertIn("QUBONOTEBOOKS_QAOA_ENABLE_IBM", makefile)
-        self.assertIn("QUBONOTEBOOKS_QAOA_REQUIRE_IBM", makefile)
-        self.assertIn("QUBONOTEBOOKS_QAOA_IBM_BACKEND", makefile)
-        self.assertIn("QISKIT_IBM_TOKEN", makefile)
-        self.assertIn("QUBONOTEBOOKS_ANNEALING_ENABLE_QPU", makefile)
-        self.assertIn("QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU", makefile)
-        self.assertIn("DWAVE_API_TOKEN", makefile)
-
-        def recipe(target: str) -> str:
-            match = re.search(
-                rf"(?m)^{re.escape(target)}:\n((?:\t.*\n)+)",
-                makefile,
-            )
-            self.assertIsNotNone(match)
-            return match.group(1)
-
-        self.assertIn(
-            "QUBONOTEBOOKS_QAOA_ENABLE_IBM=0",
-            recipe("verify-qaoa-julia-local"),
-        )
-        self.assertIn(
-            "QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0",
-            recipe("verify-qaoa-julia-local"),
-        )
-        self.assertIn(
-            "QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0",
-            recipe("verify-annealing-julia-local"),
-        )
-        self.assertIn(
-            "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0",
-            recipe("verify-annealing-julia-local"),
-        )
-        self.assertIn(
-            "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=1",
-            recipe("verify-annealing-julia-qpu"),
-        )
-        aggregate_recipe = recipe("verify-five-starter-problems-julia-local")
-        self.assertIn("QUBONOTEBOOKS_QAOA_ENABLE_IBM=0", aggregate_recipe)
-        self.assertIn("QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0", aggregate_recipe)
-        self.assertIn(
-            "QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0",
-            aggregate_recipe,
-        )
-        self.assertIn(
-            "QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0",
-            aggregate_recipe,
-        )
+                self.assertEqual(2, completed.returncode)
+                self.assertIn(
+                    required_opt_in,
+                    completed.stdout + completed.stderr,
+                )
 
     def test_readme_documents_targets_runtime_and_environment_contracts(self) -> None:
         readme = README_PATH.read_text()
