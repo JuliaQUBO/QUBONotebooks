@@ -149,6 +149,8 @@ class JuliaNotebookEnvironmentTests(unittest.TestCase):
                     )
 
     def test_notebook_2_saved_status_is_focused(self) -> None:
+        # Defect class: the saved status silently comes from a shared or polluted
+        # environment even though notebook execution itself still succeeds.
         notebook = json.loads((NOTEBOOKS_DIR / "2-QUBO.ipynb").read_text())
         status_cells = [
             cell

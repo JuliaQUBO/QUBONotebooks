@@ -197,6 +197,8 @@ class JupyterBookConfigurationTests(unittest.TestCase):
 
 class NotebookPedagogyCellTests(unittest.TestCase):
     def test_each_notebook_has_three_exercise_checkpoints(self) -> None:
+        # Defect class: a notebook silently loses a workshop checkpoint or exposes
+        # a solution because its required hide tags were removed.
         for path in notebook_paths():
             with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
                 cells = notebook_cells(path)

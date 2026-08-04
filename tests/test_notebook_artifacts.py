@@ -287,6 +287,8 @@ class PythonNotebookHelperTests(unittest.TestCase):
 
 class BenchmarkingNotebookScopeTests(unittest.TestCase):
     def test_julia_benchmarking_expensive_outputs_are_not_committed(self) -> None:
+        # Defect class: an expensive benchmark section is rerun and its large,
+        # machine-specific outputs are committed even though ordinary CI is green.
         notebook = json.loads(BENCHMARKING_JULIA_NOTEBOOK_PATH.read_text())
         results_cells = [
             (index, cell)
@@ -360,6 +362,8 @@ class GamaNotebookTests(unittest.TestCase):
         self.assertEqual((0, (5.0, 2)), greedy(candidates()))
 
     def test_gama_notebook_outputs_are_refreshed(self) -> None:
+        # Defect class: a refreshed notebook retains unexecuted substantive cells
+        # while intentionally quiet setup, exercise, and solution cells mask them.
         notebook = json.loads(GAMA_NOTEBOOK_PATH.read_text())
         code_cells = [
             cell for cell in notebook["cells"] if cell.get("cell_type") == "code"
@@ -385,6 +389,8 @@ class GamaNotebookTests(unittest.TestCase):
 
 class DWaveNotebookTests(unittest.TestCase):
     def test_live_dwave_outputs_are_refreshed_without_duplicate_julia_plot_formats(self) -> None:
+        # Defect class: a credentialed refresh omits a live-hardware result or
+        # recommits duplicate Julia plot MIME formats that inflate the notebook.
         julia_notebook = json.loads(DWAVE_JULIA_NOTEBOOK_PATH.read_text())
         python_notebook = json.loads(DWAVE_PYTHON_NOTEBOOK_PATH.read_text())
 
