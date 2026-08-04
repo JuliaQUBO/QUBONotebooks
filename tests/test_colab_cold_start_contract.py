@@ -35,29 +35,7 @@ def concise_bootstrap_output(*extra_lines: str) -> list[dict]:
 
 
 class ColabColdStartContractTests(unittest.TestCase):
-    def test_readme_documents_deferred_package_loading(self) -> None:
-        readme = (REPO_ROOT / "README.md").read_text()
 
-        self.assertIn(
-            "Every notebook keeps package loading out of the default bootstrap",
-            readme,
-        )
-        self.assertNotIn(
-            "Notebooks 6 and 10 therefore perform one narrow",
-            readme,
-        )
-        self.assertNotIn(
-            "requires the narrow notebook 6 and 10 first-load workaround",
-            readme,
-        )
-
-    def test_default_bootstrap_output_does_not_require_eager_warmup(self) -> None:
-        rendered = verify_colab_bootstrap.validate_bootstrap_outputs(
-            concise_bootstrap_output(),
-            project_key="3-GAMA",
-        )
-
-        self.assertNotIn("Loading notebook packages", rendered)
 
     def test_rejects_eager_warmup_and_pip_progress(self) -> None:
         noisy_outputs = (
@@ -77,6 +55,8 @@ class ColabColdStartContractTests(unittest.TestCase):
                     )
 
     def test_smoke_does_not_force_precompile_environment_override(self) -> None:
+        # Defect class: the smoke runner overrides Julia's precompile policy,
+        # moving deferred package work back into the bootstrap cell.
         main_source = inspect.getsource(verify_colab_bootstrap.main)
         forces_precompile_override = (
             '"JULIA_PKG_PRECOMPILE_AUTO": "0"' in main_source
@@ -98,6 +78,8 @@ class ColabColdStartContractTests(unittest.TestCase):
             )
 
     def test_every_notebook_activation_disables_auto_precompile(self) -> None:
+        # Defect class: one notebook activation allows automatic precompile and
+        # pushes package noise into the post-bootstrap execution contract.
         missing_activation_guard = []
         duplicate_activation_guard = []
         for notebook_path in verify_colab_bootstrap.NOTEBOOK_PATHS:

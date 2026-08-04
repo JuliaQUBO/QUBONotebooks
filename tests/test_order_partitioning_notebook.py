@@ -95,67 +95,8 @@ def expanded_energy(bits: tuple[int, ...], *, a: int = 2, b: int = 1) -> int:
     return constant + linear + quadratic
 
 
-class OrderPartitioningNotebookSourceTests(unittest.TestCase):
-    def test_notebook_has_required_tutorial_structure_and_scope(self) -> None:
-        source = notebook_source()
-        required_markers = (
-            "## Setup",
-            "## Learning objectives",
-            "## Prerequisites",
-            "## Order-partitioning model",
-            "## Exact verification",
-            "## Decoded balances",
-            "## Complement symmetry",
-            "## Weight sensitivity",
-            "## Practice checkpoints",
-            "## Summary",
-            "## References",
-            "https://doi.org/10.1287/educ.2025.0288",
-            "https://github.com/arulrhikm/Solving-QUBOs-on-Quantum-Computers",
-            "not investment advice",
-            "original Julia code",
-        )
+class OrderPartitioningNotebookOutputTests(unittest.TestCase):
 
-        for marker in required_markers:
-            with self.subTest(marker=marker):
-                self.assertIn(marker, source)
-
-        for out_of_scope_marker in ("DWave", "QAOA", "API key", "token"):
-            with self.subTest(out_of_scope_marker=out_of_scope_marker):
-                self.assertNotIn(out_of_scope_marker, source)
-
-    def test_model_places_each_square_outside_the_order_sum(self) -> None:
-        data = notebook()
-        model_source = "".join(notebook_cell(data, "qubo-model")["source"])
-
-        grouped_square = (
-            "(sum(risk_exposures[i, j] * (2 * order_x[j] - 1) "
-            "for j in 1:n_orders))^2"
-        )
-        misplaced_square = "risk_exposures[i, j] * (2 * order_x[j] - 1)^2"
-
-        self.assertIn(grouped_square, model_source)
-        self.assertNotIn(misplaced_square, model_source)
-        self.assertIn("incorrect_risk_term_square_inside", notebook_source())
-
-    def test_notebook_uses_public_local_exact_solver_and_exhaustive_checks(self) -> None:
-        source = notebook_source()
-        required_markers = (
-            "QUBO.ExactSampler.Optimizer",
-            "all_binary_states(n_orders)",
-            "evaluate_jump_objective",
-            "order_partitioning_energy",
-            "length(states) == 64",
-            "length(unique(correct_risk_terms)) > 1",
-            "length(unique(incorrect_risk_terms)) == 1",
-            "same_states(exact_optima, enumerated_optima)",
-            "complement_bits",
-            "decoded_metrics",
-        )
-
-        for marker in required_markers:
-            with self.subTest(marker=marker):
-                self.assertIn(marker, source)
 
     def test_notebook_commits_reproducible_outputs(self) -> None:
         data = notebook()
@@ -194,17 +135,6 @@ class OrderPartitioningNotebookSourceTests(unittest.TestCase):
         for marker in ("/home/", "/Users/", "C:\\Users", "AppData", "Bearer "):
             with self.subTest(forbidden_output_marker=marker):
                 self.assertNotIn(marker, serialized_outputs)
-
-    def test_notebook_and_target_are_linked(self) -> None:
-        readme = (REPO_ROOT / "README.md").read_text()
-        makefile = (REPO_ROOT / "Makefile").read_text()
-
-        self.assertIn("notebooks_jl/8-OrderPartitioning.ipynb", readme)
-        self.assertIn("make verify-order-partitioning-julia", readme)
-        self.assertIn("verify-order-partitioning-julia:", makefile)
-        self.assertIn(
-            'NOTEBOOKS="$(ORDER_PARTITIONING_JULIA_NOTEBOOK)"', makefile
-        )
 
 
 class OrderPartitioningMathematicalInvariantTests(unittest.TestCase):

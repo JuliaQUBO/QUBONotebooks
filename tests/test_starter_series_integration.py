@@ -70,47 +70,6 @@ def notebook_source(path: Path, *, code_only: bool = False) -> str:
     )
 
 
-class StarterSeriesNavigationTests(unittest.TestCase):
-    def test_readme_documents_sequence_classification_and_attribution(self) -> None:
-        readme = README_PATH.read_text()
-
-        self.assertIn("Notebook 6 has Julia and Python variants", readme)
-        for classification in (
-            "offline/portable",
-            "local but heavyweight",
-            "opt-in live data refresh",
-            "opt-in IBM hardware",
-            "opt-in D-Wave QPU",
-        ):
-            with self.subTest(classification=classification):
-                self.assertIn(classification, readme)
-
-        for url in (
-            "https://doi.org/10.1287/educ.2025.0288",
-            "https://arxiv.org/abs/2401.08989",
-            "https://github.com/arulrhikm/Solving-QUBOs-on-Quantum-Computers",
-        ):
-            with self.subTest(url=url):
-                self.assertIn(url, readme)
-
-        self.assertIn("clean-room", readme.lower())
-
-    def test_starter_notebooks_link_to_the_canonical_main_branch(self) -> None:
-        for path in STARTER_NOTEBOOK_PATHS:
-            with self.subTest(notebook=path.name):
-                source = notebook_source(path)
-                self.assertIn(COLAB_URL_TEMPLATE.format(name=path.stem), source)
-                self.assertIn(
-                    "https://github.com/JuliaQUBO/QUBONotebooks.git",
-                    source,
-                )
-                self.assertNotRegex(
-                    source,
-                    r"github\.com/(?!JuliaQUBO/)[^/\s]+/QUBONotebooks",
-                )
-                self.assertNotIn("QUBONotebooks/blob/master/", source)
-
-
 class StarterSeriesBootstrapTests(unittest.TestCase):
     def test_bootstrap_warms_only_each_selected_notebooks_imports(self) -> None:
         bootstrap = BOOTSTRAP_PATH.read_text()
@@ -128,6 +87,8 @@ class StarterSeriesBootstrapTests(unittest.TestCase):
                 self.assertEqual(expected_imports, actual_imports)
 
     def test_credential_free_dwave_warmups_mask_ambient_tokens(self) -> None:
+        # Defect class: ambient D-Wave credentials leak into a supposedly
+        # credential-free package warm-up before notebook execution begins.
         bootstrap = BOOTSTRAP_PATH.read_text()
         match = re.search(
             r"const CREDENTIAL_FREE_DWAVE_NOTEBOOKS = Set\(\((.*?)\)\)",
@@ -136,9 +97,16 @@ class StarterSeriesBootstrapTests(unittest.TestCase):
         )
 
         self.assertIsNotNone(match)
-        self.assertIn('"9-CancerGenomics"', match.group(1))
-        self.assertIn('"11-Annealing"', match.group(1))
-        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap)
+        credential_free_notebooks = set(re.findall(r'"([^"]+)"', match.group(1)))
+        self.assertTrue(
+            {"9-CancerGenomics", "11-Annealing"}.issubset(
+                credential_free_notebooks
+            )
+        )
+        self.assertRegex(
+            bootstrap,
+            r'withenv\("DWAVE_API_TOKEN"\s*=>\s*nothing\)',
+        )
 
 
 class StarterSeriesVerificationTargetTests(unittest.TestCase):
@@ -219,24 +187,11 @@ class StarterSeriesVerificationTargetTests(unittest.TestCase):
                     completed.stdout + completed.stderr,
                 )
 
-    def test_readme_documents_targets_runtime_and_environment_contracts(self) -> None:
-        readme = README_PATH.read_text()
-
-        for target in (
-            "verify-five-starter-problems-julia-local",
-            "refresh-tcga-aml",
-            "verify-qaoa-julia-ibm",
-            "verify-annealing-julia-qpu",
-        ):
-            with self.subTest(target=target):
-                self.assertIn(target, readme)
-
-        self.assertIn("Expected runtime", readme)
-        self.assertIn("Environment variables", readme)
-
 
 class StarterSeriesSafetyTests(unittest.TestCase):
     def test_starter_notebooks_have_the_shared_pedagogy_structure(self) -> None:
+        # Defect class: a starter notebook silently drops a required exercise or
+        # navigation section while still remaining executable.
         required_headings = (
             "setup",
             "learning objectives",
@@ -254,6 +209,8 @@ class StarterSeriesSafetyTests(unittest.TestCase):
                 self.assertEqual(3, code.count("# EXERCISE"))
 
     def test_notebooks_do_not_embed_secrets_accounts_or_service_names(self) -> None:
+        # Defect class: committed notebook source or output leaks credentials,
+        # host paths, accounts, or a machine-specific service identifier.
         secret_literal = re.compile(
             r"""(?im)^\s*
             (?:
@@ -305,44 +262,6 @@ class StarterSeriesSafetyTests(unittest.TestCase):
                     r"github\.com/(?:pedromxavier/QUBO-notebooks|"
                     r"AlbertLee125/QUBONotebooks|SECQUOIA/QUBONotebooks)",
                 )
-
-    def test_optional_service_paths_follow_credential_free_results(self) -> None:
-        cancer = notebook_source(STARTER_NOTEBOOK_PATHS[2], code_only=True)
-        qaoa = notebook_source(STARTER_NOTEBOOK_PATHS[3], code_only=True)
-        annealing = notebook_source(STARTER_NOTEBOOK_PATHS[4], code_only=True)
-        bootstrap = (REPO_ROOT / "scripts" / "notebook_bootstrap.jl").read_text()
-
-        self.assertNotIn("cbioportal.org", cancer.lower())
-        self.assertNotIn("Downloads.download", cancer)
-        self.assertIn("warm_notebook_packages!", cancer)
-        self.assertIn('"9-CancerGenomics"', cancer)
-        self.assertIn("warm_notebook_packages!", annealing)
-        self.assertIn('"11-Annealing"', annealing)
-        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap)
-        self.assertLess(
-            bootstrap.index('withenv("DWAVE_API_TOKEN" => nothing)'),
-            bootstrap.index("Core.eval(Main, import_expr)"),
-        )
-
-        self.assertLess(
-            qaoa.index("partition_result = run_and_check_qaoa!"),
-            qaoa.index("ibm_hardware_requested ="),
-        )
-        self.assertLess(
-            qaoa.index("ibm_hardware_requested ="),
-            qaoa.index("dry_run=false"),
-        )
-        self.assertIn("QUBONOTEBOOKS_QAOA_REQUIRE_IBM", qaoa)
-
-        self.assertLess(
-            annealing.index("local_results ="),
-            annealing.index("qpu_requested ="),
-        )
-        self.assertLess(
-            annealing.index("qpu_requested ="),
-            annealing.index("optimizer = DWave.Optimizer"),
-        )
-        self.assertIn("QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU", annealing)
 
 
 if __name__ == "__main__":

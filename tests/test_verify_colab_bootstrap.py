@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = REPO_ROOT / "scripts" / "verify_colab_bootstrap.py"
@@ -51,14 +53,21 @@ def clean_outputs() -> list[dict]:
 
 class ColabBootstrapSmokeTests(unittest.TestCase):
     def test_smoke_target_provides_colab_pip_without_locking_ocean(self) -> None:
-        makefile = (REPO_ROOT / "Makefile").read_text()
-        target = makefile.split("verify-colab-bootstrap-output:", 1)[1].split(
-            "\n\n", 1
-        )[0]
+        completed = subprocess.run(
+            ["make", "--dry-run", "verify-colab-bootstrap-output"],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        command = shlex.split(completed.stdout)
+        with_packages = {
+            command[index + 1]
+            for index, token in enumerate(command[:-1])
+            if token == "--with"
+        }
 
-        self.assertIn("--with pip", target)
-        self.assertIn("--with matplotlib", target)
-        self.assertNotIn("--with dwave-ocean-sdk", target)
+        self.assertEqual({"matplotlib", "numpy", "pip", "requests"}, with_packages)
 
     def test_hosted_target_uses_a_fresh_auto_released_colab_vm(self) -> None:
         command = verify_hosted_colab.colab_run_command(
@@ -109,17 +118,62 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         self.assertEqual(0, completed.returncode, completed.stderr)
 
     def test_hosted_checkout_calls_exact_ref_module_in_process(self) -> None:
-        source = HOSTED_MODULE_PATH.read_text()
+        revision = "a" * 40
+        hosted_module = Mock()
+        temporary_directory = MagicMock()
+        temporary_directory.__enter__.return_value = "/tmp/hosted-checkout"
+        temporary_directory.__exit__.return_value = False
 
-        self.assertIn("hosted_module = load_hosted_module(checkout)", source)
-        self.assertIn(
-            "hosted_module.hosted_verify_main(repo_root=checkout, env=env)",
-            source,
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    verify_hosted_colab.REPO_REF_ENV: revision,
+                    "QUBONOTEBOOKS_REPO_URL": "https://example.invalid/repo.git",
+                },
+                clear=True,
+            ),
+            patch.object(verify_hosted_colab, "require_hosted_colab"),
+            patch.object(verify_hosted_colab, "run") as run_mock,
+            patch.object(
+                verify_hosted_colab,
+                "command_output",
+                return_value=revision,
+            ),
+            patch.object(
+                verify_hosted_colab,
+                "load_hosted_module",
+                return_value=hosted_module,
+            ) as load_mock,
+            patch.object(
+                verify_hosted_colab.tempfile,
+                "TemporaryDirectory",
+                return_value=temporary_directory,
+            ),
+            patch("builtins.print"),
+        ):
+            self.assertEqual(0, verify_hosted_colab.hosted_checkout_main())
+
+        checkout = Path("/tmp/hosted-checkout/QUBONotebooks")
+        load_mock.assert_called_once_with(checkout)
+        hosted_module.hosted_verify_main.assert_called_once()
+        self.assertEqual(
+            checkout,
+            hosted_module.hosted_verify_main.call_args.kwargs["repo_root"],
         )
-        self.assertNotIn(
-            '[sys.executable, str(checkout / "scripts" / "verify_hosted_colab.py")]',
-            source,
+        self.assertEqual(
+            revision,
+            hosted_module.hosted_verify_main.call_args.kwargs["env"][
+                verify_hosted_colab.REPO_REF_ENV
+            ],
         )
+        fetch_calls = [
+            call
+            for call in run_mock.call_args_list
+            if call.args[0][:2] == ["git", "fetch"]
+        ]
+        self.assertEqual(1, len(fetch_calls))
+        self.assertEqual(revision, fetch_calls[0].args[0][-1])
 
     def test_hosted_cell_timing_uses_iopub_lifecycle(self) -> None:
         cell = {
@@ -136,6 +190,8 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         self.assertEqual(33.25, verify_hosted_colab.cell_elapsed_seconds(cell))
 
     def test_notebook_11_keeps_dwave_loading_out_of_bootstrap(self) -> None:
+        # Defect class: eager D-Wave loading recreates the credential and
+        # Python-environment setup that the quiet notebook import cell owns.
         notebook_path = Path("notebooks_jl/11-Annealing.ipynb")
         cells = verify_colab_bootstrap.smoke_cells(
             REPO_ROOT,
@@ -174,6 +230,8 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
             verify_colab_bootstrap.selected_notebook_paths("1-MathProg,12-Unknown")
 
     def test_extracts_real_bootstrap_cell(self) -> None:
+        # Defect class: the smoke extractor selects a neighboring Julia cell
+        # instead of the shared bootstrap entry point.
         source = verify_colab_bootstrap.bootstrap_cell_source(REPO_ROOT)
 
         self.assertIn("function load_qubonotebooks_bootstrap()", source)
@@ -184,6 +242,8 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
         self.assertTrue(source.rstrip().endswith("IN_COLAB = BOOTSTRAP.in_colab;"))
 
     def test_extracts_bootstrap_activation_and_import_cells(self) -> None:
+        # Defect class: extraction reorders or truncates activation/import cells,
+        # so the hosted smoke no longer matches real notebook startup behavior.
         expected_import_ids = {
             "1-MathProg": (
                 "imports-plots",
@@ -278,6 +338,8 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
                     self.assertEqual(notebook_source, cell["source"])
 
     def test_explicit_import_cells_use_the_quiet_shared_loader(self) -> None:
+        # Defect class: an explicit notebook import bypasses the quiet shared
+        # loader and reintroduces noisy precompile output in hosted Colab.
         for notebook_path in verify_colab_bootstrap.NOTEBOOK_PATHS:
             import_cells = verify_colab_bootstrap.notebook_import_cells(
                 REPO_ROOT,
