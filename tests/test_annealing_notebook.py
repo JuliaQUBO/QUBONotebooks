@@ -54,10 +54,21 @@ def cell_output_text(cell: dict) -> str:
     return "\n".join(parts)
 
 
+def active_source(cell_source: str) -> str:
+    """Cell source with Julia comment text removed.
+
+    A guard assertion must not be satisfiable by a marker that survives only
+    inside a comment, which is exactly what a disabled check looks like.
+    """
+    return "\n".join(
+        line.split("#", 1)[0].rstrip() for line in cell_source.splitlines()
+    )
+
+
 def index_of(source: str, marker: str) -> int:
     position = source.find(marker)
     if position == -1:
-        raise AssertionError(f"Expected {marker!r} in the guarded cell")
+        raise AssertionError(f"Expected executable {marker!r} in the guarded cell")
     return position
 
 
@@ -200,11 +211,12 @@ class AnnealingNotebookOutputTests(unittest.TestCase):
 
 class AnnealingRemoteHardwareGuardTests(unittest.TestCase):
     def test_qpu_submission_stays_behind_the_opt_in_and_credential_gate(self) -> None:
-        # Defect class: the opt-in branch or the credential check is edited out of
-        # the QPU cell without re-executing, so the committed "disabled" output
-        # still matches while a Colab reader submits a billable D-Wave job. No
-        # make target or CI job runs this notebook, so only this test notices.
-        source = "".join(notebook_cell(notebook(), "qpu-run")["source"])
+        # Defect class: the opt-in branch or the credential check is deleted or
+        # commented out of the QPU cell without re-executing, so the committed
+        # "disabled" output still matches while a Colab reader submits a billable
+        # D-Wave job. No make target or CI job runs this notebook, so only this
+        # test notices.
+        source = active_source("".join(notebook_cell(notebook(), "qpu-run")["source"]))
 
         opt_in_gate = index_of(source, "if qpu_requested\n")
         credentials = index_of(source, "require_qpu_credentials()")

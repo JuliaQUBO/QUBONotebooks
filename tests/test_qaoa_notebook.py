@@ -37,10 +37,21 @@ def cell_output_text(cell: dict) -> str:
     return "\n".join(output_parts)
 
 
+def active_source(cell_source: str) -> str:
+    """Cell source with Julia comment text removed.
+
+    A guard assertion must not be satisfiable by a marker that survives only
+    inside a comment, which is exactly what a disabled check looks like.
+    """
+    return "\n".join(
+        line.split("#", 1)[0].rstrip() for line in cell_source.splitlines()
+    )
+
+
 def index_of(source: str, marker: str) -> int:
     position = source.find(marker)
     if position == -1:
-        raise AssertionError(f"Expected {marker!r} in the guarded cell")
+        raise AssertionError(f"Expected executable {marker!r} in the guarded cell")
     return position
 
 
@@ -182,11 +193,14 @@ class QAOANotebookOutputTests(unittest.TestCase):
 
 class QAOARemoteHardwareGuardTests(unittest.TestCase):
     def test_ibm_submission_stays_behind_the_opt_in_and_credential_gate(self) -> None:
-        # Defect class: the opt-in early return or the token check is edited out of
-        # the IBM handoff cell without re-executing, so the committed "disabled"
-        # output still matches while a Colab reader submits a billable IBM job. No
-        # make target or CI job runs this notebook, so only this test notices.
-        source = "".join(notebook_cell(notebook(), "ibm-hardware")["source"])
+        # Defect class: the opt-in early return or the token check is deleted or
+        # commented out of the IBM handoff cell without re-executing, so the
+        # committed "disabled" output still matches while a Colab reader submits a
+        # billable IBM job. No make target or CI job runs this notebook, so only
+        # this test notices.
+        source = active_source(
+            "".join(notebook_cell(notebook(), "ibm-hardware")["source"])
+        )
 
         opt_in_gate = index_of(source, "if !requested\n")
         opt_in_return = index_of(
