@@ -1,4 +1,4 @@
-# QUBO-notebooks
+# QUBONotebooks
 
 <div align="center">
   <a href="https://github.com/JuliaQUBO/QUBO.jl">
@@ -8,31 +8,32 @@
   <span>Quantum Integer Programming Notebooks using <a href="https://jump.dev">JuMP</a> and <a href="https://github.com/JuliaQUBO/QUBO.jl">QUBO.jl</a>.</span>
   <br>
   <br>
-  <a href="https://bernalde.github.io">David E. Bernal Neira</a>
-  <br>
-  <i>Davidson School of Chemical Engineering, Purdue University</i>
-  <br>
-  <i>Universities Space Research Association</i>
-  <br>
-  <i>NASA QuAIL</i>
+  <b>Maintained by the <a href="https://github.com/JuliaQUBO">JuliaQUBO</a> organization</b>
   <br>
   <br>
-  <a href="https://pedromxavier.github.io">Pedro Maciel Xavier</a>
-  <br>
-  <i>Davidson School of Chemical Engineering, Purdue University</i>
-  <br>
-  <i>Computer Science &amp; Systems Engineering Program, Federal University of Rio de Janeiro</i>
-  <br>
-  <i>PSR Energy Consulting &amp; Analytics</i>
+  <a href="https://secquoia.github.io/">SECQUOIA</a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://www.psr-inc.com/">PSR Energy</a>
   <br>
   <br>
 </div>
 
+This collection is maintained by the
+[JuliaQUBO](https://github.com/JuliaQUBO) organization, in collaboration with
+[SECQUOIA](https://secquoia.github.io/) and
+[PSR Energy](https://www.psr-inc.com/). Individual notebook contributors are
+credited in the Acknowledgments section at the end of each notebook.
+
+## Read the notebooks online
+
+The notebooks are published as a Jupyter Book at
+**<https://juliaqubo.github.io/QUBONotebooks/>**, with navigation across the
+Julia and Python series and an "Open in Colab" action on every notebook page.
+
 ## Jupyter Book
 
-The notebooks are assembled into a static Jupyter Book with navigation across
-the Julia and Python series. The source landing page is [index.md](index.md),
-and [local-setup.md](local-setup.md) documents the local book build and
+The source landing page is [index.md](index.md), and
+[local-setup.md](local-setup.md) documents the local book build and
 notebook-output workflow.
 
 Build the book from the repository root with:
@@ -43,7 +44,23 @@ make build-book
 ```
 
 The site build uses committed notebook outputs and does not execute notebooks
-or contact external solvers.
+or contact external solvers. Every pull request and every push to `main` runs
+the same command through `.github/workflows/jupyter-book.yml`; pushes to `main`
+also deploy the built site to GitHub Pages.
+
+The build runs in `--strict` mode, so it is a real gate, but it deliberately
+does not gate on other people's uptime:
+
+| Problem | Build result |
+| --- | --- |
+| Unresolved cross-reference | fails |
+| Unreachable external URL | warns |
+| DOI metadata lookup failure | warns |
+
+Broken *relative* links are covered separately by
+`test_relative_links_point_at_files_that_exist`, which resolves them against
+the filesystem without network access. External link rot therefore shows up as
+a build warning rather than an intermittently red default branch.
 
 ## Notebooks
 
@@ -52,10 +69,12 @@ sequence. The stable local verification subset covers notebooks that do not
 need credentials, proprietary/cloud solver access, local solver binaries, or
 long benchmark runs.
 
-Notebook 6 now has Julia and Python variants. The Julia notebook uses the
+Notebook 6 has Julia and Python variants. The Julia notebook uses the
 supported QCIOpt.jl QUBO workflow and explicitly maps the continuous or
 constrained Python examples that do not have direct Julia equivalents. The
-Julia Five Starter Problems series starts at notebook 7.
+Julia Five Starter Problems series starts at notebook 7 and reimplements the
+tutorial cited under [Source of the Five Starter
+Problems](#source-of-the-five-starter-problems).
 
 | Topic | Julia notebook | Python notebook | Local verification status |
 | --- | --- | --- | --- |
@@ -101,22 +120,33 @@ are set in the caller's environment; the aggregate target also never refreshes
 data. All six Julia notebook badges in this matrix target
 `JuliaQUBO/QUBONotebooks` on the current default branch, `main`.
 
-### Attribution and clean-room reimplementation
+## Source of the Five Starter Problems
 
-This series is based on Mazumder and Tayur's
-[*Five Starter Problems: Quantum Computing for Operations
-Research*](https://doi.org/10.1287/educ.2025.0288), also available as an
-[arXiv preprint](https://arxiv.org/abs/2401.08989). The
+Notebooks 7 through 11 reimplement the five starter problems introduced in:
+
+> A. R. Mazumder and S. Tayur, *Five Starter Problems: Solving Quadratic
+> Unconstrained Binary Optimization Models on Quantum Computers*, in
+> **TutORials in Operations Research**, INFORMS (2025), pp. 145–183.
+> DOI: [10.1287/educ.2025.0288](https://doi.org/10.1287/educ.2025.0288)
+
+The tutorial is also available as an
+[arXiv preprint](https://arxiv.org/abs/2401.08989), and the authors publish a
 [companion repository](https://github.com/arulrhikm/Solving-QUBOs-on-Quantum-Computers)
-is cited for context. The Julia notebooks are a clean-room reimplementation:
-their code, prose, fixtures, and validation were written independently, with
-the mathematical formulations checked against the published tutorial and cited
-primary sources.
+that is cited here for context.
+
+### Clean-room reimplementation
+
+The Julia notebooks are a clean-room reimplementation: their code, prose,
+fixtures, and validation were written independently, with the mathematical
+formulations checked against the published tutorial and cited primary sources.
+No source cells, prose, saved output, or assets were copied from the companion
+repository. Each of notebooks 7 through 11 repeats this citation in its own
+References section.
 
 ## Local verification
 
 Python dependency groups are managed with [`uv`](https://docs.astral.sh/uv/).
-The portable notebook execution target currently covers the Python QUBO and
+The portable notebook execution target covers the Python QUBO and
 GAMA notebooks and writes executed copies to `.nbverify/`:
 
 ```bash
@@ -143,6 +173,8 @@ make verify-colab-bootstrap-output JULIA="julia +1.12"
 make verify-colab-hosted
 ```
 
+### Python verification environment
+
 The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`
 and `UV_GROUP_FLAGS`. The locked Python verification environment intentionally
 excludes the D-Wave Ocean stack because its current cloud client depends on
@@ -151,7 +183,11 @@ release. Separate targets exist for notebooks that do not require external
 solver credentials or longer-running jobs; those credentialed and long-running
 notebooks are not part of the default portable subset. The Python QCi notebook
 does not have a locked local make target because `eqc-models==0.19.0` requires
-`networkx<3`, which conflicts with the D-Wave Ocean stack. The Julia notebooks
+`networkx<3`, which conflicts with the D-Wave Ocean stack.
+
+### Julia notebook environments
+
+The Julia notebooks
 avoid that cross-notebook coupling by activating one focused environment from
 `notebooks_jl/environments/<notebook-key>`. The root `notebooks_jl` project is
 the aggregate IJulia/sysimage and compatibility-test environment; it is not the
@@ -159,7 +195,11 @@ project shown to a notebook learner. Its QCIOpt/DWave coexistence contract is
 still guarded by `make test-qciopt-dwave-coexistence`. After changing an
 aggregate dependency, maintainers refresh both focused lock sets with
 `make refresh-julia-notebook-environments JULIA="julia +1.10"` and then
-`make refresh-julia-notebook-environments JULIA="julia +1.12"`. In native
+`make refresh-julia-notebook-environments JULIA="julia +1.12"`.
+
+### Colab Python bridge
+
+In native
 Colab, every Python-backed Julia
 notebook binds PythonCall to the hosted Python runtime before Julia package
 instantiation. The bootstrap records both PythonCall's executable and
@@ -174,11 +214,17 @@ bridge and compatibility constraints out of every other notebook's setup.
 On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, and the
 IJulia/PythonCall extension can otherwise emit failed-task-printer notices
 during their first implicit compilation even when the imports succeed.
+
+### Deferred package imports
+
 Every notebook keeps package loading out of the default bootstrap and routes
 each real import cell through the shared Colab-aware output-suppressed loader.
 Notebooks 1–5 retain their lesson-scoped deferred import boundaries, while
 notebooks 6–11 load one declared package group. Real package-load failures
 still propagate from the helper.
+
+### Colab bootstrap
+
 The Julia notebooks use `scripts/notebook_bootstrap.jl` in Colab to clone the
 repository when needed, activate
 `notebooks_jl/environments/<notebook-key>`, and select that project's checked-in
@@ -189,6 +235,9 @@ fresh runtime does not front-load compilation for packages the learner may not
 use.
 Set `QUBONOTEBOOKS_WARM_PACKAGES=1` to warm a notebook's declared imports or
 `QUBONOTEBOOKS_PRECOMPILE=1` to explicitly precompile the selected project.
+
+### Colab bootstrap smoke check
+
 `make verify-colab-bootstrap-output JULIA="julia +1.12"` executes the real
 setup, activation, and every marked real import cell from all Julia notebooks
 through fresh IJulia kernels with Colab environment markers. It rejects

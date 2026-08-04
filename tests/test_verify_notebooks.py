@@ -142,6 +142,27 @@ def notebook_solution_output_texts(path: Path) -> list[str]:
     return outputs
 
 
+BACK_TO_TOP_CELL = re.compile(
+    r'<div align="center">\s*'
+    r'<a href="#top-[0-9a-z-]+">\U0001f51d Go back to the top \U0001f51d</a>\s*'
+    r"</div>\Z"
+)
+
+
+def is_notebook_footer(cell: dict) -> bool:
+    """Whether a cell is a trailing footer rather than learning content.
+
+    Matched narrowly on purpose: a substring test would accept a code cell or a
+    lesson that merely mentions the phrase, and callers drop trailing footers
+    when checking that a summary closes the learning content.
+    """
+    if cell.get("cell_type") != "markdown":
+        return False
+    if notebook_first_heading(cell) == "## Acknowledgments":
+        return True
+    return BACK_TO_TOP_CELL.fullmatch("".join(cell.get("source", [])).strip()) is not None
+
+
 def notebook_markdown(path: Path) -> str:
     return "\n".join(
         "".join(cell.get("source", []))
@@ -166,26 +187,38 @@ def notebook_first_heading(cell: dict) -> str:
 
 
 class JupyterBookConfigurationTests(unittest.TestCase):
-    def test_jupyter_book_uses_myst_and_the_locked_docs_environment(self) -> None:
-        workflow_source = (
-            REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml"
-        ).read_text()
+    def test_book_build_gate_is_configured_as_intended(self) -> None:
+        """The book build is a merge gate, so its policy is asserted in one place.
 
-        self.assertFalse((REPO_ROOT / "_config.yml").exists())
-        self.assertFalse((REPO_ROOT / "requirements-book.txt").exists())
-        self.assertNotIn('"_config.yml"', workflow_source)
-        self.assertNotIn('"requirements-book.txt"', workflow_source)
-        self.assertIn("uv sync --locked --group docs", workflow_source)
+        Each setting below is silent if reverted: the build still succeeds, so
+        only this test would notice the gate weakening.
+        """
+        workflow = (REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml").read_text()
+        makefile = (REPO_ROOT / "Makefile").read_text()
+        severities = dict(
+            re.findall(
+                r"-\s+id:\s+([a-z0-9-]+)\s*\n\s+severity:\s+([a-z]+)",
+                (REPO_ROOT / "myst.yml").read_text(),
+            )
+        )
 
-    def test_pages_deployments_are_not_cancelled_in_progress(self) -> None:
-        workflow_source = (
-            REPO_ROOT / ".github" / "workflows" / "jupyter-book.yml"
-        ).read_text()
-
+        # Strict mode is what turns the build into a gate at all.
+        self.assertIn("jupyter book build --html --ci --strict", makefile)
+        # ...but reaching third-party hosts must not decide whether a merge passes.
+        self.assertEqual("warn", severities.get("link-resolves"))
+        self.assertEqual("warn", severities.get("doi-link-valid"))
+        self.assertEqual("error", severities.get("reference-target-resolves"))
+        # A cancelled deploy can leave Pages half-published.
         self.assertIn(
             "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
-            workflow_source,
+            workflow,
         )
+        # Jupyter Book 2 reads myst.yml; the JB1 files must stay deleted.
+        self.assertFalse((REPO_ROOT / "_config.yml").exists())
+        self.assertFalse((REPO_ROOT / "requirements-book.txt").exists())
+        self.assertIn("uv sync --locked --group docs", workflow)
+
+
 
     def test_colab_map_covers_every_toc_notebook_route(self) -> None:
         myst_source = (REPO_ROOT / "myst.yml").read_text()
@@ -218,26 +251,69 @@ class JupyterBookConfigurationTests(unittest.TestCase):
                 self.assertEqual(notebook, colab_map.get(dot_route))
                 self.assertTrue((REPO_ROOT / notebook).is_file())
 
-    def test_build_book_target_builds_in_strict_mode(self) -> None:
-        makefile_source = (REPO_ROOT / "Makefile").read_text()
+    def test_notebook_footer_helper_accepts_only_real_footers(self) -> None:
+        accepted = {
+            "acknowledgments": {
+                "cell_type": "markdown",
+                "source": ["## Acknowledgments\n", "\n", "- [Someone](https://github.com/x)\n"],
+            },
+            "back to top": {
+                "cell_type": "markdown",
+                "source": [
+                    '<div align="center">\n',
+                    '    <a href="#top-jl-2-qubo">\U0001f51d Go back to the top \U0001f51d</a>\n',
+                    "</div>",
+                ],
+            },
+        }
+        rejected = {
+            "code cell printing the phrase": {
+                "cell_type": "code",
+                "source": ['print("\U0001f51d Go back to the top \U0001f51d")\n'],
+            },
+            "lesson prose mentioning the phrase": {
+                "cell_type": "markdown",
+                "source": ["Scroll up and Go back to the top of the derivation.\n"],
+            },
+            "acknowledgments in body text only": {
+                "cell_type": "markdown",
+                "source": ["See the ## Acknowledgments section below.\n"],
+            },
+        }
 
-        self.assertIn("jupyter book build --html --ci --strict", makefile_source)
+        for label, cell in accepted.items():
+            with self.subTest(accepted=label):
+                self.assertTrue(is_notebook_footer(cell))
+        for label, cell in rejected.items():
+            with self.subTest(rejected=label):
+                self.assertFalse(is_notebook_footer(cell))
 
-    def test_strict_build_does_not_gate_on_third_party_availability(self) -> None:
-        myst_source = (REPO_ROOT / "myst.yml").read_text()
-        severities = dict(
-            re.findall(
-                r"-\s+id:\s+([a-z0-9-]+)\s*\n\s+severity:\s+([a-z]+)",
-                myst_source,
-            )
-        )
+        # The real footers in the repository must still be recognised, so the
+        # helper cannot be narrowed until it rejects them. Selected structurally
+        # by heading and by in-page anchor link: selecting on the bare phrase
+        # would re-admit the false positive above, and a correct lesson edit
+        # that happens to mention it would then turn this test red.
+        acknowledgments = backlinks = 0
+        for path in notebook_paths():
+            markdown = [
+                cell
+                for cell in notebook_cells(path)
+                if cell.get("cell_type") == "markdown"
+            ]
+            for cell in markdown:
+                if notebook_first_heading(cell) == "## Acknowledgments":
+                    acknowledgments += 1
+                    with self.subTest(notebook=path.name, footer="acknowledgments"):
+                        self.assertTrue(is_notebook_footer(cell))
+            if markdown and 'href="#top-' in "".join(markdown[-1].get("source", [])):
+                backlinks += 1
+                with self.subTest(notebook=path.name, footer="back to top"):
+                    self.assertTrue(is_notebook_footer(markdown[-1]))
 
-        # Reaching third-party URLs must not decide whether the build passes;
-        # the build gates every merge and every Pages deployment.
-        self.assertEqual("warn", severities.get("link-resolves"))
-        self.assertEqual("warn", severities.get("doi-link-valid"))
-        # Unresolved cross-references are a repository defect, so they stay fatal.
-        self.assertEqual("error", severities.get("reference-target-resolves"))
+        self.assertTrue(acknowledgments)
+        self.assertTrue(backlinks)
+
+
 
     def test_notebooks_do_not_reference_retired_vendor_doc_domains(self) -> None:
         retired_domains = (
@@ -821,7 +897,14 @@ class NotebookPedagogyCellTests(unittest.TestCase):
                 if reference_indices:
                     self.assertEqual(reference_indices[0] - 1, summary_index)
                 else:
-                    self.assertEqual(len(cells) - 1, summary_index)
+                    # Acknowledgments and the back-to-top link are footers, not
+                    # learning content, so they may follow the summary.
+                    last_content = len(cells) - 1
+                    while last_content > summary_index and is_notebook_footer(
+                        cells[last_content]
+                    ):
+                        last_content -= 1
+                    self.assertEqual(last_content, summary_index)
 
 
 class NotebookPythonJuliaParityTests(unittest.TestCase):

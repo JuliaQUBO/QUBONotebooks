@@ -71,7 +71,7 @@ class StarterSeriesNavigationTests(unittest.TestCase):
     def test_readme_documents_sequence_classification_and_attribution(self) -> None:
         readme = README_PATH.read_text()
 
-        self.assertIn("Notebook 6 now has Julia and Python variants", readme)
+        self.assertIn("Notebook 6 has Julia and Python variants", readme)
         for classification in (
             "offline/portable",
             "local but heavyweight",

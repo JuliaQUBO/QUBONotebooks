@@ -1,9 +1,16 @@
 version: 1
 project:
   title: "QUBONotebooks: Quantum Integer Programming"
+  # Attribution is organizational; individual contributors are credited in the
+  # Acknowledgments section at the end of each notebook.
+  # SECQUOIA and PSR Energy are collaborating organizations rather than
+  # affiliations of JuliaQUBO, so they are linked as prose in the README and in
+  # each notebook header. Structured `affiliations` entries were removed: MyST
+  # neither rendered nor linked them to the author, leaving inert config.
   authors:
-    - name: David E. Bernal Neira
-    - name: Pedro Maciel Xavier
+    - name:
+        literal: JuliaQUBO
+      url: https://github.com/JuliaQUBO
   copyright: "2026"
   github: JuliaQUBO/QUBONotebooks
   # The build gates every merge and every Pages deployment, so it must depend
