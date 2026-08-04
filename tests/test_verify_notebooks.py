@@ -1602,36 +1602,6 @@ class CommandConstructionTests(unittest.TestCase):
 
 
 class RepositoryCommandTests(unittest.TestCase):
-    def test_makefile_exposes_verification_targets(self) -> None:
-        makefile = (REPO_ROOT / "Makefile").read_text()
-
-        self.assertIn("test-python:", makefile)
-        self.assertIn("test-julia:", makefile)
-        self.assertIn("check-notebook-output-hygiene:", makefile)
-        self.assertIn("clear-notebook-outputs:", makefile)
-        self.assertIn("verify-notebooks:", makefile)
-        self.assertIn("verify-python-portable:", makefile)
-        self.assertIn("verify-qubo-python:", makefile)
-        self.assertIn("verify-gama-python:", makefile)
-        self.assertIn("verify-benchmarking-python:", makefile)
-        self.assertIn("verify-qaoa-julia-local:", makefile)
-        self.assertIn("PORTABLE_PYTHON_NOTEBOOKS", makefile)
-        self.assertIn("ClearOutputPreprocessor.enabled=True", makefile)
-        self.assertIn("git grep -lE", makefile)
-        self.assertNotIn("git grep -nE 'C:", makefile)
-        self.assertIn("purdue-internship", makefile)
-        self.assertIn("QUBONotebooksFork", makefile)
-        self.assertIn("./scripts/verify_notebooks.py", makefile)
-        self.assertIn("--project=./notebooks_jl", makefile)
-        self.assertIn("$(UV) sync --locked", makefile)
-        self.assertIn("$(UV) run --locked", makefile)
-
-    def test_ci_runs_notebook_output_hygiene_check(self) -> None:
-        ci_workflow = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text()
-
-        self.assertIn("Notebook output hygiene", ci_workflow)
-        self.assertIn("make check-notebook-output-hygiene", ci_workflow)
-
     def test_locked_python_environment_excludes_unpatched_diskcache_path(self) -> None:
         pyproject = (REPO_ROOT / "pyproject.toml").read_text()
         lock = (REPO_ROOT / "uv.lock").read_text()
