@@ -288,17 +288,30 @@ class JupyterBookConfigurationTests(unittest.TestCase):
             with self.subTest(rejected=label):
                 self.assertFalse(is_notebook_footer(cell))
 
-        # The real cells in the repository must still be recognised.
-        real = [
-            cell
-            for path in notebook_paths()
-            for cell in notebook_cells(path)
-            if notebook_first_heading(cell) == "## Acknowledgments"
-            or "Go back to the top" in "".join(cell.get("source", []))
-        ]
-        self.assertTrue(real)
-        for cell in real:
-            self.assertTrue(is_notebook_footer(cell))
+        # The real footers in the repository must still be recognised, so the
+        # helper cannot be narrowed until it rejects them. Selected structurally
+        # by heading and by in-page anchor link: selecting on the bare phrase
+        # would re-admit the false positive above, and a correct lesson edit
+        # that happens to mention it would then turn this test red.
+        acknowledgments = backlinks = 0
+        for path in notebook_paths():
+            markdown = [
+                cell
+                for cell in notebook_cells(path)
+                if cell.get("cell_type") == "markdown"
+            ]
+            for cell in markdown:
+                if notebook_first_heading(cell) == "## Acknowledgments":
+                    acknowledgments += 1
+                    with self.subTest(notebook=path.name, footer="acknowledgments"):
+                        self.assertTrue(is_notebook_footer(cell))
+            if markdown and 'href="#top-' in "".join(markdown[-1].get("source", [])):
+                backlinks += 1
+                with self.subTest(notebook=path.name, footer="back to top"):
+                    self.assertTrue(is_notebook_footer(markdown[-1]))
+
+        self.assertTrue(acknowledgments)
+        self.assertTrue(backlinks)
 
 
 
