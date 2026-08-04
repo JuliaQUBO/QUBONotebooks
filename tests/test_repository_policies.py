@@ -34,6 +34,7 @@ class RepositoryCommandTests(unittest.TestCase):
         }
 
         self.assertTrue({"dimod", "dwave-neal"}.issubset(qubo_packages))
+
     def test_colab_installer_default_matches_sysimage_julia_version(self) -> None:
         # Defect class: the installer, deployment workflow, and aggregate
         # notebook manifest silently select different Julia release lines.
@@ -68,6 +69,7 @@ class RepositoryCommandTests(unittest.TestCase):
             "https://github.com/SECQUOIA/QCIOpt.jl",
             qci_entry["repo-url"],
         )
+
     def test_sysimage_includes_julia_qubo_and_gama_runtime_packages(self) -> None:
         # Defect class: a notebook runtime package is omitted from the sysimage,
         # while a richer local depot keeps ordinary verification green.

@@ -49,6 +49,7 @@ class JupyterBookConfigurationTests(unittest.TestCase):
         self.assertFalse((REPO_ROOT / "_config.yml").exists())
         self.assertFalse((REPO_ROOT / "requirements-book.txt").exists())
         self.assertIn("uv sync --locked --group docs", workflow)
+
     def test_colab_map_covers_every_toc_notebook_route(self) -> None:
         myst_source = (REPO_ROOT / "myst.yml").read_text()
         colab_source = (REPO_ROOT / "colab.html").read_text()
@@ -141,6 +142,7 @@ class JupyterBookConfigurationTests(unittest.TestCase):
 
         self.assertTrue(acknowledgments)
         self.assertTrue(backlinks)
+
     def test_relative_links_point_at_files_that_exist(self) -> None:
         # The book build reports unreachable URLs as warnings so third-party
         # downtime cannot gate a merge. Internal link integrity is this
