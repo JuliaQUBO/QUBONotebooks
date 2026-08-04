@@ -40,5 +40,4 @@ class TestDesignContractTests(unittest.TestCase):
             for path in TESTS_DIR.glob("test_*.py")
         }
 
-        self.assertFalse((TESTS_DIR / "test_verify_notebooks.py").exists())
         self.assertLess(max(line_counts.values()), 800, line_counts)

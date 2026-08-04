@@ -54,6 +54,13 @@ def cell_output_text(cell: dict) -> str:
     return "\n".join(parts)
 
 
+def index_of(source: str, marker: str) -> int:
+    position = source.find(marker)
+    if position == -1:
+        raise AssertionError(f"Expected {marker!r} in the guarded cell")
+    return position
+
+
 def binary_states(size: int) -> list[tuple[int, ...]]:
     return list(itertools.product((0, 1), repeat=size))
 
@@ -189,6 +196,24 @@ class AnnealingNotebookOutputTests(unittest.TestCase):
         ):
             with self.subTest(forbidden_output_marker=marker):
                 self.assertNotIn(marker, serialized_outputs)
+
+
+class AnnealingRemoteHardwareGuardTests(unittest.TestCase):
+    def test_qpu_submission_stays_behind_the_opt_in_and_credential_gate(self) -> None:
+        # Defect class: the opt-in branch or the credential check is edited out of
+        # the QPU cell without re-executing, so the committed "disabled" output
+        # still matches while a Colab reader submits a billable D-Wave job. No
+        # make target or CI job runs this notebook, so only this test notices.
+        source = "".join(notebook_cell(notebook(), "qpu-run")["source"])
+
+        opt_in_gate = index_of(source, "if qpu_requested\n")
+        credentials = index_of(source, "require_qpu_credentials()")
+        submission = index_of(source, "run_annealing(maxcut_problem, qpu_config)")
+        disabled_branch = index_of(source[opt_in_gate:], "\nelse\n") + opt_in_gate
+
+        self.assertLess(opt_in_gate, credentials)
+        self.assertLess(credentials, submission)
+        self.assertLess(submission, disabled_branch)
 
 
 if __name__ == "__main__":
