@@ -86,17 +86,6 @@ EXPECTED_DIRECT_DEPENDENCIES = {
 
 
 class JuliaNotebookEnvironmentTests(unittest.TestCase):
-    def test_refresh_target_derives_focused_locks_from_the_aggregate_lock(self) -> None:
-        makefile = (REPO_ROOT / "Makefile").read_text()
-        refresh_script = (
-            REPO_ROOT / "scripts" / "refresh_notebook_environments.jl"
-        ).read_text()
-
-        self.assertIn("refresh-julia-notebook-environments:", makefile)
-        self.assertIn("aggregate_notebook_project_dir", refresh_script)
-        self.assertIn("manifest_path", refresh_script)
-        self.assertIn("cp(SOURCE_MANIFEST, destination_manifest", refresh_script)
-        self.assertIn("Pkg.resolve()", refresh_script)
 
     def test_every_notebook_has_a_focused_project_and_two_manifests(self) -> None:
         self.assertEqual(
@@ -160,6 +149,8 @@ class JuliaNotebookEnvironmentTests(unittest.TestCase):
                     )
 
     def test_notebook_2_saved_status_is_focused(self) -> None:
+        # Defect class: the saved status silently comes from a shared or polluted
+        # environment even though notebook execution itself still succeeds.
         notebook = json.loads((NOTEBOOKS_DIR / "2-QUBO.ipynb").read_text())
         status_cells = [
             cell

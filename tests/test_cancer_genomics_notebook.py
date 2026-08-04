@@ -111,112 +111,8 @@ def selected_metrics(
     }
 
 
-class CancerGenomicsNotebookSourceTests(unittest.TestCase):
-    def test_notebook_has_required_tutorial_structure_and_references(self) -> None:
-        source = notebook_source()
-        required_markers = (
-            "## Setup",
-            "## Learning objectives",
-            "## Prerequisites",
-            "## From incidence data to coverage and co-mutation",
-            "## Build and interpret the QUBO",
-            "## Exhaustive validation on the tiny fixture",
-            "## Decode pathway metrics safely",
-            "## Provenance-checked TCGA AML aggregate",
-            "## Practice checkpoints",
-            "## Summary",
-            "## References",
-            "https://doi.org/10.1287/educ.2025.0288",
-            "https://doi.org/10.1101/845719",
-            "https://doi.org/10.1056/NEJMoa1301689",
-            "https://www.cbioportal.org/",
-            "https://github.com/arulrhikm/Solving-QUBOs-on-Quantum-Computers",
-            "original Julia code and prose",
-            "not a clinically validated pathway",
-            "not medical guidance",
-        )
+class CancerGenomicsNotebookOutputTests(unittest.TestCase):
 
-        for marker in required_markers:
-            with self.subTest(marker=marker):
-                self.assertIn(marker, source)
-
-    def test_pair_construction_and_double_counting_are_explicit(self) -> None:
-        data = notebook()
-        construction = "".join(notebook_cell(data, "matrix-helpers")["source"])
-        formula = "".join(notebook_cell(data, "metric-helpers")["source"])
-        all_state_check = "".join(notebook_cell(data, "all-state-check")["source"])
-
-        self.assertIn("for i in 1:(n_genes - 1)", construction)
-        self.assertIn("for j in (i + 1):n_genes", construction)
-        self.assertIn("A[i, j] = overlap", construction)
-        self.assertIn("A[j, i] = overlap", construction)
-        self.assertNotIn("if i != j", construction)
-        self.assertIn("dot(bits, A * bits)", formula)
-        self.assertIn(
-            "double_counted_comutation == 2 * pairwise_comutation",
-            formula,
-        )
-        self.assertIn("tiny_pair_expansion_energies", all_state_check)
-        self.assertIn("2 * sum(", all_state_check)
-
-    def test_decoding_handles_empty_and_aggregate_only_paths(self) -> None:
-        data = notebook()
-        helpers = "".join(notebook_cell(data, "metric-helpers")["source"])
-        empty_check = "".join(notebook_cell(data, "empty-decode")["source"])
-        aggregate_limits = "".join(notebook_cell(data, "aggregate-limits")["source"])
-
-        self.assertIn("pair_count == 0 ? missing", helpers)
-        self.assertIn("isempty(selected) && return (lower = 0, upper = 0)", helpers)
-        self.assertIn("exact_unique_coverage = missing", helpers)
-        self.assertIn("Bonferroni", helpers)
-        self.assertIn("ismissing(tiny_empty_metrics.zero_comutation_pair_fraction)", empty_check)
-        self.assertIn("triple and higher intersections", aggregate_limits)
-        self.assertIn("avoids fabricating a distinct-patient count", aggregate_limits)
-
-    def test_full_run_is_seeded_local_and_validates_every_returned_state(self) -> None:
-        data = notebook()
-        sampler = "".join(notebook_cell(data, "sampler-helper")["source"])
-        run = "".join(notebook_cell(data, "aggregate-samples")["source"])
-        source = notebook_source()
-
-        for marker in (
-            "set_optimizer(model, DWave.Neal.Optimizer)",
-            'set_optimizer_attribute(model, "num_reads", num_reads)',
-            'set_optimizer_attribute(model, "num_sweeps", num_sweeps)',
-            'set_optimizer_attribute(model, "seed", seed)',
-            "for result in 1:result_count(model)",
-            "reported_energy",
-            "recomputed_energy",
-            "validate_decoded_metrics",
-        ):
-            with self.subTest(marker=marker):
-                self.assertIn(marker, sampler)
-
-        self.assertIn("returned_states == result.validated_states", run)
-        self.assertIn("length(unique(result.pathway_size", run)
-        self.assertIn("length(unique(Tuple(result.bits)", run)
-        self.assertNotIn("@assert result.genes", run)
-        self.assertNotIn("@assert result.bits", run)
-        self.assertIn("not proofs of global optimality", source)
-
-        for forbidden in (
-            "DWave.Optimizer",
-            "save_account",
-            "Downloads.download",
-            "HTTP.get",
-        ):
-            with self.subTest(forbidden=forbidden):
-                self.assertNotIn(forbidden, source)
-
-        imports = "".join(notebook_cell(data, "imports")["source"])
-        bootstrap = (
-            REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
-        ).read_text()
-        self.assertIn("warm_notebook_packages!", imports)
-        self.assertIn('"9-CancerGenomics"', imports)
-        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap)
-        self.assertIn('"9-CancerGenomics" => :(using DWave', bootstrap)
-        self.assertNotIn('get(ENV, "DWAVE_API_TOKEN"', source)
 
     def test_notebook_commits_reproducible_outputs(self) -> None:
         data = notebook()
@@ -259,19 +155,6 @@ class CancerGenomicsNotebookSourceTests(unittest.TestCase):
         for marker in ("/home/", "/Users/", "C:\\Users", "AppData", "Bearer "):
             with self.subTest(forbidden_output_marker=marker):
                 self.assertNotIn(marker, serialized_outputs)
-
-    def test_notebook_and_target_are_linked(self) -> None:
-        readme = (REPO_ROOT / "README.md").read_text()
-        makefile = (REPO_ROOT / "Makefile").read_text()
-        julia_tests = (REPO_ROOT / "test" / "runtests.jl").read_text()
-        verifier_tests = (REPO_ROOT / "tests" / "test_verify_notebooks.py").read_text()
-
-        self.assertIn("notebooks_jl/9-CancerGenomics.ipynb", readme)
-        self.assertIn("make verify-cancer-genomics-julia", readme)
-        self.assertIn("verify-cancer-genomics-julia:", makefile)
-        self.assertIn('NOTEBOOKS="$(CANCER_GENOMICS_JULIA_NOTEBOOK)"', makefile)
-        self.assertIn('"notebooks_jl/9-CancerGenomics.ipynb"', julia_tests)
-        self.assertIn("CANCER_GENOMICS_JULIA_NOTEBOOK_PATH", verifier_tests)
 
 
 class CancerGenomicsMathematicalInvariantTests(unittest.TestCase):

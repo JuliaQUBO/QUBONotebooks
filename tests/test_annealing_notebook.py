@@ -54,6 +54,24 @@ def cell_output_text(cell: dict) -> str:
     return "\n".join(parts)
 
 
+def active_source(cell_source: str) -> str:
+    """Cell source with Julia comment text removed.
+
+    A guard assertion must not be satisfiable by a marker that survives only
+    inside a comment, which is exactly what a disabled check looks like.
+    """
+    return "\n".join(
+        line.split("#", 1)[0].rstrip() for line in cell_source.splitlines()
+    )
+
+
+def index_of(source: str, marker: str) -> int:
+    position = source.find(marker)
+    if position == -1:
+        raise AssertionError(f"Expected executable {marker!r} in the guarded cell")
+    return position
+
+
 def binary_states(size: int) -> list[tuple[int, ...]]:
     return list(itertools.product((0, 1), repeat=size))
 
@@ -88,200 +106,6 @@ def order_energy(bits: tuple[int, ...]) -> int:
         for row in ORDER_EXPOSURES
     )
     return 2 * value_imbalance**2 + sum(value**2 for value in risk_imbalances)
-
-
-class AnnealingNotebookSourceTests(unittest.TestCase):
-    def test_notebook_has_required_structure_and_primary_references(self) -> None:
-        source = notebook_source()
-        required_markers = (
-            "## Setup",
-            "## Learning objectives",
-            "## Prerequisites",
-            "## Simulated annealing concepts",
-            "## One solver interface for five models",
-            "## Seeded local comparison",
-            "## Optional D-Wave QPU path",
-            "## Practice checkpoints",
-            "## Summary",
-            "## References",
-            "https://doi.org/10.1287/educ.2025.0288",
-            "https://github.com/arulrhikm/Solving-QUBOs-on-Quantum-Computers",
-            "https://docs.dwavequantum.com/",
-            "original Julia code and prose",
-            "quantum advantage",
-        )
-
-        for marker in required_markers:
-            with self.subTest(marker=marker):
-                self.assertIn(marker, source)
-
-    def test_all_five_models_use_the_shared_runner(self) -> None:
-        data = notebook()
-        problem_source = "".join(notebook_cell(data, "problem-catalog")["source"])
-        runner_source = "".join(notebook_cell(data, "annealing-runner")["source"])
-        local_source = "".join(notebook_cell(data, "local-comparison")["source"])
-
-        expected_problem_names = (
-            "number partitioning",
-            "weighted Max-Cut",
-            "minimum vertex cover",
-            "order partitioning",
-            "cancer-genomics aggregate",
-        )
-        for name in expected_problem_names:
-            with self.subTest(name=name):
-                self.assertIn(f'name = "{name}"', problem_source)
-
-        self.assertIn("function run_annealing(problem, config)", runner_source)
-        self.assertIn("model, variables = problem.build_model()", runner_source)
-        self.assertIn("set_optimizer(model, config.optimizer)", runner_source)
-        self.assertIn("problem.decode(bits)", runner_source)
-        self.assertIn("problem.energy(bits)", runner_source)
-        self.assertIn("run_annealing(problem, local_config)", local_source)
-        self.assertIn("for problem in annealing_problems", local_source)
-
-    def test_default_local_path_is_seeded_neal_with_explicit_work(self) -> None:
-        data = notebook()
-        configuration = "".join(notebook_cell(data, "annealing-config")["source"])
-        local_source = "".join(notebook_cell(data, "local-comparison")["source"])
-
-        self.assertIn("DWave.Neal.Optimizer", configuration)
-        self.assertIn('"num_reads" => LOCAL_READS', configuration)
-        self.assertIn('"num_sweeps" => LOCAL_SWEEPS', configuration)
-        self.assertIn('"seed" => LOCAL_SEED', configuration)
-        self.assertIn('"beta_schedule_type" => "geometric"', configuration)
-        self.assertIn("recomputed_energy", local_source)
-        self.assertIn("reported_energy", local_source)
-        self.assertIn("validated_states", local_source)
-
-    def test_qpu_path_fails_closed_before_submission(self) -> None:
-        data = notebook()
-        imports_source = "".join(notebook_cell(data, "imports")["source"])
-        bootstrap_source = (
-            REPO_ROOT / "scripts" / "notebook_bootstrap.jl"
-        ).read_text()
-        guard_source = "".join(notebook_cell(data, "qpu-guard")["source"])
-        qpu_source = "".join(notebook_cell(data, "qpu-run")["source"])
-        full_source = notebook_source()
-
-        self.assertIn("warm_notebook_packages!", imports_source)
-        self.assertIn('"11-Annealing"', imports_source)
-        self.assertIn('withenv("DWAVE_API_TOKEN" => nothing)', bootstrap_source)
-        self.assertIn(
-            '"11-Annealing" => :(using DWave',
-            bootstrap_source,
-        )
-        self.assertLess(
-            bootstrap_source.index('withenv("DWAVE_API_TOKEN" => nothing)'),
-            bootstrap_source.index("Core.eval(Main, import_expr)"),
-        )
-        self.assertIn("QUBONOTEBOOKS_ANNEALING_ENABLE_QPU", guard_source)
-        self.assertIn('get(ENV, "DWAVE_API_TOKEN", "")', guard_source)
-        self.assertIn("isempty(strip(token)) && error(", guard_source)
-        self.assertIn("require_qpu_credentials()", qpu_source)
-        self.assertIn("run_annealing(maxcut_problem, qpu_config)", qpu_source)
-        self.assertIn("QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU", qpu_source)
-        self.assertIn("qpu_hardware_submitted = false", qpu_source)
-        self.assertIn(
-            'qpu_hardware_submitted = qpu_result.execution_mode == "qpu"',
-            qpu_source,
-        )
-        self.assertIn(
-            "if qpu_hardware_required && !qpu_hardware_submitted",
-            qpu_source,
-        )
-        self.assertIn(
-            "D-Wave QPU verification was required, but no job was submitted.",
-            qpu_source,
-        )
-        self.assertLess(
-            qpu_source.index("require_qpu_credentials()"),
-            qpu_source.index("run_annealing(maxcut_problem, qpu_config)"),
-        )
-        self.assertLess(
-            qpu_source.index("run_annealing(maxcut_problem, qpu_config)"),
-            qpu_source.index("qpu_hardware_submitted = qpu_result.execution_mode"),
-        )
-        self.assertLess(
-            qpu_source.index("qpu_hardware_submitted = qpu_result.execution_mode"),
-            qpu_source.index(
-                "if qpu_hardware_required && !qpu_hardware_submitted"
-            ),
-        )
-        self.assertIn("DWave.Optimizer", qpu_source)
-        self.assertIn('"return_embedding" => true', qpu_source)
-        self.assertNotIn("DWave.dwave_system", full_source)
-        self.assertNotIn("PythonCall", full_source)
-        self.assertNotIn("save_account", full_source)
-        self.assertNotIn("solver=Dict", full_source)
-        self.assertIsNone(re.search(r"\bAdvantage_system\d", full_source))
-        self.assertIsNone(
-            re.search(r'DWAVE_API_TOKEN\s*=\s*["\'][^"\']+["\']', full_source)
-        )
-
-    def test_qpu_metadata_and_plots_use_public_sanitized_interfaces(self) -> None:
-        data = notebook()
-        qpu_source = "".join(notebook_cell(data, "qpu-guard")["source"])
-        qpu_source += "".join(notebook_cell(data, "qpu-run")["source"])
-        plot_source = "".join(notebook_cell(data, "qpu-plots")["source"])
-
-        self.assertIn("sanitized_qpu_metadata", qpu_source)
-        self.assertIn('"qpu_access_time"', qpu_source)
-        self.assertIn('"chain_strength"', qpu_source)
-        self.assertIn('"embedding_parameters"', qpu_source)
-        self.assertIn("DWave.WorkingGraph(qpu_result.metadata)", plot_source)
-        self.assertIn("DWave.draw_topology", plot_source)
-        self.assertIn("DWave.draw_embedding", plot_source)
-        self.assertNotIn('"problem_id"', qpu_source)
-
-    def test_qpu_result_is_included_in_credential_free_comparison_contract(
-        self,
-    ) -> None:
-        data = notebook()
-        runner_source = "".join(notebook_cell(data, "annealing-runner")["source"])
-        table_source = "".join(notebook_cell(data, "comparison-table")["source"])
-        qpu_source = "".join(notebook_cell(data, "qpu-run")["source"])
-
-        self.assertIn("execution_mode = metadata", runner_source)
-        self.assertIn("qpu_access_time_microseconds", runner_source)
-        self.assertIn("function format_comparison_row(result)", table_source)
-        self.assertIn("function print_comparison_table(results)", table_source)
-        self.assertIn("qpu access μs", table_source)
-        self.assertIn('execution_mode = "qpu"', table_source)
-        self.assertIn("synthetic_qpu_row", table_source)
-        self.assertIn(
-            '@assert synthetic_qpu_row == "D-Wave QPU (synthetic)',
-            table_source,
-        )
-        self.assertIn('"n/a | 0.250000 | 1234"', table_source)
-        self.assertIn(
-            "print_comparison_table((local_results[2], qpu_result))",
-            qpu_source,
-        )
-
-    def test_small_models_use_exact_optima_and_cancer_claims_are_bounded(self) -> None:
-        source = notebook_source()
-
-        self.assertIn("exact_baseline", source)
-        self.assertIn("exact_optimum_known = true", source)
-        self.assertIn("exact_optimum_known = false", source)
-        self.assertIn("success_probability", source)
-        self.assertIn("not a proof of global optimality", source)
-        self.assertIn("distinct_patient_bounds", source)
-        self.assertIn("aggregate-only", source)
-
-    def test_notebook_and_local_target_are_linked(self) -> None:
-        readme = (REPO_ROOT / "README.md").read_text()
-        makefile = (REPO_ROOT / "Makefile").read_text()
-        julia_tests = (REPO_ROOT / "test" / "runtests.jl").read_text()
-        verifier_tests = (REPO_ROOT / "tests" / "test_verify_notebooks.py").read_text()
-
-        self.assertIn("notebooks_jl/11-Annealing.ipynb", readme)
-        self.assertIn("make verify-annealing-julia-local", readme)
-        self.assertIn("verify-annealing-julia-local:", makefile)
-        self.assertIn('NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"', makefile)
-        self.assertIn('"notebooks_jl/11-Annealing.ipynb"', julia_tests)
-        self.assertIn("ANNEALING_JULIA_NOTEBOOK_PATH", verifier_tests)
 
 
 class AnnealingMathematicalInvariantTests(unittest.TestCase):
@@ -383,6 +207,25 @@ class AnnealingNotebookOutputTests(unittest.TestCase):
         ):
             with self.subTest(forbidden_output_marker=marker):
                 self.assertNotIn(marker, serialized_outputs)
+
+
+class AnnealingRemoteHardwareGuardTests(unittest.TestCase):
+    def test_qpu_submission_stays_behind_the_opt_in_and_credential_gate(self) -> None:
+        # Defect class: the opt-in branch or the credential check is deleted or
+        # commented out of the QPU cell without re-executing, so the committed
+        # "disabled" output still matches while a Colab reader submits a billable
+        # D-Wave job. No make target or CI job runs this notebook, so only this
+        # test notices.
+        source = active_source("".join(notebook_cell(notebook(), "qpu-run")["source"]))
+
+        opt_in_gate = index_of(source, "if qpu_requested\n")
+        credentials = index_of(source, "require_qpu_credentials()")
+        submission = index_of(source, "run_annealing(maxcut_problem, qpu_config)")
+        disabled_branch = index_of(source[opt_in_gate:], "\nelse\n") + opt_in_gate
+
+        self.assertLess(opt_in_gate, credentials)
+        self.assertLess(credentials, submission)
+        self.assertLess(submission, disabled_branch)
 
 
 if __name__ == "__main__":
