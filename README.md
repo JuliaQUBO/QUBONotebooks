@@ -24,6 +24,10 @@ This collection is maintained by the
 [PSR Energy](https://www.psr-inc.com/). Individual notebook contributors are
 credited in the Acknowledgments section at the end of each notebook.
 
+[CONTRIBUTING.md](CONTRIBUTING.md) records the editorial contracts: what each
+notebook family promises, the structural contracts that bind every notebook,
+and the committed-output size budgets.
+
 ## Read the notebooks online
 
 The notebooks are published as a Jupyter Book at
@@ -68,6 +72,11 @@ This repository keeps Julia and Python variants of the QuIP/QuIPML notebook
 sequence. The stable local verification subset covers notebooks that do not
 need credentials, proprietary/cloud solver access, local solver binaries, or
 long benchmark runs.
+
+The Python notebooks are introductory on-ramps, maintained for correctness and
+for the shared structural contracts, but not for section-by-section parity
+with their Julia counterparts. See
+[Notebook families](CONTRIBUTING.md#notebook-families).
 
 Notebook 6 has Julia and Python variants. The Julia notebook uses the
 supported QCIOpt.jl QUBO workflow and explicitly maps the continuous or
