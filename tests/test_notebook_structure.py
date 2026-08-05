@@ -48,23 +48,55 @@ class JupyterBookConfigurationTests(unittest.TestCase):
                 self.assertIsNotNone(anchor_match)
 
                 anchor = anchor_match.group(1)
+                # Every masthead line starts at column zero on purpose. Markdown
+                # engines that do not implement CommonMark HTML blocks read a
+                # four-space indent as an indented code block, which publishes
+                # the raw tags instead of the rendered masthead.
                 expected_header = (
                     f"# {toc_titles[relative_path]}\n"
                     "\n"
                     f'<div id="{anchor}"></div>\n'
                     "\n"
                     '<div align="center">\n'
-                    '    <b>Maintained by the <a href="https://github.com/JuliaQUBO">JuliaQUBO</a> organization</b>\n'
-                    "    <br>\n"
-                    '    <a href="https://secquoia.github.io/">SECQUOIA</a> &nbsp;&middot;&nbsp; <a href="https://www.psr-inc.com/">PSR Energy</a>\n'
-                    "    <br>\n"
-                    "    <br>\n"
-                    f'    <a href="https://colab.research.google.com/github/JuliaQUBO/QUBONotebooks/blob/main/{relative_path}" target="_parent">\n'
-                    '        <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>\n'
-                    "    </a>\n"
+                    '<b>Maintained by the <a href="https://github.com/JuliaQUBO">JuliaQUBO</a> organization</b>\n'
+                    "<br>\n"
+                    '<a href="https://secquoia.github.io/">SECQUOIA</a> &nbsp;&middot;&nbsp; <a href="https://www.psr-inc.com/">PSR Energy</a>\n'
+                    "<br>\n"
+                    "<br>\n"
+                    f'<a href="https://colab.research.google.com/github/JuliaQUBO/QUBONotebooks/blob/main/{relative_path}" target="_parent">\n'
+                    '<img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>\n'
+                    "</a>\n"
                     "</div>"
                 )
                 self.assertTrue(source.startswith(expected_header))
+
+    def test_raw_html_blocks_are_never_indented(self) -> None:
+        """Indented raw HTML publishes its own tags instead of rendering.
+
+        Defect class: a markdown engine without CommonMark HTML blocks reads a
+        four-space indent inside ``<div>`` as an indented code block, so the
+        masthead and the back-to-top footer render as literal source. The
+        surrounding tags sit at column zero and still render, which is what
+        makes the breakage easy to miss in review.
+        """
+        indented = re.compile(r"^ {4,}\S")
+        offenders = []
+
+        for path in notebook_paths():
+            for index, cell in enumerate(notebook_cells(path)):
+                if cell.get("cell_type") != "markdown":
+                    continue
+                source = "".join(cell.get("source", []))
+                for block in re.split(r"\n[ \t]*\n", source):
+                    lines = block.splitlines()
+                    if not lines or not lines[0].startswith("<"):
+                        continue
+                    for line in lines:
+                        if indented.match(line):
+                            relative_path = path.relative_to(REPO_ROOT).as_posix()
+                            offenders.append(f"{relative_path} cell {index}: {line!r}")
+
+        self.assertEqual([], offenders)
 
     def test_notebook_heading_hierarchy_is_well_formed(self) -> None:
         """Each page has one title and a navigable section hierarchy."""
