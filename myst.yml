@@ -78,7 +78,7 @@ project:
         - file: notebooks_jl/10-QAOA.ipynb
           title: Local-first QAOA
         - file: notebooks_jl/11-Annealing.ipynb
-          title: Local and Quantum Annealing
+          title: Local Simulated and Quantum Annealing
 site:
   template: book-theme
   options:
