@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -61,6 +62,61 @@ class JupyterBookConfigurationTests(unittest.TestCase):
                     "</div>"
                 )
                 self.assertTrue(source.startswith(expected_header))
+
+    def test_notebook_heading_hierarchy_is_well_formed(self) -> None:
+        """Each page has one title and a navigable section hierarchy."""
+        heading = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+        fence = re.compile(r"^\s*(`{3,}|~{3,})")
+
+        for path in notebook_paths():
+            headings: list[tuple[int, str]] = []
+            for cell in notebook_cells(path):
+                if cell.get("cell_type") != "markdown":
+                    continue
+
+                active_fence: str | None = None
+                for line in "".join(cell.get("source", [])).splitlines():
+                    fence_match = fence.match(line)
+                    if fence_match:
+                        marker = fence_match.group(1)[0]
+                        if active_fence is None:
+                            active_fence = marker
+                        elif active_fence == marker:
+                            active_fence = None
+                        continue
+                    if active_fence is not None:
+                        continue
+
+                    heading_match = heading.match(line)
+                    if heading_match:
+                        headings.append(
+                            (len(heading_match.group(1)), heading_match.group(2))
+                        )
+
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                self.assertEqual(1, sum(level == 1 for level, _ in headings))
+                jumps = [
+                    f"{previous_title!r} -> {title!r}"
+                    for (previous_level, previous_title), (level, title) in zip(
+                        headings, headings[1:]
+                    )
+                    if level > previous_level + 1
+                ]
+                self.assertEqual([], jumps)
+
+    def test_python_notebooks_use_portable_kernel_metadata(self) -> None:
+        expected = {
+            "display_name": "Python 3",
+            "language": "python",
+            "name": "python3",
+        }
+
+        for path in notebook_paths():
+            if path.parent.name != "notebooks_py":
+                continue
+            metadata = json.loads(path.read_text()).get("metadata", {})
+            with self.subTest(notebook=path.name):
+                self.assertEqual(expected, metadata.get("kernelspec"))
 
     def test_book_build_gate_is_configured_as_intended(self) -> None:
         """The book build is a merge gate, so its policy is asserted in one place.
@@ -249,6 +305,7 @@ class NotebookPedagogyCellTests(unittest.TestCase):
             "function load_qubonotebooks_bootstrap()",
             "Pkg.activate(",
             "Pkg.instantiate(",
+            "versioninfo()",
         )
 
         for path in notebook_paths():
@@ -265,6 +322,24 @@ class NotebookPedagogyCellTests(unittest.TestCase):
 
                 self.assertTrue(installation_cells)
                 for cell in installation_cells:
+                    self.assertTrue(
+                        {"hide-cell", "installation"}.issubset(
+                            set(cell.get("metadata", {}).get("tags", []))
+                        )
+                    )
+
+                installation_appendices = [
+                    cell
+                    for index, cell in enumerate(notebook_cells(path))
+                    if index != 1
+                    and cell.get("cell_type") == "markdown"
+                    and re.search(
+                        r"^#{2,6}\s+.*install",
+                        "".join(cell.get("source", [])),
+                        flags=re.IGNORECASE | re.MULTILINE,
+                    )
+                ]
+                for cell in installation_appendices:
                     self.assertTrue(
                         {"hide-cell", "installation"}.issubset(
                             set(cell.get("metadata", {}).get("tags", []))
