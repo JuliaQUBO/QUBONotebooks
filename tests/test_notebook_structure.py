@@ -37,18 +37,21 @@ class JupyterBookConfigurationTests(unittest.TestCase):
                 first_cell = notebook_cells(path)[0]
                 source = "".join(first_cell.get("source", []))
                 markdown_h1s = re.findall(r"^#\s+(.+?)\s*$", source, re.MULTILINE)
-                anchor_match = re.match(r'<div id="([^"]+)"></div>', source)
+                anchor_match = re.match(
+                    rf"# {re.escape(toc_titles[relative_path])}\n\n"
+                    r'<div id="([^"]+)"></div>',
+                    source,
+                )
 
                 self.assertEqual("markdown", first_cell.get("cell_type"))
                 self.assertEqual([toc_titles[relative_path]], markdown_h1s)
-                self.assertNotIn("<h1", source.lower())
                 self.assertIsNotNone(anchor_match)
 
                 anchor = anchor_match.group(1)
                 expected_header = (
-                    f'<div id="{anchor}"></div>\n'
-                    "\n"
                     f"# {toc_titles[relative_path]}\n"
+                    "\n"
+                    f'<div id="{anchor}"></div>\n'
                     "\n"
                     '<div align="center">\n'
                     '    <b>Maintained by the <a href="https://github.com/JuliaQUBO">JuliaQUBO</a> organization</b>\n'
@@ -74,8 +77,10 @@ class JupyterBookConfigurationTests(unittest.TestCase):
                 if cell.get("cell_type") != "markdown":
                     continue
 
+                source = "".join(cell.get("source", []))
+                self.assertNotIn("<h1", source.lower())
                 active_fence: str | None = None
-                for line in "".join(cell.get("source", [])).splitlines():
+                for line in source.splitlines():
                     fence_match = fence.match(line)
                     if fence_match:
                         marker = fence_match.group(1)[0]
@@ -330,9 +335,9 @@ class NotebookPedagogyCellTests(unittest.TestCase):
 
                 installation_appendices = [
                     cell
-                    for index, cell in enumerate(notebook_cells(path))
-                    if index != 1
-                    and cell.get("cell_type") == "markdown"
+                    for cell in notebook_cells(path)
+                    if cell.get("cell_type") == "markdown"
+                    and notebook_first_heading(cell) != "## Setup"
                     and re.search(
                         r"^#{2,6}\s+.*install",
                         "".join(cell.get("source", [])),
