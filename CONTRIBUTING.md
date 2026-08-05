@@ -45,17 +45,18 @@ mirrored.
 ### Contracts that bind every notebook
 
 These hold for all seventeen notebooks in both families and are enforced by
-`tests/test_notebook_structure.py`. Run `make test` before opening a pull
-request.
+`tests/test_notebook_structure.py`, which runs under `make test-python`. Run
+it before opening a pull request. `make test` is a separate target covering
+the repository link policy, not these contracts.
 
 | Contract | What it requires |
 | --- | --- |
-| Masthead | The first cell is markdown and opens with the exact shared block: one H1 matching the notebook's `myst.yml` table-of-contents title, its anchor `<div>`, the JuliaQUBO attribution, the SECQUOIA and PSR Energy links, and a Colab badge pointing at the notebook's own path. |
+| Masthead | The first cell is markdown and opens with the exact shared block: one H1 matching the notebook's `myst.yml` table-of-contents title, its anchor `<div>`, the JuliaQUBO attribution, the SECQUOIA and PSR Energy links, and a Colab badge. The badge URL is pinned to this repository on `main` and to the notebook's own path, so a badge repointed at a fork or a feature branch fails. |
 | Single H1 | Exactly one level-one heading per notebook, and no raw `<h1>`. |
 | Heading hierarchy | No heading level is skipped outside fenced code blocks, so the rendered page has a navigable section tree. |
 | Unindented raw HTML | Every line of a raw-HTML markdown block starts at column zero. A four-space indent publishes the tags as literal source in engines without CommonMark HTML blocks. |
 | Hidden installation cells | Installation, bootstrap, and `versioninfo()` code cells, and any install-titled section outside `## Setup`, carry both the `hide-cell` and `installation` tags. |
-| Exercise checkpoints | At least three `# EXERCISE` cells and three `# SOLUTION` cells, with the first three solutions tagged `hide-cell` and `solution` and containing real code. |
+| Exercise checkpoints | At least three cells marked `# EXERCISE` and three marked with the exact string `# SOLUTION (hidden in workshop version):` — the short `# SOLUTION` form is not counted. The first three solution cells carry the `hide-cell` and `solution` tags; every solution cell must contain real code, not only comments. |
 | Footer structure | Acknowledgments sections and back-to-top links are selected structurally, by heading and in-page anchor, rather than by prose phrase. |
 | In-page anchors | Anchor identifiers are unique across the whole project, and every `#`-link resolves inside its own notebook. |
 | Relative links | Every relative link in a notebook, `index.md`, `local-setup.md`, `README.md`, or this file resolves to a file that exists. |
@@ -102,19 +103,27 @@ not the notebook's file size.
 
 ### Documented exceptions
 
-These exceed a budget by deliberate grant rather than by accident. Each one
-publishes benchmark or solver-progress figures that carry the lesson:
+These exceed a budget by deliberate grant rather than by accident:
 
-| Notebook or cell | Budget exceeded | Reason |
+| Notebook or cell | Budget exceeded | What the stored output is |
 | --- | --- | --- |
-| `notebooks_py/5-Benchmarking_python.ipynb` | notebook, and one cell | Benchmark comparison figures across solver families |
-| `notebooks_jl/5-Benchmarking.ipynb` | notebook, and one cell | Julia benchmark figures for the same comparison |
-| `notebooks_py/1-MathProg_python.ipynb` | notebook | Repeated feasible-region and branch-and-bound plots |
-| `notebooks_py/4-DWAVE_python.ipynb` | two cells | Embedding and sampler-result visualizations |
+| `notebooks_py/5-Benchmarking_python.ipynb` | notebook, and one cell | A `nx.draw` spring-layout rendering of the random Ising model graph |
+| `notebooks_jl/5-Benchmarking.ipynb` | notebook, and one cell | A circular-layout plot of the same Ising graph |
+| `notebooks_py/4-DWAVE_python.ipynb` | two cells | The QPU topology graph and the minor-embedding graph |
+| `notebooks_py/1-MathProg_python.ipynb` | notebook | Nine stored plots holding 1.14 MB of the notebook's 1.16 MB. Eight are near-identical redraws of the same feasible region, each adding one annotation for the LP, ILP, convex INLP, and nonconvex INLP solutions; the ninth is an unrelated complexity-growth plot |
+
+Two different failures are visible in that table, and they need different
+remedies. Every cell over the per-cell budget is a dense graph-layout render,
+where the lever is rasterization and resolution rather than fewer results.
+`1-MathProg_python` is the opposite case: no single cell is close to the
+per-cell budget, and the notebook is over only because one figure is stored
+eight times over. That duplication is exactly what the per-notebook budget
+exists to catch.
 
 An exception is a decision to revisit, not a permanent allowance. Reducing a
-grant, by rendering a figure at a lower resolution or in a more compact
-format, is an improvement as long as the instruction survives it.
+grant, by rendering a figure at a lower resolution or in a more compact format
+or by not re-emitting an unchanged figure, is an improvement as long as the
+instruction survives it.
 
 ### Changing outputs
 
