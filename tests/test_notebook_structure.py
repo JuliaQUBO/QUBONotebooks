@@ -17,6 +17,51 @@ from notebook_test_support import (
 
 
 class JupyterBookConfigurationTests(unittest.TestCase):
+    def test_notebook_headers_match_toc_titles_and_share_one_format(self) -> None:
+        """JB2 titles and the visible notebook masthead have one contract."""
+        myst_source = (REPO_ROOT / "myst.yml").read_text()
+        toc_titles = dict(
+            re.findall(
+                r"^\s*-\s+file:\s+([^\s#]+\.ipynb)\s*\n\s+title:\s+(.+?)\s*$",
+                myst_source,
+                flags=re.MULTILINE,
+            )
+        )
+
+        self.assertEqual(len(notebook_paths()), len(toc_titles))
+
+        for path in notebook_paths():
+            relative_path = path.relative_to(REPO_ROOT).as_posix()
+            with self.subTest(notebook=relative_path):
+                first_cell = notebook_cells(path)[0]
+                source = "".join(first_cell.get("source", []))
+                markdown_h1s = re.findall(r"^#\s+(.+?)\s*$", source, re.MULTILINE)
+                anchor_match = re.match(r'<div id="([^"]+)"></div>', source)
+
+                self.assertEqual("markdown", first_cell.get("cell_type"))
+                self.assertEqual([toc_titles[relative_path]], markdown_h1s)
+                self.assertNotIn("<h1", source.lower())
+                self.assertIsNotNone(anchor_match)
+
+                anchor = anchor_match.group(1)
+                expected_header = (
+                    f'<div id="{anchor}"></div>\n'
+                    "\n"
+                    f"# {toc_titles[relative_path]}\n"
+                    "\n"
+                    '<div align="center">\n'
+                    '    <b>Maintained by the <a href="https://github.com/JuliaQUBO">JuliaQUBO</a> organization</b>\n'
+                    "    <br>\n"
+                    '    <a href="https://secquoia.github.io/">SECQUOIA</a> &nbsp;&middot;&nbsp; <a href="https://www.psr-inc.com/">PSR Energy</a>\n'
+                    "    <br>\n"
+                    "    <br>\n"
+                    f'    <a href="https://colab.research.google.com/github/JuliaQUBO/QUBONotebooks/blob/main/{relative_path}" target="_parent">\n'
+                    '        <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>\n'
+                    "    </a>\n"
+                    "</div>"
+                )
+                self.assertTrue(source.startswith(expected_header))
+
     def test_book_build_gate_is_configured_as_intended(self) -> None:
         """The book build is a merge gate, so its policy is asserted in one place.
 
@@ -196,6 +241,36 @@ class JupyterBookConfigurationTests(unittest.TestCase):
 
 
 class NotebookPedagogyCellTests(unittest.TestCase):
+    def test_installation_cells_are_hidden_in_the_book(self) -> None:
+        installation_markers = (
+            "!pip install",
+            "!apt-get install",
+            '"pip", "install"',
+            "function load_qubonotebooks_bootstrap()",
+            "Pkg.activate(",
+            "Pkg.instantiate(",
+        )
+
+        for path in notebook_paths():
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                installation_cells = [
+                    cell
+                    for cell in notebook_cells(path)
+                    if cell.get("cell_type") == "code"
+                    and any(
+                        marker in "".join(cell.get("source", []))
+                        for marker in installation_markers
+                    )
+                ]
+
+                self.assertTrue(installation_cells)
+                for cell in installation_cells:
+                    self.assertTrue(
+                        {"hide-cell", "installation"}.issubset(
+                            set(cell.get("metadata", {}).get("tags", []))
+                        )
+                    )
+
     def test_each_notebook_has_three_exercise_checkpoints(self) -> None:
         # Defect class: a notebook silently loses a workshop checkpoint or exposes
         # a solution because its required hide tags were removed.
