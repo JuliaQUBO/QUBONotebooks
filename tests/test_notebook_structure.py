@@ -334,6 +334,42 @@ class JupyterBookConfigurationTests(unittest.TestCase):
 
 
 class NotebookPedagogyCellTests(unittest.TestCase):
+    def test_setup_material_never_follows_the_summary(self) -> None:
+        """Setup belongs in one place, at the top, not in a trailing appendix.
+
+        Defect class: a notebook regrows a late installation or validation
+        appendix, so the raw notebook ends in setup material instead of
+        Summary, References, and Acknowledgments. Tagging such a cell
+        ``hide-cell`` hides it from the rendered book, which is what makes the
+        duplication invisible to every other check here.
+        """
+        setup_heading = re.compile(
+            r"^#{2,6}\s+.*\b(install\w*|setup|validat\w*)\b", re.IGNORECASE | re.MULTILINE
+        )
+        offenders = []
+
+        for path in notebook_paths():
+            cells = notebook_cells(path)
+            summaries = [
+                index
+                for index, cell in enumerate(cells)
+                if cell.get("cell_type") == "markdown"
+                and notebook_first_heading(cell) == "## Summary"
+            ]
+
+            with self.subTest(notebook=path.relative_to(REPO_ROOT).as_posix()):
+                self.assertEqual(1, len(summaries))
+
+            for cell in cells[summaries[-1] + 1 :]:
+                if cell.get("cell_type") != "markdown":
+                    continue
+                match = setup_heading.search("".join(cell.get("source", [])))
+                if match:
+                    relative_path = path.relative_to(REPO_ROOT).as_posix()
+                    offenders.append(f"{relative_path}: {match.group(0)!r}")
+
+        self.assertEqual([], offenders)
+
     def test_installation_cells_are_hidden_in_the_book(self) -> None:
         installation_markers = (
             "!pip install",

@@ -3,6 +3,24 @@
 This repository uses `uv` for the Python environment and focused Julia
 projects under `notebooks_jl/environments/`.
 
+## Install Julia
+
+If you do not have a Julia installation yet, consider using
+[juliaup](https://github.com/JuliaLang/juliaup), which installs Julia and keeps
+several versions side by side. The Julia notebook projects carry locks for
+Julia 1.10.11 and Julia 1.12.6.
+
+Instantiate the notebook project once from the repository root:
+
+```bash
+julia --project=notebooks_jl -e 'using Pkg; Pkg.instantiate()'
+```
+
+Each Julia notebook activates that project when it runs locally. In Colab the
+bootstrap selects the focused project under
+`notebooks_jl/environments/<notebook-key>` instead, so no manual installation
+step is needed there.
+
 ## Build the book
 
 From the repository root, install the locked documentation environment and
@@ -40,6 +58,26 @@ Additional targets and environment details are listed in the repository
 particular, Julia notebooks activate their own focused projects, and the Python
 QCI notebook uses a separate dependency environment from the D-Wave notebooks
 because their NetworkX constraints conflict.
+
+## Commercial solvers
+
+The Julia mathematical-programming notebook has optional sections that use
+commercial solvers. Neither solver is required for the core examples, and
+neither is installed by the notebook project.
+
+**Gurobi** is one of the most powerful LP and MIP solvers available today, and
+free academic licences are offered. Visit
+[the Gurobi website](https://www.gurobi.com/), create an account, preferably
+with an academic email address, and obtain a licence. You can then download and
+use the software.
+
+**BARON** is one of the most powerful MINLP solvers available today. Students
+from the University System of Georgia and CMU and UIUC affiliates are eligible
+for a free licence. Visit [the BARON website](https://www.minlp.com/home),
+create an account with an academic email address, and obtain a licence. You can
+then download and use the software.
+
+## Credentials
 
 Cloud execution is always explicit. Provide credentials only through the
 process environment or an approved secret store. QCI submission requires
