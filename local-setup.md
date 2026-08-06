@@ -21,6 +21,10 @@ bootstrap selects the focused project under
 `notebooks_jl/environments/<notebook-key>` instead, so no manual installation
 step is needed there.
 
+To report the version you are actually running, start Julia and call
+`versioninfo()`. Instantiating against an incompatible release fails at the
+notebook's setup cell, so this is a diagnostic rather than a required step.
+
 ## Build the book
 
 From the repository root, install the locked documentation environment and
@@ -61,9 +65,11 @@ because their NetworkX constraints conflict.
 
 ## Commercial solvers
 
-The Julia mathematical-programming notebook has optional sections that use
-commercial solvers. Neither solver is required for the core examples, and
-neither is installed by the notebook project.
+No notebook in this collection calls a commercial solver, and neither solver
+below is a dependency of any notebook project. They are documented here because
+the notebooks are a starting point for your own models, where an LP/MIP or
+MINLP licence is often worth having. The Julia notebooks solve their examples
+with GLPK, Cbc, Ipopt, Bonmin, and Couenne, all open source.
 
 **Gurobi** is one of the most powerful LP and MIP solvers available today, and
 free academic licences are offered. Visit
