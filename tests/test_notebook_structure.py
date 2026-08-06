@@ -293,7 +293,7 @@ class JupyterBookConfigurationTests(unittest.TestCase):
         documents = [(path, path.parent, notebook_markdown(path)) for path in notebook_paths()]
         documents += [
             (REPO_ROOT / name, REPO_ROOT, (REPO_ROOT / name).read_text(encoding="utf-8"))
-            for name in ("index.md", "local-setup.md", "README.md")
+            for name in ("index.md", "local-setup.md", "README.md", "CONTRIBUTING.md")
             if (REPO_ROOT / name).is_file()
         ]
 
