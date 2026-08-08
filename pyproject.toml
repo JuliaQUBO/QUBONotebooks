@@ -8,7 +8,7 @@ dependencies = []
 [dependency-groups]
 docs = [
     "ipykernel>=7.3.0,<8",
-    "jupyter-book==2.1.0",
+    "jupyter-book==2.1.6",
     "jupyterlab>=4.4,<5",
     "nbconvert>=7,<8",
     "numpy>=1.26,<3",
