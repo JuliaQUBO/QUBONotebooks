@@ -56,6 +56,7 @@ the repository link policy, not these contracts.
 | Heading hierarchy | No heading level is skipped outside fenced code blocks, so the rendered page has a navigable section tree. |
 | Unindented raw HTML | Every line of a raw-HTML markdown block starts at column zero. A four-space indent publishes the tags as literal source in engines without CommonMark HTML blocks. |
 | Hidden installation cells | Installation, bootstrap, and `versioninfo()` code cells, and any install-titled section outside `## Setup`, carry both the `hide-cell` and `installation` tags. |
+| Setup never follows Summary | Each notebook has exactly one `## Summary`, and no level-2 through level-6 heading whose text contains an install, setup, or validation term appears after it. Setup belongs in the canonical section at the top; tagging a trailing appendix `hide-cell` hides it from the book but leaves the duplication in the source. |
 | Exercise checkpoints | At least three cells marked `# EXERCISE` and three marked with the exact string `# SOLUTION (hidden in workshop version):` — the short `# SOLUTION` form is not counted. The first three solution cells carry the `hide-cell` and `solution` tags; every solution cell must contain real code, not only comments. |
 | Footer structure | Acknowledgments sections and back-to-top links are selected structurally, by heading and in-page anchor, rather than by prose phrase. |
 | In-page anchors | Anchor identifiers are unique across the whole project, and every `#`-link resolves inside its own notebook. |
