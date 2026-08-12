@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from notebook_test_support import REPO_ROOT
+from notebook_test_support import REPO_ROOT, notebook_paths
 
 
 BUDGETS_MODULE_PATH = REPO_ROOT / "scripts" / "check_notebook_output_budgets.py"
@@ -154,6 +154,26 @@ class PolicyParsingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no table"):
             budgets.load_policy(document)
 
+    def test_names_a_renamed_column_the_check_reads(self) -> None:
+        # Defect class: an edit to the policy table surfaces as a traceback from
+        # wherever a value was read, instead of naming the column to restore.
+        document = policy_document(
+            DEFAULT_BUDGET_ROWS,
+            "| `notebooks_py/2-QUBO_python.ipynb` | One notebook | 2 MB | plots |",
+        ).replace("| Notebook | Scope | Granted ceiling |", "| Notebook | Scope | Ceiling |")
+
+        with self.assertRaisesRegex(ValueError, r"missing the column\(s\).*Granted ceiling"):
+            budgets.load_policy(document)
+
+    def test_rejects_a_row_that_does_not_fill_the_table(self) -> None:
+        document = policy_document(
+            DEFAULT_BUDGET_ROWS,
+            "| `notebooks_py/2-QUBO_python.ipynb` | One notebook | 2 MB |",
+        )
+
+        with self.assertRaisesRegex(ValueError, "3 cells for 4 columns"):
+            budgets.load_policy(document)
+
 
 class MeasurementTests(unittest.TestCase):
     def test_measures_stored_output_as_compact_utf8_json(self) -> None:
@@ -181,7 +201,7 @@ class MeasurementTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.ipynb"
             path.write_text(json.dumps(notebook))
-            measured = budgets.measure_notebook(path)
+            measured = budgets.measure_notebook(path, "notebooks_py/example.ipynb")
 
         self.assertEqual([1, 2], [index for index, _size in measured.cell_bytes])
         self.assertEqual(2, measured.cell_bytes[1][1])
@@ -267,15 +287,32 @@ class BudgetViolationTests(unittest.TestCase):
 
 
 class CommittedOutputBudgetTests(unittest.TestCase):
+    def test_the_check_measures_every_published_notebook(self) -> None:
+        # Defect class: a notebook moves out of the two globbed directories and
+        # stops being measured, which the budgets themselves cannot report.
+        measured = {measurement.notebook for measurement in budgets.measure_repository()}
+        published = {
+            path.relative_to(REPO_ROOT).as_posix() for path in notebook_paths()
+        }
+
+        self.assertTrue(published)
+        self.assertEqual(published, measured)
+
+    def test_discovering_no_notebook_is_a_failure_rather_than_a_clean_result(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            for name in budgets.NOTEBOOK_DIRS:
+                (Path(directory) / name).mkdir()
+
+            with self.assertRaisesRegex(ValueError, "discovery failure"):
+                budgets.measure_repository(Path(directory))
+
     def test_committed_notebooks_are_within_the_documented_budgets(self) -> None:
         # Defect class: a re-executed notebook commits a larger or duplicated
         # figure, which no other check sees because the book build never runs
         # a notebook and every source-level contract still holds.
         loaded = budgets.load_policy(POLICY_DOCUMENT.read_text())
-        measurements = budgets.measure_repository()
 
-        self.assertEqual(17, len(measurements))
-        self.assertEqual([], budgets.check(loaded, measurements))
+        self.assertEqual([], budgets.check(loaded, budgets.measure_repository()))
 
 
 if __name__ == "__main__":

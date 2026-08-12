@@ -118,6 +118,11 @@ in the same way passing the budget does. Each ceiling was set at the size the
 grant was written against plus roughly ten percent, rounded up to the next
 32 KB, so an ordinary re-render fits and a new or duplicated figure does not.
 
+A `One code cell` grant raises the per-cell ceiling for *any* one code cell in
+that notebook, not for the particular cell the row describes: cell positions
+shift whenever a cell is added, so there is no stable anchor to grant against.
+The per-notebook budget is what bounds the rest of the notebook.
+
 | Notebook | Scope | Granted ceiling | What the stored output is |
 | --- | --- | --- | --- |
 | `notebooks_py/5-Benchmarking_python.ipynb` | One notebook | 2400 KB | The graph render below, plus the sweep and time-to-solution figures of the simulated-annealing benchmark |

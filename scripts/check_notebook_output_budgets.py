@@ -43,8 +43,16 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes / KILOBYTE:.1f} KB"
 
 
-def markdown_table_rows(document: str, heading: str) -> list[dict[str, str]]:
-    """Return the rows of the first Markdown table under ``heading``."""
+def markdown_table_rows(
+    document: str,
+    heading: str,
+    required_columns: tuple[str, ...],
+) -> list[dict[str, str]]:
+    """Return the rows of the first Markdown table under ``heading``.
+
+    The policy lives in prose, so every way of breaking the table has to report
+    what to fix rather than raise from wherever a value was later read.
+    """
     lines = document.splitlines()
     try:
         start = lines.index(heading)
@@ -65,7 +73,22 @@ def markdown_table_rows(document: str, heading: str) -> list[dict[str, str]]:
         raise ValueError(f"The table under {heading!r} has no rows.")
 
     header, _separator, *body = table
-    return [dict(zip(header, row)) for row in body]
+    missing = [column for column in required_columns if column not in header]
+    if missing:
+        raise ValueError(
+            f"The table under {heading!r} is missing the column(s) {missing} that "
+            f"the check reads. Its columns are {header}."
+        )
+
+    rows = []
+    for row in body:
+        if len(row) != len(header):
+            raise ValueError(
+                f"A row under {heading!r} has {len(row)} cells for {len(header)} "
+                f"columns: {row}."
+            )
+        rows.append(dict(zip(header, row)))
+    return rows
 
 
 @dataclass(frozen=True)
@@ -85,14 +108,17 @@ class Policy:
 def load_policy(document: str) -> Policy:
     budgets = {
         row["Scope"]: parse_size(row["Budget"])
-        for row in markdown_table_rows(document, BUDGET_HEADING)
+        for row in markdown_table_rows(document, BUDGET_HEADING, ("Scope", "Budget"))
     }
     missing = {CELL_SCOPE, NOTEBOOK_SCOPE, COLLECTION_SCOPE} - set(budgets)
     if missing:
         raise ValueError(f"The size-budget table is missing scopes: {sorted(missing)}.")
 
     grants: dict[tuple[str, str], int] = {}
-    for row in markdown_table_rows(document, EXCEPTION_HEADING):
+    exception_rows = markdown_table_rows(
+        document, EXCEPTION_HEADING, ("Notebook", "Scope", "Granted ceiling")
+    )
+    for row in exception_rows:
         scope = row["Scope"]
         if scope not in GRANTABLE_SCOPES:
             raise ValueError(
@@ -125,7 +151,13 @@ class Measurement:
         return max(self.cell_bytes, key=lambda item: item[1])
 
 
-def measure_notebook(path: Path, name: str | None = None) -> Measurement:
+def measure_notebook(path: Path, name: str) -> Measurement:
+    """Measure ``path``, recorded under ``name``.
+
+    The name is required because the exceptions are keyed by repository-relative
+    path: a measurement recorded under a bare filename matches no grant, and the
+    mismatch would surface as a complaint about the policy table.
+    """
     notebook = json.loads(path.read_text())
     cell_bytes = tuple(
         (index, cell_output_bytes(cell))
@@ -133,18 +165,25 @@ def measure_notebook(path: Path, name: str | None = None) -> Measurement:
         if cell.get("cell_type") == "code"
     )
     return Measurement(
-        notebook=name if name is not None else path.name,
+        notebook=name,
         stored_bytes=sum(size for _index, size in cell_bytes),
         cell_bytes=cell_bytes,
     )
 
 
 def measure_repository(repo_root: Path = REPO_ROOT) -> list[Measurement]:
-    return [
+    measurements = [
         measure_notebook(path, path.relative_to(repo_root).as_posix())
         for directory in NOTEBOOK_DIRS
         for path in sorted((repo_root / directory).glob("*.ipynb"))
     ]
+    if not measurements:
+        raise ValueError(
+            f"Found no notebooks in {list(NOTEBOOK_DIRS)} under {repo_root}. The "
+            "budgets cover every published notebook, so an empty set is a "
+            "discovery failure rather than a clean result."
+        )
+    return measurements
 
 
 def check(policy: Policy, measurements: list[Measurement]) -> list[str]:
