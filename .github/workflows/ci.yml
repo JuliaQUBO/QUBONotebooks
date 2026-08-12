@@ -51,6 +51,9 @@ jobs:
       - name: Notebook output hygiene
         run: make check-notebook-output-hygiene
 
+      - name: Notebook output budgets
+        run: make check-notebook-output-budgets
+
       - name: Python unit tests
         run: make test-python PYTHON="uv run --locked --group docs python"
 
