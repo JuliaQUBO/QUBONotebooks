@@ -154,6 +154,24 @@ class PolicyParsingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no table"):
             budgets.load_policy(document)
 
+    def test_accepts_an_exception_table_with_no_rows(self) -> None:
+        # Defect class: the policy tells a reduction to delete the last stale
+        # exception row, and the check then rejects the state it asked for.
+        loaded = budgets.load_policy(policy_document(DEFAULT_BUDGET_ROWS, ""))
+
+        self.assertEqual({}, loaded.grants)
+        self.assertEqual(1024 * KB, loaded.budgets[budgets.NOTEBOOK_SCOPE])
+        self.assertEqual(
+            [],
+            budgets.check(loaded, [measurement("a.ipynb", 200 * KB, 100 * KB)]),
+        )
+
+    def test_still_requires_the_budget_rows(self) -> None:
+        document = policy_document("", "")
+
+        with self.assertRaisesRegex(ValueError, "has no rows"):
+            budgets.load_policy(document)
+
     def test_names_a_renamed_column_the_check_reads(self) -> None:
         # Defect class: an edit to the policy table surfaces as a traceback from
         # wherever a value was read, instead of naming the column to restore.
@@ -181,8 +199,14 @@ class MeasurementTests(unittest.TestCase):
         # states, so the numbers in review stop matching the numbers in the doc.
         self.assertEqual(2, budgets.cell_output_bytes({"outputs": []}))
         self.assertEqual(2, budgets.cell_output_bytes({}))
-        # Compact separators: an indented serialization would be longer.
-        self.assertEqual(4, budgets.cell_output_bytes({"outputs": [{}]}))
+        # Compact separators. An object with several fields is what distinguishes
+        # them: `[{"name":"stdout","text":"x"}]` is 30 bytes, where the default
+        # `", "` and `": "` would give 33. A single empty object cannot tell the
+        # two apart, so it is not a fixture for this.
+        self.assertEqual(
+            30,
+            budgets.cell_output_bytes({"outputs": [{"name": "stdout", "text": "x"}]}),
+        )
         # Non-ASCII text counts its UTF-8 length rather than an escape sequence.
         self.assertEqual(
             1,

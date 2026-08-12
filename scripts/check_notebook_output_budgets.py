@@ -47,11 +47,16 @@ def markdown_table_rows(
     document: str,
     heading: str,
     required_columns: tuple[str, ...],
+    allow_no_rows: bool = False,
 ) -> list[dict[str, str]]:
     """Return the rows of the first Markdown table under ``heading``.
 
     The policy lives in prose, so every way of breaking the table has to report
     what to fix rather than raise from wherever a value was later read.
+
+    ``allow_no_rows`` covers a table whose empty state is meaningful: the
+    exceptions table is expected to lose its last row once reductions land, so
+    requiring one would force a dummy grant to stay behind.
     """
     lines = document.splitlines()
     try:
@@ -69,10 +74,13 @@ def markdown_table_rows(
         elif stripped.startswith("#"):
             raise ValueError(f"{POLICY_PATH.name} has no table under {heading!r}.")
 
-    if len(table) < 3:
-        raise ValueError(f"The table under {heading!r} has no rows.")
+    if len(table) < 2:
+        raise ValueError(f"{POLICY_PATH.name} has no table under {heading!r}.")
 
     header, _separator, *body = table
+    if not body and not allow_no_rows:
+        raise ValueError(f"The table under {heading!r} has no rows.")
+
     missing = [column for column in required_columns if column not in header]
     if missing:
         raise ValueError(
@@ -116,7 +124,10 @@ def load_policy(document: str) -> Policy:
 
     grants: dict[tuple[str, str], int] = {}
     exception_rows = markdown_table_rows(
-        document, EXCEPTION_HEADING, ("Notebook", "Scope", "Granted ceiling")
+        document,
+        EXCEPTION_HEADING,
+        ("Notebook", "Scope", "Granted ceiling"),
+        allow_no_rows=True,
     )
     for row in exception_rows:
         scope = row["Scope"]
@@ -134,8 +145,17 @@ def load_policy(document: str) -> Policy:
 
 
 def cell_output_bytes(cell: dict) -> int:
-    """Return the size of one cell's stored output as the policy measures it."""
-    return len(json.dumps(cell.get("outputs", []), ensure_ascii=False).encode("utf-8"))
+    """Return the size of one cell's stored output as the policy measures it.
+
+    Compact separators are part of the definition in CONTRIBUTING.md: the
+    default `", "` and `": "` add a byte per delimiter, which measures output the
+    policy does not describe.
+    """
+    return len(
+        json.dumps(
+            cell.get("outputs", []), ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
+    )
 
 
 @dataclass(frozen=True)

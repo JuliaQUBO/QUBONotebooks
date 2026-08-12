@@ -143,7 +143,9 @@ exists to catch.
 Adding a row is a review decision. Removing one is not: once a reduction brings
 a scope back inside its budget, the check reports the row as no longer needed
 and fails until it is deleted, so the table cannot outlive the exception it
-records.
+records. Deleting the last row is the intended end state — keep the header and
+separator so the check can still find the table, and every notebook is then held
+to the plain budgets.
 
 An exception is a decision to revisit, not a permanent allowance. Reducing a
 grant, by rendering a figure at a lower resolution or in a more compact format
