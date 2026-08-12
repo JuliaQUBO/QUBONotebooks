@@ -1,4 +1,4 @@
-.PHONY: test build-book sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
+.PHONY: test build-book sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
 PYTHON ?= python3
 UV ?= uv
@@ -57,6 +57,9 @@ check-notebook-output-hygiene:
 		echo "Found stale or personal notebook output paths"; \
 		exit 1; \
 	fi
+
+check-notebook-output-budgets:
+	$(PYTHON) ./scripts/check_notebook_output_budgets.py
 
 clear-notebook-outputs:
 	$(PYTHON) -m jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace $(NOTEBOOK_FILES)

@@ -169,6 +169,8 @@ make test
 make test-python
 make test-julia
 make test-qciopt-dwave-coexistence
+make check-notebook-output-hygiene
+make check-notebook-output-budgets
 make verify-qubo-python
 make verify-gama-python
 make verify-qci-julia-local

@@ -99,27 +99,46 @@ change to the lesson. These budgets bound that drift:
 | One notebook | 1.0 MB of stored output |
 | All notebooks | 10 MB of stored output |
 
-Measure stored output as the serialized `outputs` array of every code cell,
-not the notebook's file size.
+Measure stored output as the serialized `outputs` array of every code cell, not
+the notebook's file size: the UTF-8 length of that array as compact JSON, which
+is what `make check-notebook-output-budgets` reports. `KB` is 1024 bytes and
+`MB` is 1024 KB throughout this section.
+
+`make check-notebook-output-budgets` reads the budgets and the exceptions below
+out of this file, so these tables are the enforced policy rather than a
+description of one. It runs in CI, and
+`tests/test_notebook_output_budgets.py` asserts the same contract under
+`make test-python`.
 
 ### Documented exceptions
 
-These exceed a budget by deliberate grant rather than by accident:
+These exceed a budget by deliberate grant rather than by accident. A grant is a
+ceiling, not a waiver: the scope still has a limit, and passing it needs review
+in the same way passing the budget does. Each ceiling was set at the size the
+grant was written against plus roughly ten percent, rounded up to the next
+32 KB, so an ordinary re-render fits and a new or duplicated figure does not.
 
-| Notebook or cell | Budget exceeded | What the stored output is |
-| --- | --- | --- |
-| `notebooks_py/5-Benchmarking_python.ipynb` | notebook, and one cell | A `nx.draw` spring-layout rendering of the random Ising model graph |
-| `notebooks_jl/5-Benchmarking.ipynb` | notebook, and one cell | A circular-layout plot of the same Ising graph |
-| `notebooks_py/4-DWAVE_python.ipynb` | two cells | The QPU topology graph and the minor-embedding graph |
-| `notebooks_py/1-MathProg_python.ipynb` | notebook | Nine stored plots holding 1.14 MB of the notebook's 1.16 MB. Eight are near-identical redraws of the same feasible region, each adding one annotation for the LP, ILP, convex INLP, and nonconvex INLP solutions; the ninth is an unrelated complexity-growth plot |
+| Notebook | Scope | Granted ceiling | What the stored output is |
+| --- | --- | --- | --- |
+| `notebooks_py/5-Benchmarking_python.ipynb` | One notebook | 2400 KB | The graph render below, plus the sweep and time-to-solution figures of the simulated-annealing benchmark |
+| `notebooks_py/5-Benchmarking_python.ipynb` | One code cell | 608 KB | A `nx.draw` spring-layout rendering of the random Ising model graph |
+| `notebooks_jl/5-Benchmarking.ipynb` | One notebook | 1472 KB | The plot below, a system-layout plot of the same model, and the schedule, total-runtime, and ensemble figures |
+| `notebooks_jl/5-Benchmarking.ipynb` | One code cell | 320 KB | A circular-layout plot of the same Ising graph |
+| `notebooks_py/4-DWAVE_python.ipynb` | One code cell | 448 KB | The QPU topology graph, and the minor-embedding graph a few cells later |
+| `notebooks_py/1-MathProg_python.ipynb` | One notebook | 1248 KB | Nine stored plots, holding nearly all of this notebook's output. Eight are near-identical redraws of the same feasible region, each adding one annotation for the LP, ILP, convex INLP, and nonconvex INLP solutions; the ninth is an unrelated complexity-growth plot |
 
 Two different failures are visible in that table, and they need different
-remedies. Every cell over the per-cell budget is a dense graph-layout render,
+remedies. Every cell holding a per-cell grant is a dense graph-layout render,
 where the lever is rasterization and resolution rather than fewer results.
 `1-MathProg_python` is the opposite case: no single cell is close to the
 per-cell budget, and the notebook is over only because one figure is stored
 eight times over. That duplication is exactly what the per-notebook budget
 exists to catch.
+
+Adding a row is a review decision. Removing one is not: once a reduction brings
+a scope back inside its budget, the check reports the row as no longer needed
+and fails until it is deleted, so the table cannot outlive the exception it
+records.
 
 An exception is a decision to revisit, not a permanent allowance. Reducing a
 grant, by rendering a figure at a lower resolution or in a more compact format
@@ -128,11 +147,12 @@ instruction survives it.
 
 ### Changing outputs
 
-When a change re-executes a notebook, check the resulting stored-output size
-against the budgets above. Growth past a budget needs either a reduction or a
-new documented exception in the table, decided in review rather than merged
-silently. Adding a figure to a notebook that already holds an exception is the
-case most likely to pass unnoticed.
+When a change re-executes a notebook, run
+`make check-notebook-output-budgets` and read the size it reports. Growth past
+a budget needs either a reduction or a new documented exception in the table,
+decided in review rather than merged silently. Adding a figure to a notebook
+that already holds an exception is the case most likely to pass unnoticed,
+which is why every grant carries a ceiling of its own.
 
 Committed outputs must not carry credentials, tokens, or machine-specific
 absolute paths; `make check-notebook-output-hygiene` guards the known personal
