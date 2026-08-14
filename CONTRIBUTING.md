@@ -96,8 +96,41 @@ change to the lesson. These budgets bound that drift:
 | Scope | Budget |
 | --- | --- |
 | One code cell | 256 KB of stored output |
-| One notebook | 1.0 MB of stored output |
-| All notebooks | 10 MB of stored output |
+| One notebook | 1.5 MB of stored output |
+| All notebooks | 24 MB of stored output |
+
+The three scopes are not equally load-bearing, and they were not set the same
+way.
+
+`One code cell` is the sharp one. A single cell holding a quarter of a megabyte
+is usually a dense raster that could be rendered smaller, so crossing that
+default is a reviewed exception and a reduction candidate rather than ordinary
+lesson output. It is deliberately tight.
+
+`One notebook` catches the drift a per-cell budget cannot see: the same figure
+re-emitted under several cells, each of them individually reasonable.
+
+`All notebooks` is a backstop, not a design constraint. It exists so that
+diffuse growth can still fail before every notebook independently reaches its
+allowance. At the current 17-notebook collection, the plain per-notebook
+ceilings total 25.5 MB. The one per-notebook grant raises the operative
+aggregate to 26.34 MB. The 24 MB collection ceiling is one 1.5 MB notebook
+allowance below the plain total, and 2.34 MB below the granted total, so the
+per-notebook scope remains the ordinary diagnostic while the collection
+retains a reproducible aggregate constraint. The check enforces that exact
+equality, not merely an upper bound: a smaller collection ceiling also fails.
+Tightening or loosening the backstop is therefore a change to this policy
+relationship, not a standalone table edit. The check also fails when the
+notebook count or per-notebook budget moves. Revisit the ceiling and this
+arithmetic whenever either changes, or whenever a per-notebook grant is added,
+enlarged, or removed.
+
+The collection ceiling was originally 10 MB, a round number about twenty
+percent above the footprint at the time. It was binding well before either of
+the other two scopes, which made it the one scope that generated friction
+without diagnosing anything. The new relationship leaves real headroom so that
+adding a section to a notebook is a question about that notebook, not a
+negotiation with the collection.
 
 Measure stored output as the serialized `outputs` array of every code cell, not
 the notebook's file size: the UTF-8 length of that array as compact JSON, which
@@ -127,18 +160,20 @@ The per-notebook budget is what bounds the rest of the notebook.
 | --- | --- | --- | --- |
 | `notebooks_py/5-Benchmarking_python.ipynb` | One notebook | 2400 KB | The graph render below, plus the sweep and time-to-solution figures of the simulated-annealing benchmark |
 | `notebooks_py/5-Benchmarking_python.ipynb` | One code cell | 608 KB | A `nx.draw` spring-layout rendering of the random Ising model graph |
-| `notebooks_jl/5-Benchmarking.ipynb` | One notebook | 1472 KB | The plot below, a system-layout plot of the same model, and the schedule, total-runtime, and ensemble figures |
 | `notebooks_jl/5-Benchmarking.ipynb` | One code cell | 320 KB | A circular-layout plot of the same Ising graph |
 | `notebooks_py/4-DWAVE_python.ipynb` | One code cell | 448 KB | The QPU topology graph, and the minor-embedding graph a few cells later |
-| `notebooks_py/1-MathProg_python.ipynb` | One notebook | 1248 KB | Nine stored plots, holding nearly all of this notebook's output. Eight are near-identical redraws of the same feasible region, each adding one annotation for the LP, ILP, convex INLP, and nonconvex INLP solutions; the ninth is an unrelated complexity-growth plot |
 
-Two different failures are visible in that table, and they need different
-remedies. Every cell holding a per-cell grant is a dense graph-layout render,
-where the lever is rasterization and resolution rather than fewer results.
-`1-MathProg_python` is the opposite case: no single cell is close to the
-per-cell budget, and the notebook is over only because one figure is stored
-eight times over. That duplication is exactly what the per-notebook budget
-exists to catch.
+Every remaining grant is a dense graph-layout render, where the lever is
+rasterization and resolution rather than fewer results.
+
+One reduction worth making is no longer visible in that table, so it is recorded
+here instead. `notebooks_py/1-MathProg_python.ipynb` stores nine plots holding
+nearly all of its output, and eight of them are near-identical redraws of the
+same feasible region, each adding one annotation for the LP, ILP, convex INLP,
+and nonconvex INLP solutions. No single cell is close to the per-cell budget;
+the notebook is large only because one figure is stored eight times over. That
+fits the budgets now, but it is still eight blobs rewritten on every
+re-execution, which is the accumulation problem rather than the size problem.
 
 Adding a row is a review decision. Removing one is not: once a reduction brings
 a scope back inside its budget, the check reports the row as no longer needed

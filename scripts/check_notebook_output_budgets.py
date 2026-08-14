@@ -206,6 +206,23 @@ def measure_repository(repo_root: Path = REPO_ROOT) -> list[Measurement]:
     return measurements
 
 
+def check_budget_relationship(policy: Policy, notebook_count: int) -> list[str]:
+    """Require the collection ceiling to equal the plain aggregate minus one notebook."""
+    notebook_budget = policy.budgets[NOTEBOOK_SCOPE]
+    collection_budget = policy.budgets[COLLECTION_SCOPE]
+    plain_aggregate = notebook_count * notebook_budget
+    expected_collection_budget = plain_aggregate - notebook_budget
+    if collection_budget == expected_collection_budget:
+        return []
+    return [
+        f"All notebooks: with {notebook_count} notebooks at the plain "
+        f"{format_size(notebook_budget)} per-notebook budget, the collection budget "
+        f"must be one notebook allowance below their {format_size(plain_aggregate)} "
+        f"aggregate: {format_size(expected_collection_budget)}, not "
+        f"{format_size(collection_budget)}."
+    ]
+
+
 def check(policy: Policy, measurements: list[Measurement]) -> list[str]:
     """Return one message per budget violation, empty when the tree conforms."""
     measured = {measurement.notebook: measurement for measurement in measurements}
@@ -296,7 +313,8 @@ def main() -> int:
     measurements = measure_repository()
     print(report(policy, measurements))
 
-    violations = check(policy, measurements)
+    violations = check_budget_relationship(policy, len(measurements))
+    violations.extend(check(policy, measurements))
     if not violations:
         print("\nEvery notebook is within its documented output budget.")
         return 0
