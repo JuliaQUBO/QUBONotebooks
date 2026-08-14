@@ -103,19 +103,28 @@ The three scopes are not equally load-bearing, and they were not set the same
 way.
 
 `One code cell` is the sharp one. A single cell holding a quarter of a megabyte
-is a dense raster that could almost always be rendered smaller, and no lesson
-needs one. It is deliberately tight.
+is usually a dense raster that could be rendered smaller, so crossing that
+default is a reviewed exception and a reduction candidate rather than ordinary
+lesson output. It is deliberately tight.
 
 `One notebook` catches the drift a per-cell budget cannot see: the same figure
 re-emitted under several cells, each of them individually reasonable.
 
 `All notebooks` is a backstop, not a design constraint. It exists so that
-seventeen notebooks each drifting a little does not add up unnoticed. It was
-originally 10 MB, a round number about twenty percent above the footprint at
-the time, and it was binding well before either of the other two — which made it
-the one scope that generated friction without diagnosing anything. It is now set
-with real headroom so that adding a section to a notebook is a question about
-that notebook, not a negotiation with the collection.
+diffuse growth can still fail before every notebook independently reaches its
+allowance. At the current 17-notebook collection, the plain per-notebook
+ceilings total 25.5 MB. The 24 MB collection ceiling is one 1.5 MB notebook
+allowance below that total, so the per-notebook scope remains the ordinary
+diagnostic while the collection retains a reproducible aggregate constraint.
+Revisit the collection ceiling when either the notebook count or the
+per-notebook ceiling changes.
+
+The collection ceiling was originally 10 MB, a round number about twenty
+percent above the footprint at the time. It was binding well before either of
+the other two scopes, which made it the one scope that generated friction
+without diagnosing anything. The new relationship leaves real headroom so that
+adding a section to a notebook is a question about that notebook, not a
+negotiation with the collection.
 
 Measure stored output as the serialized `outputs` array of every code cell, not
 the notebook's file size: the UTF-8 length of that array as compact JSON, which
