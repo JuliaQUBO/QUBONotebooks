@@ -207,7 +207,7 @@ def measure_repository(repo_root: Path = REPO_ROOT) -> list[Measurement]:
 
 
 def check_budget_relationship(policy: Policy, notebook_count: int) -> list[str]:
-    """Require the collection ceiling to trail the plain aggregate by one notebook."""
+    """Require the collection ceiling to equal the plain aggregate minus one notebook."""
     notebook_budget = policy.budgets[NOTEBOOK_SCOPE]
     collection_budget = policy.budgets[COLLECTION_SCOPE]
     plain_aggregate = notebook_count * notebook_budget

@@ -357,13 +357,19 @@ class CommittedOutputBudgetTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "discovery failure"):
                 budgets.measure_repository(Path(directory))
 
-    def test_committed_notebooks_are_within_the_documented_budgets(self) -> None:
+    def test_committed_notebooks_and_policy_satisfy_the_documented_budgets(self) -> None:
         # Defect class: a re-executed notebook commits a larger or duplicated
         # figure, which no other check sees because the book build never runs
-        # a notebook and every source-level contract still holds.
+        # a notebook and every source-level contract still holds; or the
+        # collection ceiling drifts from the notebook-count relationship while
+        # the standalone script remains the only lane that notices.
         loaded = budgets.load_policy(POLICY_DOCUMENT.read_text())
+        measurements = budgets.measure_repository()
 
-        self.assertEqual([], budgets.check(loaded, budgets.measure_repository()))
+        self.assertEqual(
+            [], budgets.check_budget_relationship(loaded, len(measurements))
+        )
+        self.assertEqual([], budgets.check(loaded, measurements))
 
 
 if __name__ == "__main__":
