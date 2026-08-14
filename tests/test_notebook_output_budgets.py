@@ -107,11 +107,23 @@ class PolicyParsingTests(unittest.TestCase):
             {budgets.CELL_SCOPE, budgets.NOTEBOOK_SCOPE, budgets.COLLECTION_SCOPE},
             set(loaded.budgets),
         )
-        self.assertTrue(loaded.grants)
         for (notebook, scope), ceiling in loaded.grants.items():
             with self.subTest(notebook=notebook, scope=scope):
                 self.assertTrue((REPO_ROOT / notebook).is_file())
                 self.assertGreater(ceiling, loaded.budgets[scope])
+
+    def test_reads_a_documented_exception_from_a_synthetic_policy(self) -> None:
+        document = policy_document(
+            DEFAULT_BUDGET_ROWS,
+            "| `a.ipynb` | One notebook | 2 MB | plots |",
+        )
+
+        loaded = budgets.load_policy(document)
+
+        self.assertEqual(
+            {("a.ipynb", budgets.NOTEBOOK_SCOPE): 2 * 1024 * KB},
+            loaded.grants,
+        )
 
     def test_requires_every_budget_scope(self) -> None:
         document = policy_document("| One notebook | 1.0 MB |", "")
@@ -234,6 +246,21 @@ class MeasurementTests(unittest.TestCase):
 
 
 class BudgetViolationTests(unittest.TestCase):
+    def test_collection_budget_is_one_notebook_below_the_plain_aggregate(self) -> None:
+        # Defect class: a notebook is added but the collection ceiling keeps the
+        # old arithmetic, so the documented aggregate relationship decays.
+        three_notebook_policy = policy()
+        three_notebook_policy.budgets[budgets.COLLECTION_SCOPE] = 2 * 1024 * KB
+
+        self.assertEqual(
+            [], budgets.check_budget_relationship(three_notebook_policy, 3)
+        )
+        violations = budgets.check_budget_relationship(three_notebook_policy, 4)
+
+        self.assertEqual(1, len(violations))
+        self.assertIn("4 notebooks", violations[0])
+        self.assertIn("3.00 MB", violations[0])
+
     def test_accepts_a_notebook_inside_both_budgets(self) -> None:
         self.assertEqual(
             [],

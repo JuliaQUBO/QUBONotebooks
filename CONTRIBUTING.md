@@ -113,11 +113,14 @@ re-emitted under several cells, each of them individually reasonable.
 `All notebooks` is a backstop, not a design constraint. It exists so that
 diffuse growth can still fail before every notebook independently reaches its
 allowance. At the current 17-notebook collection, the plain per-notebook
-ceilings total 25.5 MB. The 24 MB collection ceiling is one 1.5 MB notebook
-allowance below that total, so the per-notebook scope remains the ordinary
-diagnostic while the collection retains a reproducible aggregate constraint.
-Revisit the collection ceiling when either the notebook count or the
-per-notebook ceiling changes.
+ceilings total 25.5 MB. The one per-notebook grant raises the operative
+aggregate to 26.34 MB. The 24 MB collection ceiling is one 1.5 MB notebook
+allowance below the plain total, and 2.34 MB below the granted total, so the
+per-notebook scope remains the ordinary diagnostic while the collection
+retains a reproducible aggregate constraint. The check enforces the plain
+relationship and fails when the notebook count or per-notebook budget moves.
+Revisit the ceiling and this arithmetic whenever either changes, or whenever a
+per-notebook grant is added, enlarged, or removed.
 
 The collection ceiling was originally 10 MB, a round number about twenty
 percent above the footprint at the time. It was binding well before either of
