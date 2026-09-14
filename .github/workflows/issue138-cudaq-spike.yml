@@ -1,0 +1,44 @@
+name: CUDA-Q issue 138 measurements (scratch only)
+
+on:
+  push:
+    branches: [spike/issue-138-cudaq-optional]
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    name: Ubuntu 22.04 CPU measurement ${{ matrix.replica }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        replica: [1, 2]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: |
+            3.10.19
+            3.12.12
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          version: '0.11.24'
+          enable-cache: false
+      - name: Install the existing portable lane's solver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glpk-utils
+      - name: Record dependency, install and CPU execution evidence
+        run: python scripts/issue138/measure.py "$RUNNER_TEMP/issue138" --verify-portable
+      - name: Preserve measurements and complete logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue138-ubuntu22-${{ matrix.replica }}
+          path: ${{ runner.temp }}/issue138/evidence
+          retention-days: 30

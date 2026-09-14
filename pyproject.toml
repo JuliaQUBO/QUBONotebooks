@@ -6,6 +6,9 @@ requires-python = ">=3.10,<3.13"
 dependencies = []
 
 [dependency-groups]
+cudaq = [
+    "cuda-quantum-cu13>=0.16.0,<0.17",
+]
 docs = [
     "ipykernel>=7.3.0,<8",
     "jupyter-book==2.1.6",
@@ -39,3 +42,6 @@ qubo = [
 [tool.uv]
 package = false
 default-groups = ["docs"]
+
+[tool.uv.dependency-groups]
+cudaq = { requires-python = ">=3.11" }
