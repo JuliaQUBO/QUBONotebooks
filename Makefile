@@ -1,4 +1,4 @@
-.PHONY: test build-book sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
+.PHONY: test build-book sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-dwave-python-local verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
 PYTHON ?= python3
 UV ?= uv
@@ -85,6 +85,9 @@ verify-gama-python:
 
 verify-benchmarking-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(BENCHMARKING_UV_GROUP_FLAGS)" NOTEBOOKS="$(BENCHMARKING_PYTHON_NOTEBOOK)"
+
+verify-dwave-python-local:
+	env -u DWAVE_API_TOKEN QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(DWAVE_PYTHON_NOTEBOOK)"
 
 verify-qci-julia-local:
 	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"

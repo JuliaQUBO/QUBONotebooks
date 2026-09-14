@@ -90,7 +90,7 @@ Problems](#source-of-the-five-starter-problems).
 | Linear and Integer Programming | [notebooks_jl/1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) | [notebooks_py/1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; local execution requires LP/NLP/MINLP solver binaries. |
 | QUBO and Ising | [notebooks_jl/2-QUBO.ipynb](notebooks_jl/2-QUBO.ipynb) | [notebooks_py/2-QUBO_python.ipynb](notebooks_py/2-QUBO_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; Python notebook is portable and covered by `make verify-qubo-python`. |
 | Graver Augmented Multiseed Algorithm | [notebooks_jl/3-GAMA.ipynb](notebooks_jl/3-GAMA.ipynb) | [notebooks_py/3-GAMA_python.ipynb](notebooks_py/3-GAMA_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; Python notebook is portable and covered by `make verify-gama-python`. |
-| D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; quantum annealer cells require D-Wave solver access. The Python D-Wave notebook requires a user-managed Ocean install and is not part of the locked Python verification environment. |
+| D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; quantum annealer cells require D-Wave solver access. The Python local path uses locked `docs` + `qubo` dependencies and is covered by `make verify-dwave-python-local`; QPU access requires an explicit opt-in and a separate Ocean environment. |
 | Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; benchmark runs are long-running and generate artifacts. |
 | QCi | [notebooks_jl/6-QCi.ipynb](notebooks_jl/6-QCi.ipynb) | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | The Julia notebook uses QCIOpt's default CondaPkg environment; its model-construction and exact-enumeration path is credential-free and covered by `make verify-qci-julia-local`. QCI submission is a separate explicit opt-in. The Python notebook requires its separate `eqc-models` stack and credentials for cloud examples. |
 | Canonical QUBO starter problems | [notebooks_jl/7-CanonicalProblems.ipynb](notebooks_jl/7-CanonicalProblems.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-canonical-problems-julia`; exhaustive checks validate number partitioning, Max-Cut, and minimum vertex cover. |
@@ -99,15 +99,16 @@ Problems](#source-of-the-five-starter-problems).
 | Local-first QAOA | [notebooks_jl/10-QAOA.ipynb](notebooks_jl/10-QAOA.ipynb) | Not available | Credential-free local Aer path covered by `make verify-qaoa-julia-local`; fixed seeds, exact baselines, circuit-resource audits, and a separate environment-gated IBM hardware cell keep the default tutorial bounded and service-free. |
 | Local simulated and quantum annealing | [notebooks_jl/11-Annealing.ipynb](notebooks_jl/11-Annealing.ipynb) | Not available | Seeded `DWave.Neal.Optimizer` runs for all five starter models are covered by `make verify-annealing-julia-local`; exact checks cover the small models, while the D-Wave QPU path is credentialed, fail-closed, and explicitly optional. |
 
-### Julia QCi and Five Starter Problems execution matrix
+### Execution matrix
 
-The local estimates below assume the Julia environment has already been
+The Julia runtime estimates below assume the environment has already been
 instantiated. A first run that downloads and precompiles packages can take
 substantially longer. Remote-service runtimes include an unpredictable provider
 queue after the local notebook work.
 
 | Notebook or operation | Execution class | Make target | Expected runtime | Environment variables |
 | --- | --- | --- | --- | --- |
+| D-Wave Python local path (4) | local simulated annealing; QPU disabled | `make verify-dwave-python-local` | CI budget: 10 minutes including installation | None required; forces QPU access off |
 | QCi Julia local path (6) | offline/model-only; opt-in QCI cloud | `make verify-qci-julia-local` | About 30–90 seconds after the environment is ready | None required |
 | Canonical problems (7) | offline/portable | `make verify-canonical-problems-julia` | About 30–90 seconds | None required |
 | Order partitioning (8) | offline/portable | `make verify-order-partitioning-julia` | About 30–90 seconds | None required |
@@ -173,6 +174,7 @@ make check-notebook-output-hygiene
 make check-notebook-output-budgets
 make verify-qubo-python
 make verify-gama-python
+make verify-dwave-python-local
 make verify-qci-julia-local
 make verify-canonical-problems-julia
 make verify-order-partitioning-julia
