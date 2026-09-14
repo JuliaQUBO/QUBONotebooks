@@ -90,13 +90,19 @@ CUDA-Q is an optional dependency group for CPU quantum simulation. On Python
 make verify-cudaq-python
 ```
 
-The target installs `docs`, `qubo`, and `cudaq`, checks a Bell-state circuit
-using `qpp-cpu`, and executes the D-Wave Python notebook with QPU access forced
-off. The Bell check verifies both sampled bitstrings and exact expectations;
-installation or simulation failures stop verification. The annealing and QAOA
-teaching sections are follow-up work in issues
-[#141](https://github.com/JuliaQUBO/QUBONotebooks/issues/141) and
-[#140](https://github.com/JuliaQUBO/QUBONotebooks/issues/140). Add the QUBO
+The target installs `docs`, `qubo`, and `cudaq` and runs the D-Wave notebook's
+quantum-annealing section on `qpp-cpu`, with QPU access forced off. It evolves
+the lecture's existing 11-variable QUBO, verifies both Hamiltonian endpoints,
+compares sampled solutions with exhaustive enumeration, and plots the spectrum
+and optimal-solution probability versus anneal time. The normalized times are
+illustrative, not hardware microseconds. A complete local run takes roughly
+1–2 minutes after installation on the tested Linux CPU.
+
+Verification fails if the optimization section is missing or skipped. Ordinary
+notebook execution without CUDA-Q prints one skip notice and continues. The
+published availability cell shows that default path; the saved numerical
+results and figure come from an optional CPU run. QAOA remains follow-up work
+in [#140](https://github.com/JuliaQUBO/QUBONotebooks/issues/140); add the QUBO
 notebook to `CUDAQ_PYTHON_NOTEBOOKS` when its guarded section lands.
 
 To install without running verification:

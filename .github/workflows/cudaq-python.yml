@@ -13,6 +13,7 @@ on:
       - scripts/verify_notebooks.py
       - tests/test_verify_notebook_commands.py
       - tests/test_dwave_python_local.py
+      - tests/test_cudaq_optimization.py
       - notebooks_py/4-DWAVE_python.ipynb
       - notebooks_py/2-QUBO_python.ipynb
   push:
@@ -26,6 +27,7 @@ on:
       - scripts/verify_notebooks.py
       - tests/test_verify_notebook_commands.py
       - tests/test_dwave_python_local.py
+      - tests/test_cudaq_optimization.py
       - notebooks_py/4-DWAVE_python.ipynb
       - notebooks_py/2-QUBO_python.ipynb
   workflow_dispatch:
@@ -47,5 +49,5 @@ jobs:
           version: "0.11.24"
           # The cold sync measured 9.7–41.0 s; avoid a ~2.9 GB persistent cache.
           enable-cache: false
-      - name: Verify CPU simulation and notebook execution
+      - name: Verify the quantum optimization lesson on CPU
         run: make verify-cudaq-python

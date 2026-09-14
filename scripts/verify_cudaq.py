@@ -1,32 +1,39 @@
-"""Check the optional CUDA-Q CPU runtime, then execute selected notebooks."""
+"""Execute the lecture's required CUDA-Q optimization section."""
 
-import math
-
-import cudaq
+import json
+import os
+import sys
+from pathlib import Path
 
 import verify_notebooks
 
 
-@cudaq.kernel
-def bell_pair():
-    q = cudaq.qvector(2)
-    h(q[0])
-    x.ctrl(q[0], q[1])
+def require_optimization_result(notebook):
+    """Reject a skipped or missing optimization section in an executed notebook."""
+    for cell in notebook["cells"]:
+        if "cudaq-optimization-result" not in cell.get("metadata", {}).get("tags", []):
+            continue
+        text = "".join(
+            "".join(output.get("text", []))
+            for output in cell.get("outputs", [])
+            if output.get("output_type") == "stream"
+        )
+        if cell.get("execution_count") is not None and "CUDA-Q optimization checks passed." in text.splitlines():
+            return
+    raise RuntimeError("The notebook did not complete its CUDA-Q optimization checks.")
 
 
 def main():
-    """Fail if CPU simulation is unavailable or returns an incorrect Bell state."""
-    cudaq.set_target("qpp-cpu")
-    cudaq.set_random_seed(314159)
-    counts = dict(cudaq.sample(bell_pair, shots_count=1024).items())
-    assert set(counts) == {"00", "11"}, counts
-    assert sum(counts.values()) == 1024, counts
-    zz = cudaq.observe(bell_pair, cudaq.spin.z(0) * cudaq.spin.z(1)).expectation()
-    z = cudaq.observe(bell_pair, cudaq.spin.z(0)).expectation()
-    assert math.isclose(zz, 1.0, abs_tol=1e-12), zz
-    assert math.isclose(z, 0.0, abs_tol=1e-12), z
-    print(f"CUDA-Q qpp-cpu verified: Bell counts={counts}, <ZZ>={zz}, <Z>={z}", flush=True)
-    return verify_notebooks.main()
+    """Run notebooks with CUDA-Q required and verify their optimization results."""
+    os.environ["QUBONOTEBOOKS_CUDAQ_REQUIRE"] = "1"
+    if len(sys.argv) == 1:
+        sys.argv.append("notebooks_py/4-DWAVE_python.ipynb")
+    args = verify_notebooks.parse_args()
+    result = verify_notebooks.main()
+    for name in args.notebooks:
+        executed = verify_notebooks.output_dir() / Path(name).name
+        require_optimization_result(json.loads(executed.read_text()))
+    return result
 
 
 if __name__ == "__main__":
