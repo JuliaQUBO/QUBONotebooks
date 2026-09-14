@@ -4,12 +4,53 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 from notebook_test_support import REPO_ROOT, verify_notebooks
+
+
+class CudaqTargetTests(unittest.TestCase):
+    def commands(self, target, *overrides):
+        result = subprocess.run(
+            ["make", "--dry-run", target, *overrides], cwd=REPO_ROOT,
+            env={**os.environ, "QUBONOTEBOOKS_DWAVE_ENABLE_QPU": "1",
+                 "CUDA_VISIBLE_DEVICES": "0", "DWAVE_API_TOKEN": "test-token"},
+            capture_output=True, text=True, check=True,
+        )
+        return [shlex.split(line) for line in result.stdout.splitlines()]
+
+    def test_cudaq_target_installs_optional_group_and_forces_local_execution(self):
+        commands = self.commands("verify-cudaq-python")
+        sync = next(command for command in commands if "sync" in command)
+        run = next(command for command in commands if "./scripts/verify_cudaq.py" in command)
+        for command in (sync, run):
+            self.assertIn("--locked", command)
+            groups = [command[i + 1] for i, token in enumerate(command) if token == "--group"]
+            self.assertEqual(["docs", "qubo", "cudaq"], groups)
+        self.assertIn("QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0", run)
+        self.assertIn("CUDA_VISIBLE_DEVICES=", run)
+        self.assertEqual(["env", "-u", "DWAVE_API_TOKEN"], run[:3])
+        self.assertEqual("notebooks_py/4-DWAVE_python.ipynb", run[-1])
+
+    def test_cudaq_target_accepts_the_notebook_list_for_future_sections(self):
+        commands = self.commands(
+            "verify-cudaq-python",
+            "CUDAQ_PYTHON_NOTEBOOKS=notebooks_py/2-QUBO_python.ipynb notebooks_py/4-DWAVE_python.ipynb",
+        )
+        run = next(command for command in commands if "./scripts/verify_cudaq.py" in command)
+        self.assertEqual(["notebooks_py/2-QUBO_python.ipynb", "notebooks_py/4-DWAVE_python.ipynb"], run[-2:])
+
+    def test_portable_target_still_uses_only_docs_and_qubo(self):
+        commands = self.commands("verify-python-portable")
+        run = next(command for command in commands if "./scripts/verify_notebooks.py" in command)
+        groups = [run[i + 1] for i, token in enumerate(run) if token == "--group"]
+        self.assertEqual(["docs", "qubo"], groups)
+        self.assertEqual(["notebooks_py/2-QUBO_python.ipynb", "notebooks_py/3-GAMA_python.ipynb"], run[-2:])
 
 
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):

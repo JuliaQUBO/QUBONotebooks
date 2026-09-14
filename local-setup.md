@@ -81,6 +81,57 @@ client remains outside the lock because it brings in `diskcache`, which the
 repository dependency policy excludes. Published QPU outputs are retained
 historical examples; local verification writes its own results to `.nbverify/`.
 
+## Optional CUDA-Q
+
+CUDA-Q is an optional dependency group for CPU quantum simulation. On Python
+3.11 or 3.12, install and verify it from the repository root with:
+
+```bash
+make verify-cudaq-python
+```
+
+The target installs `docs`, `qubo`, and `cudaq`, checks a Bell-state circuit
+using `qpp-cpu`, and executes the D-Wave Python notebook with QPU access forced
+off. The Bell check verifies both sampled bitstrings and exact expectations;
+installation or simulation failures stop verification. The annealing and QAOA
+teaching sections are follow-up work in issues
+[#141](https://github.com/JuliaQUBO/QUBONotebooks/issues/141) and
+[#140](https://github.com/JuliaQUBO/QUBONotebooks/issues/140). Add the QUBO
+notebook to `CUDAQ_PYTHON_NOTEBOOKS` when its guarded section lands.
+
+To install without running verification:
+
+```bash
+uv sync --locked --group docs --group qubo --group cudaq
+```
+
+The group pins the CUDA-Q distribution line `cuda-quantum-cu13>=0.16.0,<0.17`
+and requires Python 3.11+. Python 3.10 remains supported by the portable groups;
+requesting `cudaq` on 3.10 fails explicitly. The default and portable groups
+exclude CUDA-Q. Running a portable target afterwards synchronizes back to its
+smaller environment; use `UV_PROJECT_ENVIRONMENT=/path/to/separate/venv` to keep
+an optional environment separately.
+
+Published wheels cover Linux x86_64/aarch64 (glibc 2.28+) and macOS Apple
+Silicon (macOS 13+). Native Windows and Intel macOS have no wheels for this
+release. Linux x86_64 on Ubuntu 22.04 and WSL2 was tested; the other wheel
+platforms were not executed. Hosted Colab installation remains unmeasured.
+The CPU target needs no GPU or CUDA driver, but the distribution still downloads
+GPU libraries.
+
+The [#138 measurements](https://github.com/JuliaQUBO/QUBONotebooks/issues/138#issuecomment-5671304635)
+on two fresh Ubuntu 22.04 runners found a **2.91 GB** complete environment,
+**2.33 GB** more than `docs` + `qubo`, about **1.48 GB** of additional wheel
+payload, and a **2.91 GB** uv cache (decimal GB). Cold synchronization took
+**9.7–41.0 seconds**. Allow space for both the environment and cache; filesystem
+sharing can affect actual disk use. These are measured release/platform
+figures, not cross-platform guarantees.
+
+A separate CPU workflow runs on changes to the optional dependency, target,
+verifier, tests, and relevant notebooks, or by manual dispatch. It has a
+10-minute limit and no persistent CUDA-Q cache. Existing CI jobs retain their
+original targets and installed groups. No GPU execution target is provided.
+
 ## Commercial solvers
 
 No notebook in this collection calls a commercial solver, and neither solver
