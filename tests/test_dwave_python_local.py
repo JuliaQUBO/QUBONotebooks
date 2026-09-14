@@ -5,8 +5,12 @@ import contextlib
 import io
 import json
 import os
+import shlex
 import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from makefile_support import command_with_assignment
@@ -24,6 +28,26 @@ def cell_containing(marker):
 
 
 class DWaveLocalTests(unittest.TestCase):
+    def test_recursive_make_cannot_restore_a_command_line_qpu_opt_in(self):
+        # Make command-line variables propagate through MAKEFLAGS and can
+        # override an environment-only guard in the recursive invocation.
+        with tempfile.TemporaryDirectory() as directory:
+            probe = Path(directory) / "probe.py"
+            probe.write_text(
+                "import json, os, sys\n"
+                "print(json.dumps({'flag': os.environ.get('QUBONOTEBOOKS_DWAVE_ENABLE_QPU'), "
+                "'token': 'DWAVE_API_TOKEN' in os.environ, 'args': sys.argv[1:]}))\n"
+            )
+            result = subprocess.run(
+                ["make", "verify-dwave-python-local", "QUBONOTEBOOKS_DWAVE_ENABLE_QPU=1",
+                 f"UV={shlex.quote(sys.executable)} {shlex.quote(str(probe))}"],
+                cwd=REPO_ROOT, env={**os.environ, "DWAVE_API_TOKEN": "test-token"},
+                text=True, capture_output=True, check=True,
+            )
+        calls = [json.loads(line) for line in result.stdout.splitlines() if line.startswith("{")]
+        self.assertEqual(["sync", "run"], [call["args"][0] for call in calls])
+        self.assertTrue(all(call["flag"] == "0" and not call["token"] for call in calls), calls)
+
     def test_default_does_not_read_colab_secrets_or_use_inherited_token(self):
         namespace = {"IN_COLAB": True}
         with patch.dict(os.environ, {"DWAVE_API_TOKEN": "test-token"}, clear=True):
