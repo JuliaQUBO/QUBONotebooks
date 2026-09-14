@@ -100,10 +100,12 @@ illustrative, not hardware microseconds. A complete local run takes roughly
 
 Verification fails if the optimization section is missing or skipped. Ordinary
 notebook execution without CUDA-Q prints one skip notice and continues. The
-published availability cell shows that default path; the saved numerical
-results and figure come from an optional CPU run. QAOA remains follow-up work
-in [#140](https://github.com/JuliaQUBO/QUBONotebooks/issues/140); add the QUBO
-notebook to `CUDAQ_PYTHON_NOTEBOOKS` when its guarded section lands.
+published availability message, numerical results, and figure come from one
+CUDA-Q-enabled CPU run. The missing-package test and D-Wave local CI lane
+verify the skip path. QAOA remains follow-up work in
+[#140](https://github.com/JuliaQUBO/QUBONotebooks/issues/140); add the QUBO
+notebook to `CUDAQ_PYTHON_NOTEBOOKS` and the CUDA-Q workflow's trigger paths when
+its guarded section lands.
 
 To install without running verification:
 
@@ -133,10 +135,11 @@ payload, and a **2.91 GB** uv cache (decimal GB). Cold synchronization took
 sharing can affect actual disk use. These are measured release/platform
 figures, not cross-platform guarantees.
 
-A separate CPU workflow runs on changes to the optional dependency, target,
-verifier, tests, and relevant notebooks, or by manual dispatch. It has a
-10-minute limit and no persistent CUDA-Q cache. Existing CI jobs retain their
-original targets and installed groups. No GPU execution target is provided.
+A separate CPU workflow runs on changes to the dependency files, Makefile,
+verification scripts, D-Wave notebook, or workflow itself, or by manual
+dispatch. It has a 10-minute limit and no persistent CUDA-Q cache. Existing CI
+jobs retain their original targets and installed groups. No GPU execution
+target is provided.
 
 ## Commercial solvers
 

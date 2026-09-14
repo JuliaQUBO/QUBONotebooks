@@ -4,14 +4,17 @@ The two-variable fixture is the notebook's penalty exercise. Costs use arbitrary
 objective units; dividing by the reference energy makes Pauli coefficients [-].
 """
 
+import ast
 import builtins
 import contextlib
 import importlib.util
 import io
 import itertools
+import json
 import os
 import sys
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from notebook_test_support import (
@@ -115,3 +118,66 @@ class OptimizationVerificationTests(unittest.TestCase):
         ):
             with self.subTest(notebook=notebook), self.assertRaises(RuntimeError):
                 self.verifier.require_optimization_result(notebook)
+
+
+class AnnealPresentationTests(unittest.TestCase):
+    def test_saved_results_follow_an_enabled_import(self):
+        """Published quantum results must belong to an enabled execution."""
+        notebook = json.loads(DWAVE_PYTHON_NOTEBOOK_PATH.read_text())
+        availability = next(cell for cell in notebook["cells"]
+                            if "CUDAQ_SKIP_MESSAGE =" in "".join(cell["source"]))
+        output = "".join("".join(item.get("text", [])) for item in availability["outputs"])
+        self.assertIn("CUDA-Q enabled: qpp-cpu", output)
+        self.assertNotIn("Skipping CUDA-Q", output)
+
+    def test_sampling_keeps_selected_anneal_state_and_probability_paired(self):
+        """Reordered dimensionless times and a reused loop variable cannot change the selected run."""
+        import numpy as np
+
+        table_display = SimpleNamespace(DataFrame=lambda rows: SimpleNamespace(to_string=lambda **kwargs: ""))
+
+        for times in ([0.0, 2.0, 10.0, 50.0, 200.0], [0.0, 200.0, 2.0, 50.0, 10.0]):
+            with self.subTest(times=times):
+                states = {}
+                sampled = []
+
+                def get_state(kernel, *args):
+                    # Synthetic normalized amplitudes [-], indexed by time [-].
+                    total_time = args[-2]
+                    probability = 0.25 + 0.65 * total_time / 200
+                    state = np.sqrt([(1 - probability) / 3, probability,
+                                     (1 - probability) / 3, (1 - probability) / 3])
+                    states[total_time] = state
+                    return state
+
+                def sample(kernel, state, shots_count):
+                    sampled.append(state)
+                    optimal = round(float(state[1] ** 2) * shots_count)
+                    return {"10": optimal, "01": shots_count - optimal}
+
+                cudaq = SimpleNamespace(
+                    kernel=lambda function: function, State=np.ndarray,
+                    observe=lambda *args: SimpleNamespace(expectation=lambda: -2),
+                    get_state=get_state, sample=sample,
+                )
+                namespace = dict(
+                    HAS_CUDAQ=True, cudaq=cudaq, np=np, pd=table_display, n_qubits=2,
+                    fields=[], pair_left=[], pair_right=[], couplings=[], mixer_hamiltonian=None,
+                    ground_mask=np.array([False, True, False, False]),
+                    feasible_mask=np.array([False, True, True, False]),
+                    # Same penalty exercise as above; all energies in cost units.
+                    qubo_energies=np.array([4, 1, 2, 7]), ground_energy=1,
+                    c=np.array([1, 2]), A=np.array([[1, 1]]), b=np.array([1]), rho=4,
+                )
+                tree = ast.parse(notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "def quantum_anneal"))
+                time_loop = next(node for node in ast.walk(tree)
+                                 if isinstance(node, ast.For) and isinstance(node.target, ast.Name)
+                                 and node.target.id == "total_time")
+                time_loop.iter = ast.parse(repr(times), mode="eval").body
+                with contextlib.redirect_stdout(io.StringIO()):
+                    exec(compile(ast.fix_missing_locations(tree), "<anneal-cell>", "exec"), namespace)
+                    # A later exploratory cell reuses the former loop variable.
+                    namespace["final_state"] = states[0.0]
+                    exec(notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "shots = 4096"), namespace)
+                self.assertIs(states[200.0], sampled[0])
+                self.assertAlmostEqual(0.9, namespace["success_probability"])
