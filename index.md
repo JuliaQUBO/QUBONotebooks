@@ -13,6 +13,13 @@ documentation build.
 
 ## Notebook map
 
+Follow Lectures 1–5 in order: mathematical programming → classical QUBO/Ising
+models → classical augmentation methods → D-Wave and quantum methods →
+benchmarking. Lecture 4's Python notebook places an optional CUDA-Q QAOA
+comparison after quantum annealing, using the same QUBO and exact baseline.
+Later notebooks extend the applications and methods, including a dedicated
+QAOA lesson in Lecture 10.
+
 | Topic | Python | Julia |
 | --- | --- | --- |
 | Mathematical Programming | [1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | [1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) |

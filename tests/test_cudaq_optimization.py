@@ -7,6 +7,7 @@ objective units; dividing by the reference energy makes Pauli coefficients [-].
 import ast
 import builtins
 import contextlib
+import copy
 import importlib.util
 import io
 import itertools
@@ -56,6 +57,9 @@ class CostConventionTests(unittest.TestCase):
                 self.assertAlmostEqual(expected, normalized * reference_energy)
                 energies[bits] = normalized
             self.assertEqual((1, 0), min(energies, key=energies.get))
+        for reference_energy in (0, -1):
+            with self.subTest(reference_energy=reference_energy), self.assertRaises(ValueError):
+                namespace["ising_cost_data"](PenaltyExercise(), reference_energy)
 
 
 class OptionalCudaqTests(unittest.TestCase):
@@ -135,22 +139,37 @@ class OptimizationVerificationTests(unittest.TestCase):
         with patch.dict(sys.modules, {"verify_notebooks": verify_notebooks}):
             spec.loader.exec_module(cls.verifier)
 
-    def notebook(self, text, execution_count=1, tags=("cudaq-optimization-result",)):
-        return {"cells": [{"metadata": {"tags": list(tags)}, "execution_count": execution_count,
-                           "outputs": [{"output_type": "stream", "text": [text]}]}]}
+    def notebook(self):
+        return {"cells": [
+            {"metadata": {"tags": [tag]}, "execution_count": 1,
+             "outputs": [{"output_type": "stream", "text": [message + "\n"]}]}
+            for tag, message in (
+                ("cudaq-annealing-result", "CUDA-Q quantum annealing checks passed."),
+                ("cudaq-qaoa-results", "CUDA-Q QAOA checks passed."),
+            )
+        ]}
 
     def test_accepts_executed_optimization_completion(self):
-        self.verifier.require_optimization_result(self.notebook("CUDA-Q optimization checks passed.\n"))
+        self.verifier.require_optimization_result(self.notebook())
 
     def test_rejects_a_skipped_unexecuted_or_missing_optimization_section(self):
-        for notebook in (
-            self.notebook("Skipping CUDA-Q quantum annealing.\n"),
-            self.notebook("CUDA-Q optimization checks passed.\n", execution_count=None),
-            self.notebook("CUDA-Q optimization checks passed.\n", tags=()),
-            {"cells": []},
-        ):
-            with self.subTest(notebook=notebook), self.assertRaises(RuntimeError):
-                self.verifier.require_optimization_result(notebook)
+        complete = self.notebook()
+        for section in (0, 1):
+            for defect in ("missing", "unexecuted", "untagged", "skipped", "wrong-method"):
+                notebook = copy.deepcopy(complete)
+                cell = notebook["cells"][section]
+                if defect == "missing":
+                    notebook["cells"].pop(section)
+                elif defect == "unexecuted":
+                    cell["execution_count"] = None
+                elif defect == "untagged":
+                    cell["metadata"]["tags"] = []
+                elif defect == "skipped":
+                    cell["outputs"][0]["text"] = ["Skipping CUDA-Q quantum methods.\n"]
+                else:
+                    cell["outputs"] = copy.deepcopy(complete["cells"][1 - section]["outputs"])
+                with self.subTest(section=section, defect=defect), self.assertRaises(RuntimeError):
+                    self.verifier.require_optimization_result(notebook)
 
 
 class AnnealPresentationTests(unittest.TestCase):

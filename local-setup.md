@@ -105,26 +105,40 @@ CUDA-Q is an optional dependency group for CPU quantum simulation. On Python
 make verify-cudaq-python
 ```
 
-The target installs `docs`, `qubo`, and `cudaq` and runs the D-Wave notebook's
-quantum-annealing section on `qpp-cpu`, with QPU access forced off. It evolves
-the lecture's existing 11-variable QUBO, verifies both Hamiltonian endpoints,
-compares sampled solutions with exhaustive enumeration, and plots the spectrum
-and optimal-solution probability versus anneal time. The normalized times are
-illustrative, not hardware microseconds. A complete local run takes roughly
-1–2 minutes after installation on the tested Linux CPU.
+The target installs `docs`, `qubo`, and `cudaq` and runs Lecture 4's D-Wave
+notebook on `qpp-cpu`, with QPU access forced off. Its optional quantum sections
+follow the classical QUBO and augmentation lectures, in this order:
 
-Verification fails if the optimization section is missing or skipped, or if a
+- Quantum annealing evolves the existing 11-variable QUBO, verifies both
+  Hamiltonian endpoints and all 2048 binary costs, compares samples with
+  enumeration, and plots the spectrum and optimal-solution probability versus
+  anneal time. The normalized times are illustrative, not hardware microseconds.
+- The QAOA comparison reuses that QUBO, Hamiltonian, and exact baseline. A
+  hand-written circuit is optimized with SciPy before finite-shot sampling.
+  Raw Ising energy, QUBO cost, original objective, probability, and sample
+  frequency are kept explicit. Students can then proceed to benchmarking;
+  Lecture 10 provides further QAOA examples.
+
+These are CPU demonstrations of quantum algorithms and make no speedup claim.
+Allow about two minutes after installation: the combined target measured
+96 seconds on Linux x86_64 (WSL2), using Python 3.12, CUDA-Q 0.16, and two CPU
+threads. Runtime varies with the machine; the CI budget remains 10 minutes
+including installation.
+
+Verification fails if either optimization section is missing or skipped, or if a
 Python warning is raised. The notebook filters only CUDA-Q 0.16's exact import
 notice about a future API change; other warnings remain actionable under the
 shared Python runner contract above.
 
-Ordinary notebook execution without CUDA-Q prints one skip notice and continues.
-The published availability message, numerical results, and figure come from one
-CUDA-Q-enabled CPU run. The missing-package test and D-Wave local CI lane
-verify the skip path. QAOA remains follow-up work in
-[#140](https://github.com/JuliaQUBO/QUBONotebooks/issues/140); add the QUBO
-notebook to `CUDAQ_PYTHON_NOTEBOOKS` and the CUDA-Q workflow's trigger paths when
-its guarded section lands.
+Ordinary Lecture 4 execution without CUDA-Q prints one skip notice for both
+quantum sections and continues. Lecture 2 has no CUDA-Q code or dependency.
+The published Lecture 4 retains its enabled annealing example and adds QAOA
+results from an enabled CPU run. The verification target writes fresh results
+for both methods to `.nbverify/4-DWAVE_python.ipynb`. Missing-package tests and
+the D-Wave local target verify the skip path; the CUDA-Q target requires each
+method to finish its own numerical checks. Run `make test-cudaq-python` for
+the focused kernel and import-guard tests in the same CPU environment. The
+shared Hamiltonian-mapping checks run with `make test-python`.
 
 To install without running verification:
 
@@ -155,7 +169,7 @@ sharing can affect actual disk use. These are measured release/platform
 figures, not cross-platform guarantees.
 
 A separate CPU workflow runs on changes to the dependency files, Makefile,
-verification scripts, D-Wave notebook, or workflow itself, or by manual
+verification scripts, D-Wave notebook, focused tests, or workflow itself, or by manual
 dispatch. It has a 10-minute limit and no persistent CUDA-Q cache. Existing CI
 jobs retain their original targets and installed groups. No GPU execution
 target is provided.
