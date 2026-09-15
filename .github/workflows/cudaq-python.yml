@@ -12,9 +12,9 @@ on:
       - scripts/verify_cudaq.py
       - scripts/verify_notebooks.py
       - scripts/start_python_kernel.py
-      - notebooks_py/2-QUBO_python.ipynb
       - notebooks_py/4-DWAVE_python.ipynb
       - tests/test_cudaq_qaoa.py
+      - tests/test_cudaq_optimization.py
       - tests/notebook_test_support.py
   push:
     branches: [main]
@@ -26,9 +26,9 @@ on:
       - scripts/verify_cudaq.py
       - scripts/verify_notebooks.py
       - scripts/start_python_kernel.py
-      - notebooks_py/2-QUBO_python.ipynb
       - notebooks_py/4-DWAVE_python.ipynb
       - tests/test_cudaq_qaoa.py
+      - tests/test_cudaq_optimization.py
       - tests/notebook_test_support.py
   workflow_dispatch:
 
@@ -48,11 +48,7 @@ jobs:
         with:
           # The cold sync measured 9.7–41.0 s; avoid a ~2.9 GB persistent cache.
           enable-cache: false
-      - name: Install the QUBO notebook's integer-programming solver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y glpk-utils
-      - name: Verify the QAOA and quantum-annealing lessons on CPU
+      - name: Verify annealing and QAOA in Lecture 4 on CPU
         run: make verify-cudaq-python
       - name: Check the compiled QAOA kernel against a dense reference
         run: make test-cudaq-python

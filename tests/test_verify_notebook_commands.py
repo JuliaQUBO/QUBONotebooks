@@ -38,7 +38,7 @@ class CudaqTargetTests(unittest.TestCase):
         self.assertIn("OMP_NUM_THREADS=2", run)
         self.assertIn("OPENBLAS_NUM_THREADS=2", run)
         self.assertEqual(["env", "-u", "DWAVE_API_TOKEN"], run[:3])
-        self.assertEqual(["notebooks_py/2-QUBO_python.ipynb", "notebooks_py/4-DWAVE_python.ipynb"], run[-2:])
+        self.assertEqual(["notebooks_py/4-DWAVE_python.ipynb"], run[run.index("./scripts/verify_cudaq.py") + 1:])
 
     def test_cudaq_tests_share_the_verifier_environment_and_group_overrides(self):
         for overrides in ((), ("CUDAQ_UV_GROUP_FLAGS=--group cudaq",)):
@@ -53,13 +53,13 @@ class CudaqTargetTests(unittest.TestCase):
                     run[-8:],
                 )
 
-    def test_cudaq_target_accepts_a_single_notebook_override(self):
+    def test_cudaq_target_honors_a_relocated_quantum_notebook(self):
         commands = self.commands(
             "verify-cudaq-python",
-            "CUDAQ_PYTHON_NOTEBOOKS=notebooks_py/2-QUBO_python.ipynb",
+            "DWAVE_PYTHON_NOTEBOOK=notebooks_py/quantum-methods.ipynb",
         )
         run = next(command for command in commands if "./scripts/verify_cudaq.py" in command)
-        self.assertEqual("notebooks_py/2-QUBO_python.ipynb", run[-1])
+        self.assertEqual("notebooks_py/quantum-methods.ipynb", run[-1])
         self.assertNotIn("notebooks_py/4-DWAVE_python.ipynb", run)
 
     def test_portable_target_still_uses_only_docs_and_qubo(self):
