@@ -106,7 +106,7 @@ def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
         "interrupt_mode": "signal",
     }
     (kernels_dir / "kernel.json").write_text(json.dumps(kernel_spec, indent=2) + "\n")
-    return PYTHON_KERNEL_NAME, {"JUPYTER_PATH": str(tmpdir)}
+    return PYTHON_KERNEL_NAME, {"JUPYTER_PATH": str(tmpdir), "PYTHONWARNINGS": "error"}
 
 
 def julia_kernel_spec_dir(tmpdir: Path, *, julia_executable: str) -> tuple[str, dict[str, str]]:
@@ -161,10 +161,18 @@ def execute_notebook(
         cmd.append(f"--ExecutePreprocessor.kernel_name={kernel_name}")
     cmd.append(str(path))
     if kernel_name == PYTHON_KERNEL_NAME and sys.platform != "win32":
+        from zmq import IPC_PATH_MAX_LEN
+
         # Local IPC avoids unencrypted TCP. Keep socket paths short and in a
         # private directory; TemporaryDirectory removes them after execution.
         with tempfile.TemporaryDirectory(prefix="qnb-ipc-") as tmp:
-            cmd.extend(["--KernelManager.transport=ipc", f"--KernelManager.ip={tmp}/kernel"])
+            socket_base = f"{tmp}/kernel"
+            # Reserve a hyphen and five digits for Jupyter's channel suffix.
+            # Count filesystem bytes: TMPDIR can contain multibyte characters.
+            if len(os.fsencode(f"{socket_base}-65535")) <= IPC_PATH_MAX_LEN:
+                cmd.extend(["--KernelManager.transport=ipc", f"--KernelManager.ip={socket_base}"])
+            else:
+                cmd.append("--KernelManager.transport=tcp")
             run(cmd, env=env)
     else:
         run(cmd, env=env)

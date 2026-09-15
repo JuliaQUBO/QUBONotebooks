@@ -35,7 +35,6 @@ class CudaqTargetTests(unittest.TestCase):
             self.assertEqual(["docs", "qubo", "cudaq"], groups)
         self.assertIn("QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0", run)
         self.assertIn("CUDA_VISIBLE_DEVICES=", run)
-        self.assertIn("PYTHONWARNINGS=error", run)
         self.assertEqual(["env", "-u", "DWAVE_API_TOKEN"], run[:3])
         self.assertEqual("notebooks_py/4-DWAVE_python.ipynb", run[-1])
 
@@ -138,6 +137,7 @@ class KernelSpecTests(unittest.TestCase):
 
         self.assertEqual(kernel_name, "qubonotebooks-python-local")
         self.assertEqual(env["JUPYTER_PATH"], str(tmp))
+        self.assertEqual(env["PYTHONWARNINGS"], "error")
         self.assertIn(str(REPO_ROOT / "scripts/start_python_kernel.py"), kernel["argv"])
         self.assertEqual(kernel["display_name"], "QUBONotebooks Python (local)")
 
@@ -159,25 +159,26 @@ class KernelSpecTests(unittest.TestCase):
 
 
 class CommandConstructionTests(unittest.TestCase):
-    @unittest.skipIf(sys.platform == "win32", "Windows retains the default Jupyter transport")
-    def test_python_kernel_uses_private_local_ipc(self) -> None:
-        """Execute through the real runner and inspect the kernel's active transport."""
+    def run_kernel_probe(self, *, long_tmpdir=False, source=None):
+        """Exercise the real runner, capturing kernel startup and shutdown too."""
         with tempfile.TemporaryDirectory() as tmp_name:
             tmp = Path(tmp_name)
             kernel_name, env = verify_notebooks.python_kernel_spec_dir(tmp)
             notebook = tmp / "transport.ipynb"
-            env["PYTHONWARNINGS"] = "error"
+            socket_root = tmp / ("long-" + "é" * 50) if long_tmpdir else tmp
+            socket_root.mkdir(exist_ok=True)
             notebook.write_text(json.dumps({
                 "nbformat": 4, "nbformat_minor": 5, "metadata": {},
                 "cells": [{
                     "id": "transport-check", "cell_type": "code", "metadata": {},
                     "execution_count": None, "outputs": [],
-                    "source": [
+                    "source": source or [
                         "from IPython import get_ipython\n",
                         "from pathlib import Path\n",
                         "app = get_ipython().kernel.parent\n",
-                        "private = Path(app.ip).parent.stat().st_mode & 0o077 == 0\n",
-                        "print(app.transport, private)\n",
+                        "print(app.transport)\n",
+                        "if app.transport == 'ipc':\n",
+                        "    print(Path(app.ip).parent.stat().st_mode & 0o077 == 0)\n",
                     ],
                 }],
             }))
@@ -191,17 +192,46 @@ class CommandConstructionTests(unittest.TestCase):
 
                 with patch.object(verify_notebooks, "REPO_ROOT", tmp):
                     with patch.object(subprocess, "run", side_effect=capture_run):
-                        verify_notebooks.execute_notebook(
-                            notebook, timeout_seconds=30, kernel_name=kernel_name, env=env,
-                        )
+                        # tempfile caches the directory resolved from TMPDIR.
+                        with patch.object(tempfile, "tempdir", str(socket_root)):
+                            try:
+                                verify_notebooks.execute_notebook(
+                                    notebook, timeout_seconds=30, kernel_name=kernel_name, env=env,
+                                )
+                            except subprocess.CalledProcessError as exc:
+                                return exc.returncode, "", transcript.read_text()
             log_text = transcript.read_text()
-            self.assertIn("Writing", log_text)
-            self.assertNotRegex(log_text, r"WARNING|ERROR|\w+Warning:")
             executed = json.loads((tmp / ".nbverify" / notebook.name).read_text())
             output = "".join(
                 "".join(item.get("text", [])) for item in executed["cells"][0]["outputs"]
             )
-        self.assertEqual("ipc True\n", output)
+        return 0, output, log_text
+
+    @unittest.skipIf(sys.platform == "win32", "Windows retains the default Jupyter transport")
+    def test_python_kernel_uses_private_local_ipc(self) -> None:
+        code, output, log = self.run_kernel_probe()
+        self.assertEqual(0, code, log)
+        self.assertEqual("ipc\nTrue\n", output)
+        self.assertIn("Writing", log)
+        self.assertNotRegex(log, r"WARNING|ERROR|\w+Warning:")
+
+    @unittest.skipIf(sys.platform == "win32", "Windows already uses TCP")
+    def test_long_multibyte_tmpdir_falls_back_to_tcp(self) -> None:
+        code, output, log = self.run_kernel_probe(long_tmpdir=True)
+        self.assertEqual(0, code, log)
+        self.assertEqual("tcp\n", output)
+        self.assertIn("Writing", log)
+        self.assertIn("Kernel is running over TCP without encryption", log)
+        self.assertNotRegex(log, r"\bERROR\b|\w+Warning:")
+
+    def test_shared_python_runner_rejects_warnings(self) -> None:
+        code, output, log = self.run_kernel_probe(source=[
+            "import warnings\n",
+            "warnings.warn('shared runner warning probe', UserWarning)\n",
+        ])
+        self.assertNotEqual(0, code)
+        self.assertIn("CellExecutionError", log)
+        self.assertIn("shared runner warning probe", log)
 
     @patch.object(verify_notebooks, "run")
     def test_instantiates_current_shared_julia_project(

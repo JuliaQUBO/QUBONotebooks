@@ -64,6 +64,21 @@ particular, Julia notebooks activate their own focused projects, and the Python
 QCI notebook uses a separate dependency environment from the D-Wave notebooks
 because their NetworkX constraints conflict.
 
+All Python notebook verification targets use `PYTHONWARNINGS=error` as a shared
+runner contract. This includes the portable QUBO/GAMA notebooks, the local
+D-Wave notebook, and optional CUDA-Q execution, so the inexpensive portable CI
+lane catches dependency deprecations on every PR. Notebook-specific exceptions
+must filter only an exact, documented upstream notice.
+
+On Linux and macOS, the runner uses IPC sockets in a private temporary
+directory. It checks the encoded path, including a channel suffix, against
+ZeroMQ's platform limit. Windows and an overly long `TMPDIR` use TCP instead;
+Jupyter may then log its unencrypted-TCP notice. Python warnings still fail
+verification. The launcher initializes the event loop after shell setup and
+provides an awaitable shutdown callback to avoid Jupyter's startup and shutdown
+deprecations. Revisit those workarounds when updating ipykernel or Tornado;
+[#152](https://github.com/JuliaQUBO/QUBONotebooks/issues/152) tracks their removal.
+
 ## D-Wave Python local execution
 
 `make verify-dwave-python-local` uses the existing locked `docs` and `qubo`
@@ -100,12 +115,8 @@ illustrative, not hardware microseconds. A complete local run takes roughly
 
 Verification fails if the optimization section is missing or skipped, or if a
 Python warning is raised. The notebook filters only CUDA-Q 0.16's exact import
-notice about a future API change; other warnings remain actionable. On Linux
-and macOS, the local Python verifier connects to Jupyter through IPC sockets in
-a private temporary directory, avoiding the unencrypted-TCP startup warning.
-Windows retains Jupyter's default transport. The runner explicitly initializes
-the Python event loop and uses an awaitable kernel shutdown callback to avoid
-Jupyter's startup and shutdown deprecations.
+notice about a future API change; other warnings remain actionable under the
+shared Python runner contract above.
 
 Ordinary notebook execution without CUDA-Q prints one skip notice and continues.
 The published availability message, numerical results, and figure come from one
