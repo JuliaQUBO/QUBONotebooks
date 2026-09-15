@@ -1,4 +1,4 @@
-"""QAOA mapping, optional-import guards, and real CPU kernel invariants.
+"""QAOA optional-import guards and real CPU kernel invariants.
 
 The default docs environment exercises pure checks and import guards. The
 optional CUDA-Q CI lane additionally checks the real compiled two-layer kernel
@@ -10,7 +10,6 @@ import builtins
 import contextlib
 import importlib.util
 import io
-import itertools
 import json
 import os
 from pathlib import Path
@@ -24,7 +23,7 @@ import numpy as np
 
 from notebook_test_support import (
     DWAVE_PYTHON_NOTEBOOK_PATH, QUBO_NOTEBOOK_PATH, REPO_ROOT,
-    notebook_cell_source, notebook_function_definitions, verify_notebooks,
+    notebook_cell_source, verify_notebooks,
 )
 
 
@@ -36,36 +35,6 @@ def section_cells():
 def cell_source(tag):
     return "".join(next(cell for cell in section_cells()
                         if tag in cell["metadata"]["tags"])["source"])
-
-
-class PenaltyFixture:
-    """x0 + 2*x1 + 4*(x0+x1-1)^2 in arbitrary objective units."""
-
-    def __len__(self):
-        return 2
-
-    def to_ising(self):
-        return {0: 0.5, 1: 1.0}, {(0, 1): 2.0}, 3.5
-
-
-class MappingTests(unittest.TestCase):
-    def test_fields_pairs_and_offset_match_original_penalty_cost(self):
-        namespace = {}
-        exec(notebook_function_definitions(
-            DWAVE_PYTHON_NOTEBOOK_PATH, "def ising_cost_data", {"ising_cost_data"}
-        ), namespace)
-        convert = namespace["ising_cost_data"]
-        for scale in (1.0, 4.0):
-            fields, left, right, pairs, offset = convert(PenaltyFixture(), scale)
-            for bits in itertools.product((0, 1), repeat=2):
-                z = [1 - 2 * bit for bit in bits]
-                raw = sum(a * spin for a, spin in zip(fields, z))
-                raw += sum(a * z[i] * z[j] for i, j, a in zip(left, right, pairs))
-                self.assertAlmostEqual(bits[0] + 2 * bits[1] + 4 * (sum(bits) - 1) ** 2,
-                                       scale * (raw + offset))
-        for scale in (0, -1):
-            with self.assertRaises(ValueError):
-                convert(PenaltyFixture(), scale)
 
 
 class OptionalImportTests(unittest.TestCase):

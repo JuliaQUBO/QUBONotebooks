@@ -137,7 +137,8 @@ results from an enabled CPU run. The verification target writes fresh results
 for both methods to `.nbverify/4-DWAVE_python.ipynb`. Missing-package tests and
 the D-Wave local target verify the skip path; the CUDA-Q target requires each
 method to finish its own numerical checks. Run `make test-cudaq-python` for
-the focused kernel, mapping, and import-guard tests in the same CPU environment.
+the focused kernel and import-guard tests in the same CPU environment. The
+shared Hamiltonian-mapping checks run with `make test-python`.
 
 To install without running verification:
 

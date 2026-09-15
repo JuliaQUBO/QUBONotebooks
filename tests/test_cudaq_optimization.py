@@ -57,6 +57,9 @@ class CostConventionTests(unittest.TestCase):
                 self.assertAlmostEqual(expected, normalized * reference_energy)
                 energies[bits] = normalized
             self.assertEqual((1, 0), min(energies, key=energies.get))
+        for reference_energy in (0, -1):
+            with self.subTest(reference_energy=reference_energy), self.assertRaises(ValueError):
+                namespace["ising_cost_data"](PenaltyExercise(), reference_energy)
 
 
 class OptionalCudaqTests(unittest.TestCase):
