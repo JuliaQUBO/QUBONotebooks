@@ -109,6 +109,7 @@ queue after the local notebook work.
 | Notebook or operation | Execution class | Make target | Expected runtime | Environment variables |
 | --- | --- | --- | --- | --- |
 | D-Wave Python local path (4) | local simulated annealing; QPU disabled | `make verify-dwave-python-local` | CI budget: 10 minutes including installation | None required; forces QPU access off |
+| Optional CUDA-Q CPU | Quantum annealing of the D-Wave lecture QUBO | `make verify-cudaq-python` | About 1–2 minutes after installation; CI budget: 10 minutes | None required; Python 3.11–3.12; see [platform and size details](local-setup.md#optional-cuda-q) |
 | QCi Julia local path (6) | offline/model-only; opt-in QCI cloud | `make verify-qci-julia-local` | About 30–90 seconds after the environment is ready | None required |
 | Canonical problems (7) | offline/portable | `make verify-canonical-problems-julia` | About 30–90 seconds | None required |
 | Order partitioning (8) | offline/portable | `make verify-order-partitioning-julia` | About 30–90 seconds | None required |

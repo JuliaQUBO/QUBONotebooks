@@ -1,10 +1,11 @@
-.PHONY: test build-book sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-dwave-python-local verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
+.PHONY: test build-book sysimage test-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-dwave-python-local verify-cudaq-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
 PYTHON ?= python3
 UV ?= uv
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
 UV_GROUP_FLAGS ?= --group docs --group qubo
 PORTABLE_UV_GROUP_FLAGS ?= --group docs --group qubo
+CUDAQ_UV_GROUP_FLAGS ?= --group docs --group qubo --group cudaq
 BENCHMARKING_UV_GROUP_FLAGS ?= --group docs --group qubo
 JULIA ?= julia
 JULIA_DEPOT_PATH ?= $(CURDIR)/.julia-depot:$(HOME)/.julia
@@ -13,6 +14,7 @@ QUBO_PYTHON_NOTEBOOK ?= notebooks_py/2-QUBO_python.ipynb
 GAMA_PYTHON_NOTEBOOK ?= notebooks_py/3-GAMA_python.ipynb
 PORTABLE_PYTHON_NOTEBOOKS ?= $(QUBO_PYTHON_NOTEBOOK) $(GAMA_PYTHON_NOTEBOOK)
 DWAVE_PYTHON_NOTEBOOK ?= notebooks_py/4-DWAVE_python.ipynb
+CUDAQ_PYTHON_NOTEBOOKS ?= $(DWAVE_PYTHON_NOTEBOOK)
 BENCHMARKING_PYTHON_NOTEBOOK ?= notebooks_py/5-Benchmarking_python.ipynb
 QCI_JULIA_NOTEBOOK ?= notebooks_jl/6-QCi.ipynb
 CANONICAL_PROBLEMS_JULIA_NOTEBOOK ?= notebooks_jl/7-CanonicalProblems.ipynb
@@ -88,6 +90,10 @@ verify-benchmarking-python:
 
 verify-dwave-python-local:
 	env -u DWAVE_API_TOKEN $(MAKE) verify-notebooks QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0 UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(DWAVE_PYTHON_NOTEBOOK)"
+
+verify-cudaq-python:
+	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) sync --locked $(CUDAQ_UV_GROUP_FLAGS)
+	env -u DWAVE_API_TOKEN QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0 CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked $(CUDAQ_UV_GROUP_FLAGS) python ./scripts/verify_cudaq.py $(CUDAQ_PYTHON_NOTEBOOKS)
 
 verify-qci-julia-local:
 	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"

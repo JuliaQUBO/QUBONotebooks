@@ -1,0 +1,46 @@
+name: Optional CUDA-Q CPU
+
+on:
+  # Conditional coverage keeps the measured ~2.33 GB optional install out of
+  # existing jobs. See the two-runner measurements recorded on issue #138.
+  pull_request:
+    paths:
+      - .github/workflows/cudaq-python.yml
+      - pyproject.toml
+      - uv.lock
+      - Makefile
+      - scripts/verify_cudaq.py
+      - scripts/verify_notebooks.py
+      - scripts/start_python_kernel.py
+      - notebooks_py/4-DWAVE_python.ipynb
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cudaq-python.yml
+      - pyproject.toml
+      - uv.lock
+      - Makefile
+      - scripts/verify_cudaq.py
+      - scripts/verify_notebooks.py
+      - scripts/start_python_kernel.py
+      - notebooks_py/4-DWAVE_python.ipynb
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v10.0.0
+        with:
+          # The cold sync measured 9.7–41.0 s; avoid a ~2.9 GB persistent cache.
+          enable-cache: false
+      - name: Verify the quantum optimization lesson on CPU
+        run: make verify-cudaq-python
