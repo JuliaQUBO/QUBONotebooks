@@ -36,15 +36,16 @@ class CudaqTargetTests(unittest.TestCase):
         self.assertIn("QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0", run)
         self.assertIn("CUDA_VISIBLE_DEVICES=", run)
         self.assertEqual(["env", "-u", "DWAVE_API_TOKEN"], run[:3])
-        self.assertEqual("notebooks_py/4-DWAVE_python.ipynb", run[-1])
+        self.assertEqual(["notebooks_py/2-QUBO_python.ipynb", "notebooks_py/4-DWAVE_python.ipynb"], run[-2:])
 
-    def test_cudaq_target_accepts_the_notebook_list_for_future_sections(self):
+    def test_cudaq_target_accepts_a_single_notebook_override(self):
         commands = self.commands(
             "verify-cudaq-python",
-            "CUDAQ_PYTHON_NOTEBOOKS=notebooks_py/2-QUBO_python.ipynb notebooks_py/4-DWAVE_python.ipynb",
+            "CUDAQ_PYTHON_NOTEBOOKS=notebooks_py/2-QUBO_python.ipynb",
         )
         run = next(command for command in commands if "./scripts/verify_cudaq.py" in command)
-        self.assertEqual(["notebooks_py/2-QUBO_python.ipynb", "notebooks_py/4-DWAVE_python.ipynb"], run[-2:])
+        self.assertEqual("notebooks_py/2-QUBO_python.ipynb", run[-1])
+        self.assertNotIn("notebooks_py/4-DWAVE_python.ipynb", run)
 
     def test_portable_target_still_uses_only_docs_and_qubo(self):
         commands = self.commands("verify-python-portable")

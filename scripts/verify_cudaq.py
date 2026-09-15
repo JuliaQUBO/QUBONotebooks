@@ -1,4 +1,4 @@
-"""Execute the lecture's required CUDA-Q optimization section."""
+"""Execute the required CUDA-Q QAOA and quantum-annealing sections."""
 
 import json
 import os
@@ -27,7 +27,10 @@ def main():
     """Run notebooks with CUDA-Q required and verify their optimization results."""
     os.environ["QUBONOTEBOOKS_CUDAQ_REQUIRE"] = "1"
     if len(sys.argv) == 1:
-        sys.argv.append("notebooks_py/4-DWAVE_python.ipynb")
+        sys.argv.extend([
+            "notebooks_py/2-QUBO_python.ipynb",
+            "notebooks_py/4-DWAVE_python.ipynb",
+        ])
     args = verify_notebooks.parse_args()
     result = verify_notebooks.main()
     for name in args.notebooks:
