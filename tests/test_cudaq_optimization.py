@@ -14,6 +14,7 @@ import json
 import os
 import sys
 import unittest
+import warnings
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -58,6 +59,38 @@ class CostConventionTests(unittest.TestCase):
 
 
 class OptionalCudaqTests(unittest.TestCase):
+    def test_import_filters_only_the_exact_cudaq_016_notice(self):
+        """Keep other categories, changed notices, and warnings after import visible."""
+        notice = (
+            "The CUDA-Q `sample` and `observe` algorithmic primitives will change in "
+            "a future release. Existing code may require updates. See "
+            "https://nvidia.github.io/cuda-quantum/latest/using/migration/"
+            "upcoming_changes.html for details."
+        )
+        original_import = builtins.__import__
+        cudaq = SimpleNamespace(set_target=lambda target: None, set_random_seed=lambda seed: None)
+
+        def import_with_notices(name, *args, **kwargs):
+            if name == "cudaq":
+                warnings.warn(notice, FutureWarning)
+                warnings.warn(notice, UserWarning)
+                warnings.warn(notice + " Additional detail.", FutureWarning)
+                warnings.warn("Unrelated future warning", FutureWarning)
+                return cudaq
+            return original_import(name, *args, **kwargs)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            with patch("builtins.__import__", side_effect=import_with_notices):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    exec(notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "CUDAQ_SKIP_MESSAGE ="), {})
+            warnings.warn(notice, FutureWarning)
+        self.assertEqual(
+            [(notice, UserWarning), (notice + " Additional detail.", FutureWarning),
+             ("Unrelated future warning", FutureWarning), (notice, FutureWarning)],
+            [(str(item.message), item.category) for item in caught],
+        )
+
     def execute_import(self, missing_name, required):
         original_import = builtins.__import__
         attempted = []
