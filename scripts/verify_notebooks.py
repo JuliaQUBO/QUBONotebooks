@@ -97,8 +97,7 @@ def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
     kernel_spec = {
         "argv": [
             sys.executable,
-            "-m",
-            "ipykernel_launcher",
+            str(REPO_ROOT / "scripts/start_python_kernel.py"),
             "-f",
             "{connection_file}",
         ],
@@ -150,7 +149,6 @@ def execute_notebook(
     cmd = [
         sys.executable,
         "-m",
-        "jupyter",
         "nbconvert",
         "--to",
         "notebook",
@@ -162,7 +160,14 @@ def execute_notebook(
     if kernel_name is not None:
         cmd.append(f"--ExecutePreprocessor.kernel_name={kernel_name}")
     cmd.append(str(path))
-    run(cmd, env=env)
+    if kernel_name == PYTHON_KERNEL_NAME and sys.platform != "win32":
+        # Local IPC avoids unencrypted TCP. Keep socket paths short and in a
+        # private directory; TemporaryDirectory removes them after execution.
+        with tempfile.TemporaryDirectory(prefix="qnb-ipc-") as tmp:
+            cmd.extend(["--KernelManager.transport=ipc", f"--KernelManager.ip={tmp}/kernel"])
+            run(cmd, env=env)
+    else:
+        run(cmd, env=env)
 
 
 def parse_args() -> argparse.Namespace:

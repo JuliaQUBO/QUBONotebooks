@@ -11,6 +11,7 @@ on:
       - Makefile
       - scripts/verify_cudaq.py
       - scripts/verify_notebooks.py
+      - scripts/start_python_kernel.py
       - notebooks_py/4-DWAVE_python.ipynb
   push:
     branches: [main]
@@ -21,6 +22,7 @@ on:
       - Makefile
       - scripts/verify_cudaq.py
       - scripts/verify_notebooks.py
+      - scripts/start_python_kernel.py
       - notebooks_py/4-DWAVE_python.ipynb
   workflow_dispatch:
 

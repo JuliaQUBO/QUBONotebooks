@@ -98,9 +98,17 @@ and optimal-solution probability versus anneal time. The normalized times are
 illustrative, not hardware microseconds. A complete local run takes roughly
 1–2 minutes after installation on the tested Linux CPU.
 
-Verification fails if the optimization section is missing or skipped. Ordinary
-notebook execution without CUDA-Q prints one skip notice and continues. The
-published availability message, numerical results, and figure come from one
+Verification fails if the optimization section is missing or skipped, or if a
+Python warning is raised. The notebook filters only CUDA-Q 0.16's exact import
+notice about a future API change; other warnings remain actionable. On Linux
+and macOS, the local Python verifier connects to Jupyter through IPC sockets in
+a private temporary directory, avoiding the unencrypted-TCP startup warning.
+Windows retains Jupyter's default transport. The runner explicitly initializes
+the Python event loop and uses an awaitable kernel shutdown callback to avoid
+Jupyter's startup and shutdown deprecations.
+
+Ordinary notebook execution without CUDA-Q prints one skip notice and continues.
+The published availability message, numerical results, and figure come from one
 CUDA-Q-enabled CPU run. The missing-package test and D-Wave local CI lane
 verify the skip path. QAOA remains follow-up work in
 [#140](https://github.com/JuliaQUBO/QUBONotebooks/issues/140); add the QUBO

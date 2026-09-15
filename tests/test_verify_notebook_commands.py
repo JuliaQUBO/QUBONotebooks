@@ -6,6 +6,7 @@ import json
 import os
 import shlex
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,6 +35,7 @@ class CudaqTargetTests(unittest.TestCase):
             self.assertEqual(["docs", "qubo", "cudaq"], groups)
         self.assertIn("QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0", run)
         self.assertIn("CUDA_VISIBLE_DEVICES=", run)
+        self.assertIn("PYTHONWARNINGS=error", run)
         self.assertEqual(["env", "-u", "DWAVE_API_TOKEN"], run[:3])
         self.assertEqual("notebooks_py/4-DWAVE_python.ipynb", run[-1])
 
@@ -136,7 +138,7 @@ class KernelSpecTests(unittest.TestCase):
 
         self.assertEqual(kernel_name, "qubonotebooks-python-local")
         self.assertEqual(env["JUPYTER_PATH"], str(tmp))
-        self.assertIn("ipykernel_launcher", kernel["argv"])
+        self.assertIn(str(REPO_ROOT / "scripts/start_python_kernel.py"), kernel["argv"])
         self.assertEqual(kernel["display_name"], "QUBONotebooks Python (local)")
 
     def test_julia_kernel_spec_uses_shared_notebooks_project(self) -> None:
@@ -157,6 +159,50 @@ class KernelSpecTests(unittest.TestCase):
 
 
 class CommandConstructionTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "Windows retains the default Jupyter transport")
+    def test_python_kernel_uses_private_local_ipc(self) -> None:
+        """Execute through the real runner and inspect the kernel's active transport."""
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            kernel_name, env = verify_notebooks.python_kernel_spec_dir(tmp)
+            notebook = tmp / "transport.ipynb"
+            env["PYTHONWARNINGS"] = "error"
+            notebook.write_text(json.dumps({
+                "nbformat": 4, "nbformat_minor": 5, "metadata": {},
+                "cells": [{
+                    "id": "transport-check", "cell_type": "code", "metadata": {},
+                    "execution_count": None, "outputs": [],
+                    "source": [
+                        "from IPython import get_ipython\n",
+                        "from pathlib import Path\n",
+                        "app = get_ipython().kernel.parent\n",
+                        "private = Path(app.ip).parent.stat().st_mode & 0o077 == 0\n",
+                        "print(app.transport, private)\n",
+                    ],
+                }],
+            }))
+            # Capture the real subprocess, including startup/shutdown diagnostics
+            # that Jupyter does not store in the executed notebook's outputs.
+            real_run = subprocess.run
+            transcript = tmp / "kernel.log"
+            with transcript.open("w") as log:
+                def capture_run(*args, **kwargs):
+                    return real_run(*args, **kwargs, stdout=log, stderr=subprocess.STDOUT)
+
+                with patch.object(verify_notebooks, "REPO_ROOT", tmp):
+                    with patch.object(subprocess, "run", side_effect=capture_run):
+                        verify_notebooks.execute_notebook(
+                            notebook, timeout_seconds=30, kernel_name=kernel_name, env=env,
+                        )
+            log_text = transcript.read_text()
+            self.assertIn("Writing", log_text)
+            self.assertNotRegex(log_text, r"WARNING|ERROR|\w+Warning:")
+            executed = json.loads((tmp / ".nbverify" / notebook.name).read_text())
+            output = "".join(
+                "".join(item.get("text", [])) for item in executed["cells"][0]["outputs"]
+            )
+        self.assertEqual("ipc True\n", output)
+
     @patch.object(verify_notebooks, "run")
     def test_instantiates_current_shared_julia_project(
         self,
@@ -188,7 +234,7 @@ class CommandConstructionTests(unittest.TestCase):
         cmd = run_mock.call_args.args[0]
         env = run_mock.call_args.kwargs["env"]
 
-        self.assertIn("nbconvert", cmd)
+        self.assertEqual(cmd[1:3], ["-m", "nbconvert"])
         self.assertIn("--execute", cmd)
         self.assertIn("--ExecutePreprocessor.timeout=42", cmd)
         self.assertIn("--ExecutePreprocessor.kernel_name=test-kernel", cmd)
