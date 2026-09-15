@@ -15,6 +15,7 @@ on:
       - notebooks_py/2-QUBO_python.ipynb
       - notebooks_py/4-DWAVE_python.ipynb
       - tests/test_cudaq_qaoa.py
+      - tests/notebook_test_support.py
   push:
     branches: [main]
     paths:
@@ -28,6 +29,7 @@ on:
       - notebooks_py/2-QUBO_python.ipynb
       - notebooks_py/4-DWAVE_python.ipynb
       - tests/test_cudaq_qaoa.py
+      - tests/notebook_test_support.py
   workflow_dispatch:
 
 permissions:
@@ -53,4 +55,4 @@ jobs:
       - name: Verify the QAOA and quantum-annealing lessons on CPU
         run: make verify-cudaq-python
       - name: Check the compiled QAOA kernel against a dense reference
-        run: env CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 uv run --locked --group docs --group qubo --group cudaq python -m unittest discover -s tests -p test_cudaq_qaoa.py
+        run: make test-cudaq-python

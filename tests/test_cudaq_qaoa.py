@@ -257,5 +257,6 @@ class CoverageTests(unittest.TestCase):
         for event in ("pull_request", "push"):
             self.assertIn("notebooks_py/2-QUBO_python.ipynb", events[event]["paths"])
             self.assertIn("notebooks_py/4-DWAVE_python.ipynb", events[event]["paths"])
+            self.assertIn("tests/notebook_test_support.py", events[event]["paths"])
         steps = workflow["jobs"]["cpu"]["steps"]
-        self.assertTrue(any("test_cudaq_qaoa.py" in step.get("run", "") for step in steps))
+        self.assertTrue(any(step.get("run") == "make test-cudaq-python" for step in steps))

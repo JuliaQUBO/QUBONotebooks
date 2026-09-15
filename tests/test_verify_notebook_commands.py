@@ -35,8 +35,23 @@ class CudaqTargetTests(unittest.TestCase):
             self.assertEqual(["docs", "qubo", "cudaq"], groups)
         self.assertIn("QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0", run)
         self.assertIn("CUDA_VISIBLE_DEVICES=", run)
+        self.assertIn("OMP_NUM_THREADS=2", run)
+        self.assertIn("OPENBLAS_NUM_THREADS=2", run)
         self.assertEqual(["env", "-u", "DWAVE_API_TOKEN"], run[:3])
         self.assertEqual(["notebooks_py/2-QUBO_python.ipynb", "notebooks_py/4-DWAVE_python.ipynb"], run[-2:])
+
+    def test_cudaq_tests_share_the_verifier_environment_and_group_overrides(self):
+        for overrides in ((), ("CUDAQ_UV_GROUP_FLAGS=--group cudaq",)):
+            with self.subTest(overrides=overrides):
+                verify = next(command for command in self.commands("verify-cudaq-python", *overrides)
+                              if "./scripts/verify_cudaq.py" in command)
+                run = next(command for command in self.commands("test-cudaq-python", *overrides)
+                           if "unittest" in command)
+                self.assertEqual(verify[:verify.index("python") + 1], run[:run.index("python") + 1])
+                self.assertEqual(
+                    ["python", "-m", "unittest", "discover", "-s", "tests", "-p", "test_cudaq_qaoa.py"],
+                    run[-8:],
+                )
 
     def test_cudaq_target_accepts_a_single_notebook_override(self):
         commands = self.commands(
