@@ -53,6 +53,7 @@ Portable and credential-free execution targets write refreshed copies to
 
 ```bash
 make verify-python-portable
+make verify-dwave-python-local
 make verify-qci-julia-local
 make verify-five-starter-problems-julia-local
 ```
@@ -62,6 +63,23 @@ Additional targets and environment details are listed in the repository
 particular, Julia notebooks activate their own focused projects, and the Python
 QCI notebook uses a separate dependency environment from the D-Wave notebooks
 because their NetworkX constraints conflict.
+
+## D-Wave Python local execution
+
+`make verify-dwave-python-local` uses the existing locked `docs` and `qubo`
+groups on Python 3.10–3.12. It checks seeded local samples against exhaustive
+enumeration and executes the notebook without importing the Ocean cloud
+client, reading saved QPU configuration, or contacting Leap. The target forces
+`QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0` even if the caller enabled it. CI runs this
+path in a separate job with a 10-minute budget.
+
+Hardware demonstrations require a separately managed Ocean environment and
+`QUBONOTEBOOKS_DWAVE_ENABLE_QPU=1` before opening or executing the notebook.
+Use `DWAVE_API_TOKEN`, Colab Secrets, or your existing Ocean local configuration.
+Opted-in connectivity and submission errors stop execution. The Ocean cloud
+client remains outside the lock because it brings in `diskcache`, which the
+repository dependency policy excludes. Published QPU outputs are retained
+historical examples; local verification writes its own results to `.nbverify/`.
 
 ## Commercial solvers
 
