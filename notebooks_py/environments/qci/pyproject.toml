@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Isolated local verification and teaching environment for the QCi notebook."
 requires-python = ">=3.11,<3.13"
 dependencies = [
-    "eqc-models==0.20.2",
+    "eqc-models==0.21.0",
     "highspy>=1.15.1,<2",
     "ipykernel>=7.3.0,<8",
     "jupyterlab>=4.6.3,<5",
