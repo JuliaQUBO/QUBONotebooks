@@ -85,7 +85,7 @@ The complete MathProg notebook requires GLPK, CBC, IPOPT, BONMIN, and Couenne.
 On Ubuntu 22.04, install GLPK and the runtime libraries once:
 
 ```bash
-sudo apt-get install glpk-utils libgfortran5 libgomp1
+sudo apt-get install glpk-utils libgfortran5 libgomp1 liblapack3 libblas3
 ```
 
 Then install the locked Python groups and the versioned IDAES solver bundle:

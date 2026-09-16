@@ -27,7 +27,7 @@ jobs:
       - name: Install open-source solvers
         run: |
           sudo apt-get update
-          sudo apt-get install -y glpk-utils libgfortran5 libgomp1
+          sudo apt-get install -y glpk-utils libgfortran5 libgomp1 liblapack3 libblas3
           uv run --locked --group docs --group mathprog idaes get-extensions --release 3.4.2 --distro ubuntu2204 --to "$RUNNER_TEMP/mathprog-solvers"
           echo "$RUNNER_TEMP/mathprog-solvers" >> "$GITHUB_PATH"
       - name: Execute complete MathProg notebook
