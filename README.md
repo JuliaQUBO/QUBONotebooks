@@ -87,7 +87,7 @@ Problems](#source-of-the-five-starter-problems).
 
 | Topic | Julia notebook | Python notebook | Local verification status |
 | --- | --- | --- | --- |
-| Linear and Integer Programming | [notebooks_jl/1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) | [notebooks_py/1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; local execution requires LP/NLP/MINLP solver binaries. |
+| Linear and Integer Programming | [notebooks_jl/1-MathProg.ipynb](notebooks_jl/1-MathProg.ipynb) | [notebooks_py/1-MathProg_python.ipynb](notebooks_py/1-MathProg_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; local execution requires LP/NLP/MINLP solver binaries. Python is covered by `make verify-mathprog-python-local` using GLPK and the IDAES solver bundle. |
 | QUBO and Ising | [notebooks_jl/2-QUBO.ipynb](notebooks_jl/2-QUBO.ipynb) | [notebooks_py/2-QUBO_python.ipynb](notebooks_py/2-QUBO_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; Python notebook is portable and covered by `make verify-qubo-python`. |
 | Graver Augmented Multiseed Algorithm | [notebooks_jl/3-GAMA.ipynb](notebooks_jl/3-GAMA.ipynb) | [notebooks_py/3-GAMA_python.ipynb](notebooks_py/3-GAMA_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; Python notebook is portable and covered by `make verify-gama-python`. |
 | D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; quantum annealer cells require D-Wave solver access. The Python local path uses locked `docs` + `qubo` dependencies and is covered by `make verify-dwave-python-local`; QPU access requires an explicit opt-in and a separate Ocean environment. |
@@ -108,6 +108,7 @@ queue after the local notebook work.
 
 | Notebook or operation | Execution class | Make target | Expected runtime | Environment variables |
 | --- | --- | --- | --- | --- |
+| MathProg Python (1) | local LP, MILP, NLP, and MINLP solvers | `make verify-mathprog-python-local` | CI budget: 10 minutes including installation | Solver executables on `PATH`; no credentials |
 | D-Wave Python local path (4) | local simulated annealing; QPU disabled | `make verify-dwave-python-local` | CI budget: 10 minutes including installation | None required; forces QPU access off |
 | Optional CUDA-Q CPU (4) | Quantum annealing followed by a QAOA comparison on the same QUBO in the D-Wave notebook | `make verify-cudaq-python` | About 2 minutes after installation on the tested Linux CPU; CI budget: 10 minutes including installation | None required; Python 3.11–3.12; see [platform and size details](local-setup.md#optional-cuda-q) |
 | QCi Julia local path (6) | offline/model-only; opt-in QCI cloud | `make verify-qci-julia-local` | About 30–90 seconds after the environment is ready | None required |
@@ -175,6 +176,7 @@ make check-notebook-output-hygiene
 make check-notebook-output-budgets
 make verify-qubo-python
 make verify-gama-python
+make verify-mathprog-python-local
 make verify-dwave-python-local
 make verify-qci-julia-local
 make verify-canonical-problems-julia
