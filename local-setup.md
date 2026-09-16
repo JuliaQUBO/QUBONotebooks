@@ -79,6 +79,37 @@ provides an awaitable shutdown callback to avoid Jupyter's startup and shutdown
 deprecations. Revisit those workarounds when updating ipykernel or Tornado;
 [#152](https://github.com/JuliaQUBO/QUBONotebooks/issues/152) tracks their removal.
 
+## MathProg Python local execution
+
+The complete MathProg notebook requires GLPK, CBC, IPOPT, BONMIN, and Couenne.
+On Ubuntu 22.04, install GLPK and the runtime libraries once:
+
+```bash
+sudo apt-get install glpk-utils libgfortran5 libgomp1 liblapack3 libblas3
+```
+
+Then install the locked Python groups and the versioned IDAES solver bundle:
+
+```bash
+uv sync --locked --group docs --group mathprog
+uv run --locked --group docs --group mathprog idaes get-extensions --release 3.4.2 --distro ubuntu2204 --to .nbverify/mathprog-solvers
+export PATH="$PWD/.nbverify/mathprog-solvers:$PATH"
+make verify-mathprog-python-local
+```
+
+IDAES verifies the downloaded bundle's checksums. Other platforms need the
+corresponding IDAES build (consult `idaes get-extensions --info`) or compatible
+local solver executables on `PATH`; the CI recipe above is tested on Ubuntu
+22.04. The Python packages use the existing `mathprog` group and `uv.lock`.
+
+Verification runs every lesson cell, checks solver termination and feasibility,
+and compares the LP, ILP, convex MINLP, and global nonconvex MINLP objectives
+with their known optima. BONMIN's nonconvex example checks feasibility without
+claiming global optimality. Missing executables and failed solves are errors;
+there is no silent solver fallback. No account or commercial license is used.
+CI gives installation and execution a separate 10-minute job. Fresh outputs
+go to `.nbverify/`; the published figures are preserved.
+
 ## D-Wave Python local execution
 
 `make verify-dwave-python-local` uses the existing locked `docs` and `qubo`

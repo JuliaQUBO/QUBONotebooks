@@ -1,5 +1,7 @@
 .PHONY: test build-book sysimage test-python test-cudaq-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-dwave-python-local verify-cudaq-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
+.PHONY: verify-mathprog-python-local
+
 PYTHON ?= python3
 UV ?= uv
 UV_CACHE_DIR ?= $(CURDIR)/.uv-cache
@@ -8,10 +10,12 @@ PORTABLE_UV_GROUP_FLAGS ?= --group docs --group qubo
 CUDAQ_UV_GROUP_FLAGS ?= --group docs --group qubo --group cudaq
 CUDAQ_PYTHON = env -u DWAVE_API_TOKEN QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0 CUDA_VISIBLE_DEVICES="" OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked $(CUDAQ_UV_GROUP_FLAGS) python
 BENCHMARKING_UV_GROUP_FLAGS ?= --group docs --group qubo
+MATHPROG_UV_GROUP_FLAGS ?= --group docs --group mathprog
 JULIA ?= julia
 JULIA_DEPOT_PATH ?= $(CURDIR)/.julia-depot:$(HOME)/.julia
 JULIA_PKG_PRECOMPILE_AUTO ?= 0
 QUBO_PYTHON_NOTEBOOK ?= notebooks_py/2-QUBO_python.ipynb
+MATHPROG_PYTHON_NOTEBOOK ?= notebooks_py/1-MathProg_python.ipynb
 GAMA_PYTHON_NOTEBOOK ?= notebooks_py/3-GAMA_python.ipynb
 PORTABLE_PYTHON_NOTEBOOKS ?= $(QUBO_PYTHON_NOTEBOOK) $(GAMA_PYTHON_NOTEBOOK)
 DWAVE_PYTHON_NOTEBOOK ?= notebooks_py/4-DWAVE_python.ipynb
@@ -79,6 +83,9 @@ verify-notebooks:
 
 verify-python-portable:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(PORTABLE_PYTHON_NOTEBOOKS)"
+
+verify-mathprog-python-local:
+	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(MATHPROG_UV_GROUP_FLAGS)" NOTEBOOKS="$(MATHPROG_PYTHON_NOTEBOOK)"
 
 verify-qubo-python:
 	$(MAKE) verify-notebooks UV_GROUP_FLAGS="$(PORTABLE_UV_GROUP_FLAGS)" NOTEBOOKS="$(QUBO_PYTHON_NOTEBOOK)"
