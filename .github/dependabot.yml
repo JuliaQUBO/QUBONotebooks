@@ -10,6 +10,16 @@ updates:
         patterns:
           - "*"
 
+  - package-ecosystem: "uv"
+    directory: "/notebooks_py/environments/qci"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      qci-python-dependencies:
+        patterns:
+          - "*"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

@@ -92,7 +92,7 @@ Problems](#source-of-the-five-starter-problems).
 | Graver Augmented Multiseed Algorithm | [notebooks_jl/3-GAMA.ipynb](notebooks_jl/3-GAMA.ipynb) | [notebooks_py/3-GAMA_python.ipynb](notebooks_py/3-GAMA_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; Python notebook is portable and covered by `make verify-gama-python`. |
 | D-Wave | [notebooks_jl/4-DWave.ipynb](notebooks_jl/4-DWave.ipynb) | [notebooks_py/4-DWAVE_python.ipynb](notebooks_py/4-DWAVE_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; quantum annealer cells require D-Wave solver access. The Python local path uses locked `docs` + `qubo` dependencies and is covered by `make verify-dwave-python-local`; QPU access requires an explicit opt-in and a separate Ocean environment. |
 | Benchmarking | [notebooks_jl/5-Benchmarking.ipynb](notebooks_jl/5-Benchmarking.ipynb) | [notebooks_py/5-Benchmarking_python.ipynb](notebooks_py/5-Benchmarking_python.ipynb) | Julia notebook includes native Colab setup through its focused notebook project; benchmark runs are long-running and generate artifacts. |
-| QCi | [notebooks_jl/6-QCi.ipynb](notebooks_jl/6-QCi.ipynb) | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | The Julia notebook uses QCIOpt's default CondaPkg environment; its model-construction and exact-enumeration path is credential-free and covered by `make verify-qci-julia-local`. QCI submission is a separate explicit opt-in. The Python notebook requires its separate `eqc-models` stack and credentials for cloud examples. |
+| QCi | [notebooks_jl/6-QCi.ipynb](notebooks_jl/6-QCi.ipynb) | [notebooks_py/6-QCi_python.ipynb](notebooks_py/6-QCi_python.ipynb) | The Julia notebook uses QCIOpt's default CondaPkg environment; its model-construction and exact-enumeration path is credential-free and covered by `make verify-qci-julia-local`. QCI submission is a separate explicit opt-in. The Python notebook has its own locked `eqc-models` environment and credential-free `make verify-qci-python-local` path; cloud submissions require explicit opt-in. |
 | Canonical QUBO starter problems | [notebooks_jl/7-CanonicalProblems.ipynb](notebooks_jl/7-CanonicalProblems.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-canonical-problems-julia`; exhaustive checks validate number partitioning, Max-Cut, and minimum vertex cover. |
 | Order partitioning for A/B testing | [notebooks_jl/8-OrderPartitioning.ipynb](notebooks_jl/8-OrderPartitioning.ipynb) | Not available | Credential-free Julia notebook covered by `make verify-order-partitioning-julia`; all 64 assignments validate the grouped value/risk objective and decoded balances. |
 | Altered cancer pathways from TCGA AML aggregates | [notebooks_jl/9-CancerGenomics.ipynb](notebooks_jl/9-CancerGenomics.ipynb) | Not available | Offline, credential-free Julia notebook covered by `make verify-cancer-genomics-julia`; a tiny incidence fixture is solved exhaustively and a seeded local sampler validates the committed aggregate without claiming clinical significance. |
@@ -110,6 +110,7 @@ queue after the local notebook work.
 | --- | --- | --- | --- | --- |
 | D-Wave Python local path (4) | local simulated annealing; QPU disabled | `make verify-dwave-python-local` | CI budget: 10 minutes including installation | None required; forces QPU access off |
 | Optional CUDA-Q CPU (4) | Quantum annealing followed by a QAOA comparison on the same QUBO in the D-Wave notebook | `make verify-cudaq-python` | About 2 minutes after installation on the tested Linux CPU; CI budget: 10 minutes including installation | None required; Python 3.11–3.12; see [platform and size details](local-setup.md#optional-cuda-q) |
+| QCi Python local path (6) | local/model-only; opt-in QCI cloud | `make verify-qci-python-local` | CI budget: 10 minutes including installation | None required; forces cloud access off |
 | QCi Julia local path (6) | offline/model-only; opt-in QCI cloud | `make verify-qci-julia-local` | About 30–90 seconds after the environment is ready | None required |
 | Canonical problems (7) | offline/portable | `make verify-canonical-problems-julia` | About 30–90 seconds | None required |
 | Order partitioning (8) | offline/portable | `make verify-order-partitioning-julia` | About 30–90 seconds | None required |
@@ -211,8 +212,12 @@ excludes the D-Wave Ocean stack because its current cloud client depends on
 release. Separate targets exist for notebooks that do not require external
 solver credentials or longer-running jobs; those credentialed and long-running
 notebooks are not part of the default portable subset. The Python QCi notebook
-does not have a locked local make target because `eqc-models==0.19.0` requires
-`networkx<3`, which conflicts with the D-Wave Ocean stack.
+uses a separate locked project under `notebooks_py/environments/qci` because
+`eqc-models==0.20.2` requires `networkx<3`, while the shared `qubo` group
+requires NetworkX 3. Its local target uses HiGHS and exhaustive enumeration;
+cloud access requires `QUBONOTEBOOKS_QCI_ENABLE_CLOUD=1` and `QCI_TOKEN`.
+`make test-qci-python` runs its focused boundary and numerical tests in the
+same environment.
 
 ### Julia notebook environments
 
