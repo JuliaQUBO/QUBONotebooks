@@ -22,6 +22,9 @@ DWAVE_PYTHON_NOTEBOOK ?= notebooks_py/4-DWAVE_python.ipynb
 CUDAQ_PYTHON_NOTEBOOKS ?= $(DWAVE_PYTHON_NOTEBOOK)
 BENCHMARKING_PYTHON_NOTEBOOK ?= notebooks_py/5-Benchmarking_python.ipynb
 QCI_JULIA_NOTEBOOK ?= notebooks_jl/6-QCi.ipynb
+QCI_PYTHON_NOTEBOOK ?= notebooks_py/6-QCi_python.ipynb
+QCI_PYTHON_PROJECT ?= notebooks_py/environments/qci
+QCI_LOCAL_PYTHON = env -u QCI_TOKEN QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 UV_PROJECT_ENVIRONMENT=$(abspath $(QCI_PYTHON_PROJECT)/.venv) UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked --project $(QCI_PYTHON_PROJECT) python
 CANONICAL_PROBLEMS_JULIA_NOTEBOOK ?= notebooks_jl/7-CanonicalProblems.ipynb
 ORDER_PARTITIONING_JULIA_NOTEBOOK ?= notebooks_jl/8-OrderPartitioning.ipynb
 CANCER_GENOMICS_JULIA_NOTEBOOK ?= notebooks_jl/9-CancerGenomics.ipynb
@@ -106,6 +109,12 @@ verify-cudaq-python:
 test-cudaq-python:
 	$(CUDAQ_PYTHON) -m unittest discover -s tests -p test_cudaq_qaoa.py
 
+verify-qci-python-local:
+	$(QCI_LOCAL_PYTHON) $(CURDIR)/scripts/verify_notebooks.py $(QCI_PYTHON_NOTEBOOK)
+
+test-qci-python:
+	$(QCI_LOCAL_PYTHON) -m unittest discover -s $(CURDIR)/tests -p test_qci_python_local.py
+
 verify-qci-julia-local:
 	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u QCI_TOKEN QUBONOTEBOOKS_QCI_ENABLE_CLOUD=0 QUBONOTEBOOKS_QCI_REQUIRE_CLOUD=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(QCI_JULIA_NOTEBOOK)"
 
@@ -169,3 +178,5 @@ verify-annealing-julia-qpu:
 		exit 2; \
 	fi
 	QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"
+
+.PHONY: verify-qci-python-local test-qci-python
