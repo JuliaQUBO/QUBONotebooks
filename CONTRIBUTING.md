@@ -199,3 +199,61 @@ which is why every grant carries a ceiling of its own.
 Committed outputs must not carry credentials, tokens, or machine-specific
 absolute paths; `make check-notebook-output-hygiene` guards the known personal
 path patterns.
+
+### Re-rendering and history
+
+The size budgets bound what the notebooks store now. They do not bound what
+the repository keeps. Every commit that rewrites an output adds the new payload
+to history for good, and base64 figures barely delta-compress. A notebook can
+stay inside every budget on every commit and still be the most expensive
+object in the repository, because it was re-rendered many times.
+
+So the rule is: **do not commit re-executed output unless the output actually
+changed.** When a change edits prose, or only some cells, keep the committed
+output of every cell whose result is not meant to change. That includes
+outputs that differ only in timing, execution metadata, or print order. Commit
+new output only for the cells the change is about.
+
+That rule depends on re-execution being repeatable:
+
+- Seed every random layout and sampler that feeds a figure, for example
+  `nx.spring_layout(G, seed=...)` or `sampler.sample(..., seed=...)`. An
+  unseeded figure changes on every run, so there is never an "unchanged"
+  output to keep. A call that runs after a notebook-level `np.random.seed(...)`
+  is already repeatable, because it draws from that global state. Giving such a
+  call its own seed changes what every later unseeded call draws, so check the
+  figures downstream before adding one.
+- A figure that can never reproduce, such as a wall-clock timing plot, gets
+  the `nondeterministic-output` cell tag. Keep its committed output unless the
+  change is about that figure.
+- `make check-figure-reproducibility` compares the committed figures of the
+  notebooks named by `NOTEBOOKS` (the portable Python notebooks by default)
+  with their executed copies in `.nbverify/`. After another verify target, pass
+  the same `NOTEBOOKS=...`. It fails on any untagged figure that re-execution
+  did not reproduce, and on a tag that marks a cell without a figure. PNG text
+  metadata, such as the matplotlib version, is ignored. CI runs the check after
+  executing the portable Python notebooks.
+- The comparison is byte for byte apart from that metadata, and floating-point
+  results depend on the CPU code path. The Python verification kernel therefore
+  caps NumPy's runtime dispatch at AVX2 (`X86_V3`), which is what keeps two
+  x86-64 machines running the locked NumPy on the same pixels. The cap needs
+  NumPy 2.4 or newer, since earlier builds have no `X86_V3` dispatch target,
+  and the runner prints why it was not applied whenever it declines. Read that
+  line before treating a mismatch as unseeded randomness.
+- Render committed Python figures through the `make verify-*` targets on
+  x86-64. On another architecture, such as Apple silicon, the same source
+  renders different pixels, so leave a re-render to CI or to an x86-64 machine
+  rather than committing one.
+- A dependency update that genuinely changes rendered pixels is output that
+  actually changed. Re-render the affected figures in that same pull request.
+  A Dependabot bump cannot do that for itself: push the re-render onto the bot's
+  branch, since a follow-up pull request would leave the check red on `main`.
+
+`make report-notebook-output-churn` measures the other side. For each notebook
+a branch touches, it walks every commit on the branch and reports the output
+payloads that neither an earlier commit on the branch nor a commit the branch
+builds on (the merge base, or the original fork point after `main` was merged
+in) stored. It also reports the code cells whose output
+differs from the merge base while their source does not. It compares against
+`origin/main` by default; set `CHURN_BASE` for another base. CI posts the
+report on every pull request as information, not as a merge gate.

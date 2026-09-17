@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import shlex
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -174,6 +177,67 @@ class KernelSpecTests(unittest.TestCase):
         self.assertEqual(kernel["display_name"], "QUBONotebooks Julia (local)")
 
 
+class NumpyDispatchCapTests(unittest.TestCase):
+    MODULE = "numpy._core._multiarray_umath"
+    DISPATCH = ["X86_V3", "X86_V4", "AVX512_ICL", "AVX512_SPR"]
+
+    def cap(self, features, dispatch=DISPATCH, environ=None):
+        """Return the environment the cap selects, and what it printed."""
+        fake = types.SimpleNamespace(__cpu_dispatch__=dispatch, __cpu_features__=features)
+        printed = io.StringIO()
+        with patch.dict(sys.modules, {self.MODULE: fake}):
+            with patch.dict(os.environ, environ or {}, clear=True):
+                with redirect_stdout(printed):
+                    return verify_notebooks.numpy_dispatch_cap_env(), printed.getvalue()
+
+    def test_disables_the_supported_targets_above_avx2(self) -> None:
+        features = {"X86_V3": True, "X86_V4": True, "AVX512_ICL": True, "AVX512_SPR": False}
+
+        self.assertEqual(
+            ({"NPY_DISABLE_CPU_FEATURES": "X86_V4 AVX512_ICL"}, ""), self.cap(features)
+        )
+
+    def test_leaves_a_machine_without_avx512_alone(self) -> None:
+        # Nothing above the cap runs anyway, so this is capped, not declined.
+        self.assertEqual(({}, ""), self.cap({"X86_V3": True, "X86_V4": False}))
+
+    def test_says_why_a_build_without_the_cap_target_is_left_alone(self) -> None:
+        env, printed = self.cap({"ASIMD": True}, dispatch=["ASIMDHP", "SVE"])
+
+        self.assertEqual({}, env)
+        self.assertRegex(printed, r"^No NumPy dispatch cap: X86_V3 is not a dispatch target")
+        self.assertRegex(printed, r"may differ from the committed one\.\n$")
+
+    def test_says_why_a_selection_the_caller_already_made_is_respected(self) -> None:
+        for name in verify_notebooks.NUMPY_FEATURE_VARIABLES:
+            with self.subTest(name):
+                env, printed = self.cap({"X86_V4": True}, environ={name: "X86_V4"})
+
+                self.assertEqual({}, env)
+                self.assertRegex(printed, rf"^No NumPy dispatch cap: {name} is already set")
+
+    def test_says_why_a_numpy_without_the_private_module_is_left_alone(self) -> None:
+        printed = io.StringIO()
+        with patch.dict(sys.modules, {self.MODULE: None}):
+            with patch.dict(os.environ, {}, clear=True):
+                with redirect_stdout(printed):
+                    env = verify_notebooks.numpy_dispatch_cap_env()
+
+        self.assertEqual({}, env)
+        self.assertRegex(printed.getvalue(), r"does not expose numpy\._core")
+
+    def test_the_kernel_environment_carries_the_cap(self) -> None:
+        with patch.object(
+            verify_notebooks,
+            "numpy_dispatch_cap_env",
+            return_value={"NPY_DISABLE_CPU_FEATURES": "X86_V4"},
+        ):
+            with tempfile.TemporaryDirectory() as tmp_name:
+                _kernel_name, env = verify_notebooks.python_kernel_spec_dir(Path(tmp_name))
+
+        self.assertEqual("X86_V4", env["NPY_DISABLE_CPU_FEATURES"])
+
+
 class CommandConstructionTests(unittest.TestCase):
     def run_kernel_probe(self, *, long_tmpdir=False, source=None):
         """Exercise the real runner, capturing kernel startup and shutdown too."""
@@ -248,6 +312,26 @@ class CommandConstructionTests(unittest.TestCase):
         self.assertNotEqual(0, code)
         self.assertIn("CellExecutionError", log)
         self.assertIn("shared runner warning probe", log)
+
+    def test_python_kernel_runs_numpy_at_or_below_the_dispatch_cap(self) -> None:
+        # The kernel's own selection is asserted as well as its effect, because
+        # a host with nothing above the cap satisfies the effect either way.
+        # On such a host this test proves nothing, so it says so rather than
+        # passing; `test_the_kernel_environment_carries_the_cap` covers the
+        # wiring on every host.
+        expected = verify_notebooks.numpy_dispatch_cap_env().get("NPY_DISABLE_CPU_FEATURES", "")
+        if not expected:
+            self.skipTest("this host dispatches nothing above the cap, so the cap is a no-op")
+        code, output, log = self.run_kernel_probe(source=[
+            "import os\n",
+            "from numpy._core._multiarray_umath import __cpu_dispatch__, __cpu_features__\n",
+            "targets = list(__cpu_dispatch__)\n",
+            f"above = targets[targets.index({verify_notebooks.NUMPY_DISPATCH_CAP!r}) + 1:]\n",
+            "print([target for target in above if __cpu_features__.get(target)])\n",
+            "print(os.environ.get('NPY_DISABLE_CPU_FEATURES', ''))\n",
+        ])
+        self.assertEqual(0, code, log)
+        self.assertEqual(f"[]\n{expected}\n", output)
 
     @patch.object(verify_notebooks, "run")
     def test_instantiates_current_shared_julia_project(
