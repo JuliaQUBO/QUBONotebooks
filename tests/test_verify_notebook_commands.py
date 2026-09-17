@@ -314,10 +314,14 @@ class CommandConstructionTests(unittest.TestCase):
         self.assertIn("shared runner warning probe", log)
 
     def test_python_kernel_runs_numpy_at_or_below_the_dispatch_cap(self) -> None:
-        # The kernel's own selection is asserted as well as its effect: a host
-        # with nothing above the cap satisfies the effect either way, and that
-        # is the host this cap exists for.
+        # The kernel's own selection is asserted as well as its effect, because
+        # a host with nothing above the cap satisfies the effect either way.
+        # On such a host this test proves nothing, so it says so rather than
+        # passing; `test_the_kernel_environment_carries_the_cap` covers the
+        # wiring on every host.
         expected = verify_notebooks.numpy_dispatch_cap_env().get("NPY_DISABLE_CPU_FEATURES", "")
+        if not expected:
+            self.skipTest("this host dispatches nothing above the cap, so the cap is a no-op")
         code, output, log = self.run_kernel_probe(source=[
             "import os\n",
             "from numpy._core._multiarray_umath import __cpu_dispatch__, __cpu_features__\n",
