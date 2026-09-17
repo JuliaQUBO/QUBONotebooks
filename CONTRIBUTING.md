@@ -199,3 +199,40 @@ which is why every grant carries a ceiling of its own.
 Committed outputs must not carry credentials, tokens, or machine-specific
 absolute paths; `make check-notebook-output-hygiene` guards the known personal
 path patterns.
+
+### Re-rendering and history
+
+The size budgets bound what the notebooks store now. They do not bound what
+the repository keeps. Every commit that rewrites an output adds the new payload
+to history for good, and base64 figures barely delta-compress. A notebook can
+stay inside every budget on every commit and still be the most expensive
+object in the repository, because it was re-rendered many times.
+
+So the rule is: **do not commit re-executed output unless the output actually
+changed.** When a change edits prose, or only some cells, keep the committed
+output of every cell whose result is not meant to change. That includes
+outputs that differ only in timing, execution metadata, or print order. Commit
+new output only for the cells the change is about.
+
+That rule depends on re-execution being repeatable:
+
+- Seed every random layout and sampler that feeds a figure, for example
+  `nx.spring_layout(G, seed=...)` or `sampler.sample(..., seed=...)`. An
+  unseeded figure changes on every run, so there is never an "unchanged"
+  output to keep.
+- A figure that can never reproduce, such as a wall-clock timing plot, gets
+  the `nondeterministic-output` cell tag. Keep its committed output unless the
+  change is about that figure.
+- `make check-figure-reproducibility` compares the figures of the notebooks
+  most recently executed into `.nbverify/` with the committed ones. It fails on
+  any untagged figure that re-execution did not reproduce, and on a tag that
+  marks a cell without a figure. CI runs it after executing the portable Python
+  notebooks.
+
+`make report-notebook-output-churn` measures the other side. For each notebook
+a branch touches, it walks every commit on the branch and reports the output
+payloads that neither the merge-base version of that notebook nor an earlier
+commit on the branch stored. It also reports the code cells whose output
+differs from the merge base while their source does not. It compares against
+`origin/main` by default; set `CHURN_BASE` for another base. CI posts the
+report on every pull request as information, not as a merge gate.
