@@ -20,6 +20,11 @@ TIMEOUT_ENV = "QUBONOTEBOOKS_NOTEBOOK_TIMEOUT"
 PYTHON_KERNEL_NAME = "qubonotebooks-python-local"
 JULIA_KERNEL_NAME = "qubonotebooks-julia-local"
 JULIA_PROJECT = REPO_ROOT / "notebooks_jl"
+# Committed figures are compared byte for byte, and NumPy's AVX-512 kernels
+# round differently from its AVX2 ones, which moves pixels. Capping the runtime
+# dispatch here keeps a render identical across x86-64 machines.
+NUMPY_DISPATCH_CAP = "X86_V3"
+NUMPY_FEATURE_VARIABLES = ("NPY_DISABLE_CPU_FEATURES", "NPY_ENABLE_CPU_FEATURES")
 
 
 def parse_execution_timeout_seconds() -> int:
@@ -91,6 +96,29 @@ def instantiate_julia_project(julia_executable: str) -> None:
     )
 
 
+def numpy_dispatch_cap_env() -> dict[str, str]:
+    """Return the environment that caps NumPy's dispatch at ``NUMPY_DISPATCH_CAP``.
+
+    Only targets this machine supports are disabled: NumPy warns about the
+    others, and the kernel treats warnings as errors. A NumPy-selection
+    variable the caller already set is left alone.
+    """
+    if any(name in os.environ for name in NUMPY_FEATURE_VARIABLES):
+        return {}
+    try:
+        from numpy._core._multiarray_umath import __cpu_dispatch__, __cpu_features__
+    except ImportError:
+        return {}
+    dispatch = list(__cpu_dispatch__)
+    if NUMPY_DISPATCH_CAP not in dispatch:
+        return {}
+    above_cap = dispatch[dispatch.index(NUMPY_DISPATCH_CAP) + 1 :]
+    disabled = [target for target in above_cap if __cpu_features__.get(target)]
+    if not disabled:
+        return {}
+    return {"NPY_DISABLE_CPU_FEATURES": " ".join(disabled)}
+
+
 def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
     kernels_dir = tmpdir / "kernels" / PYTHON_KERNEL_NAME
     kernels_dir.mkdir(parents=True, exist_ok=True)
@@ -106,7 +134,11 @@ def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
         "interrupt_mode": "signal",
     }
     (kernels_dir / "kernel.json").write_text(json.dumps(kernel_spec, indent=2) + "\n")
-    return PYTHON_KERNEL_NAME, {"JUPYTER_PATH": str(tmpdir), "PYTHONWARNINGS": "error"}
+    return PYTHON_KERNEL_NAME, {
+        "JUPYTER_PATH": str(tmpdir),
+        "PYTHONWARNINGS": "error",
+        **numpy_dispatch_cap_env(),
+    }
 
 
 def julia_kernel_spec_dir(tmpdir: Path, *, julia_executable: str) -> tuple[str, dict[str, str]]:

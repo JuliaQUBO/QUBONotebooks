@@ -8,6 +8,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -174,6 +175,46 @@ class KernelSpecTests(unittest.TestCase):
         self.assertEqual(kernel["display_name"], "QUBONotebooks Julia (local)")
 
 
+class NumpyDispatchCapTests(unittest.TestCase):
+    MODULE = "numpy._core._multiarray_umath"
+    DISPATCH = ["X86_V3", "X86_V4", "AVX512_ICL", "AVX512_SPR"]
+
+    def cap(self, features, dispatch=DISPATCH, environ=None):
+        fake = types.SimpleNamespace(__cpu_dispatch__=dispatch, __cpu_features__=features)
+        with patch.dict(sys.modules, {self.MODULE: fake}):
+            with patch.dict(os.environ, environ or {}, clear=True):
+                return verify_notebooks.numpy_dispatch_cap_env()
+
+    def test_disables_the_supported_targets_above_avx2(self) -> None:
+        features = {"X86_V3": True, "X86_V4": True, "AVX512_ICL": True, "AVX512_SPR": False}
+
+        self.assertEqual(
+            {"NPY_DISABLE_CPU_FEATURES": "X86_V4 AVX512_ICL"}, self.cap(features)
+        )
+
+    def test_leaves_a_machine_without_avx512_alone(self) -> None:
+        self.assertEqual({}, self.cap({"X86_V3": True, "X86_V4": False}))
+
+    def test_leaves_a_build_without_the_cap_target_alone(self) -> None:
+        self.assertEqual({}, self.cap({"ASIMD": True}, dispatch=["ASIMDHP", "SVE"]))
+
+    def test_respects_a_selection_the_caller_already_made(self) -> None:
+        for name in verify_notebooks.NUMPY_FEATURE_VARIABLES:
+            with self.subTest(name):
+                self.assertEqual({}, self.cap({"X86_V4": True}, environ={name: "X86_V4"}))
+
+    def test_the_kernel_environment_carries_the_cap(self) -> None:
+        with patch.object(
+            verify_notebooks,
+            "numpy_dispatch_cap_env",
+            return_value={"NPY_DISABLE_CPU_FEATURES": "X86_V4"},
+        ):
+            with tempfile.TemporaryDirectory() as tmp_name:
+                _kernel_name, env = verify_notebooks.python_kernel_spec_dir(Path(tmp_name))
+
+        self.assertEqual("X86_V4", env["NPY_DISABLE_CPU_FEATURES"])
+
+
 class CommandConstructionTests(unittest.TestCase):
     def run_kernel_probe(self, *, long_tmpdir=False, source=None):
         """Exercise the real runner, capturing kernel startup and shutdown too."""
@@ -248,6 +289,16 @@ class CommandConstructionTests(unittest.TestCase):
         self.assertNotEqual(0, code)
         self.assertIn("CellExecutionError", log)
         self.assertIn("shared runner warning probe", log)
+
+    def test_python_kernel_runs_numpy_at_or_below_the_dispatch_cap(self) -> None:
+        code, output, log = self.run_kernel_probe(source=[
+            "from numpy._core._multiarray_umath import __cpu_dispatch__, __cpu_features__\n",
+            "targets = list(__cpu_dispatch__)\n",
+            f"above = targets[targets.index({verify_notebooks.NUMPY_DISPATCH_CAP!r}) + 1:]\n",
+            "print([target for target in above if __cpu_features__.get(target)])\n",
+        ])
+        self.assertEqual(0, code, log)
+        self.assertEqual("[]\n", output)
 
     @patch.object(verify_notebooks, "run")
     def test_instantiates_current_shared_julia_project(
