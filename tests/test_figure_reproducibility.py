@@ -32,6 +32,16 @@ SEEDED_NOTEBOOKS = (
     "notebooks_py/4-DWAVE_python.ipynb",
     "notebooks_py/5-Benchmarking_python.ipynb",
 )
+# Layouts whose committed figure was rendered from a notebook-level
+# `np.random.seed(...)`, so an explicit seed would change it. Every other
+# unseeded layout is a defect, wherever it sits in the notebook.
+LAYOUTS_AFTER_A_GLOBAL_SEED = [
+    (
+        "notebooks_py/5-Benchmarking_python.ipynb",
+        "nx.draw(nx_graph, node_size=15, pos=nx.spring_layout(nx_graph), alpha=0.25, "
+        "edgelist=edges, edge_color=bias, edge_cmap=plt.cm.Blues)",
+    ),
+]
 
 
 def figure(payload: str, mime: str = "image/png") -> dict:
@@ -269,17 +279,24 @@ class CommittedNotebookTests(unittest.TestCase):
 
     def test_layouts_and_samplers_that_feed_figures_are_seeded(self) -> None:
         unseeded = []
+        exempt_found = []
         for name in SEEDED_NOTEBOOKS:
-            # An unseeded layout after `np.random.seed(...)` draws from that
-            # global state and is already repeatable; seeding it explicitly
-            # would shift every later draw from the global state.
             globally_seeded = False
             for index, cell in enumerate(self.load(name)["cells"]):
                 if cell["cell_type"] != "code":
                     continue
                 for line in "".join(cell["source"]).splitlines():
-                    if "spring_layout(" in line and "seed=" not in line and not globally_seeded:
-                        unseeded.append((name, index, line.strip()))
+                    if "spring_layout(" in line and "seed=" not in line:
+                        # An unseeded layout after `np.random.seed(...)` draws
+                        # from that global state and is already repeatable, and
+                        # seeding it would shift every later draw. Each such
+                        # call is listed, so the exemption covers only the ones
+                        # whose committed figures were rendered that way.
+                        exemption = (name, line.strip())
+                        if globally_seeded and exemption in LAYOUTS_AFTER_A_GLOBAL_SEED:
+                            exempt_found.append(exemption)
+                        else:
+                            unseeded.append((name, index, line.strip()))
                     if line.lstrip().startswith("nx.draw(") and "pos=" not in line:
                         unseeded.append((name, index, line.strip()))
                     if line.lstrip().startswith("np.random.seed("):
@@ -292,24 +309,10 @@ class CommittedNotebookTests(unittest.TestCase):
             if "simAnnSampler.sample(" in line
         ]
 
-        benchmark_cells = self.load(SEEDED_NOTEBOOKS[2])["cells"]
-        global_seed_cell = next(
-            index
-            for index, cell in enumerate(benchmark_cells)
-            if "np.random.seed(42)" in "".join(cell["source"])
-        )
-        layouts_after_global_seed = [
-            line.strip()
-            for cell in benchmark_cells[global_seed_cell:]
-            for line in "".join(cell["source"]).splitlines()
-            if "spring_layout(" in line
-        ]
-
         self.assertEqual([], unseeded)
-        # The committed figures downstream were rendered with the layout
-        # consuming the global state.
-        self.assertEqual(1, len(layouts_after_global_seed))
-        self.assertRegex(layouts_after_global_seed[0], r"spring_layout\(nx_graph\),")
+        # A listed call that is gone no longer excuses anything, so the list
+        # cannot outlive the figures it was written for.
+        self.assertEqual(sorted(LAYOUTS_AFTER_A_GLOBAL_SEED), sorted(exempt_found))
         self.assertEqual(2, len(qubo_sampling))
         for line in qubo_sampling:
             with self.subTest(line=line):

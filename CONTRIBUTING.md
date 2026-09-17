@@ -233,14 +233,21 @@ That rule depends on re-execution being repeatable:
   did not reproduce, and on a tag that marks a cell without a figure. PNG text
   metadata, such as the matplotlib version, is ignored. CI runs the check after
   executing the portable Python notebooks.
-- The comparison is byte for byte, and floating-point results depend on the
-  CPU code path. The Python verification kernel therefore caps NumPy's runtime
-  dispatch at AVX2 (`X86_V3`), so every x86-64 machine renders the same pixels.
-  Render committed Python figures through the `make verify-*` targets on
-  x86-64. Other architectures, such as Apple silicon, can produce different
-  pixels.
+- The comparison is byte for byte apart from that metadata, and floating-point
+  results depend on the CPU code path. The Python verification kernel therefore
+  caps NumPy's runtime dispatch at AVX2 (`X86_V3`), which is what keeps two
+  x86-64 machines running the locked NumPy on the same pixels. The cap needs
+  NumPy 2.4 or newer, since earlier builds have no `X86_V3` dispatch target,
+  and the runner prints why it was not applied whenever it declines. Read that
+  line before treating a mismatch as unseeded randomness.
+- Render committed Python figures through the `make verify-*` targets on
+  x86-64. On another architecture, such as Apple silicon, the same source
+  renders different pixels, so leave a re-render to CI or to an x86-64 machine
+  rather than committing one.
 - A dependency update that genuinely changes rendered pixels is output that
   actually changed. Re-render the affected figures in that same pull request.
+  A Dependabot bump cannot do that for itself: push the re-render onto the bot's
+  branch, since a follow-up pull request would leave the check red on `main`.
 
 `make report-notebook-output-churn` measures the other side. For each notebook
 a branch touches, it walks every commit on the branch and reports the output

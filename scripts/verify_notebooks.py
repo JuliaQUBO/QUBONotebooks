@@ -102,21 +102,38 @@ def numpy_dispatch_cap_env() -> dict[str, str]:
     Only targets this machine supports are disabled: NumPy warns about the
     others, and the kernel treats warnings as errors. A NumPy-selection
     variable the caller already set is left alone.
+
+    A render without the cap can differ from the committed figures, and the
+    only later symptom is a reproducibility mismatch that reads as unseeded
+    randomness, so every reason for declining is printed.
     """
-    if any(name in os.environ for name in NUMPY_FEATURE_VARIABLES):
-        return {}
+    selected = [name for name in NUMPY_FEATURE_VARIABLES if name in os.environ]
+    if selected:
+        return uncapped(f"{selected[0]} is already set")
     try:
         from numpy._core._multiarray_umath import __cpu_dispatch__, __cpu_features__
     except ImportError:
-        return {}
+        return uncapped("this NumPy does not expose numpy._core")
     dispatch = list(__cpu_dispatch__)
     if NUMPY_DISPATCH_CAP not in dispatch:
-        return {}
+        return uncapped(
+            f"{NUMPY_DISPATCH_CAP} is not a dispatch target of this NumPy build, "
+            "which is the case on a non-x86-64 machine and before NumPy 2.4"
+        )
     above_cap = dispatch[dispatch.index(NUMPY_DISPATCH_CAP) + 1 :]
     disabled = [target for target in above_cap if __cpu_features__.get(target)]
     if not disabled:
         return {}
     return {"NPY_DISABLE_CPU_FEATURES": " ".join(disabled)}
+
+
+def uncapped(reason: str) -> dict[str, str]:
+    print(
+        f"No NumPy dispatch cap: {reason}. A figure this run renders may differ "
+        "from the committed one.",
+        flush=True,
+    )
+    return {}
 
 
 def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
