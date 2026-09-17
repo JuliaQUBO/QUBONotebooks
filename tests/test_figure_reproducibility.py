@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import base64
 import copy
 import importlib.util
 import io
 import json
+import struct
 import sys
 import tempfile
 import unittest
+import zlib
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -133,6 +136,65 @@ class CompareTests(unittest.TestCase):
                 self.assertRegex(messages[0], r"^nb: the executed copy was not produced")
 
 
+def png(*chunks: tuple[bytes, bytes]) -> str:
+    """Encode a PNG built from ``(type, data)`` chunks as notebook base64."""
+    body = b"".join(
+        struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        for kind, data in chunks
+    )
+    return base64.b64encode(figures.PNG_SIGNATURE + body).decode("ascii")
+
+
+class PngMetadataTests(unittest.TestCase):
+    HEADER = (b"IHDR", b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00")
+
+    def committed_and_executed(self, committed_png: str, executed_png: str) -> list[str]:
+        return figures.compare(
+            "nb",
+            notebook(code_cell("draw()", figure(committed_png))),
+            notebook(code_cell("draw()", figure(executed_png))),
+        )
+
+    def test_ignores_text_chunks_such_as_the_matplotlib_version(self) -> None:
+        pixels = (b"IDAT", b"pixels")
+        committed = png(
+            self.HEADER, (b"tEXt", b"Software\x00Matplotlib 3.11.0"), pixels, (b"IEND", b"")
+        )
+        executed = png(
+            self.HEADER,
+            (b"tEXt", b"Software\x00Matplotlib 3.11.1"),
+            (b"zTXt", b"Comment\x00\x00x"),
+            (b"iTXt", b"Title\x00\x00\x00\x00\x00y"),
+            pixels,
+            (b"IEND", b""),
+        )
+
+        self.assertEqual([], self.committed_and_executed(committed, executed))
+
+    def test_still_flags_changed_pixels_or_physical_metadata(self) -> None:
+        text = (b"tEXt", b"Software\x00Matplotlib 3.11.0")
+        end = (b"IEND", b"")
+
+        def image(dpi: bytes, pixels: bytes) -> str:
+            return png(self.HEADER, text, (b"pHYs", dpi), (b"IDAT", pixels), end)
+
+        committed = image(b"72dpi", b"pixels")
+        for label, executed in (
+            ("pixels", image(b"72dpi", b"other!")),
+            ("dpi", image(b"96dpi", b"pixels")),
+        ):
+            with self.subTest(label):
+                self.assertEqual(1, len(self.committed_and_executed(committed, executed)))
+
+    def test_compares_a_malformed_png_byte_for_byte(self) -> None:
+        whole = png(self.HEADER, (b"IDAT", b"pixels"))
+        truncated = base64.b64encode(base64.b64decode(whole)[:-3]).decode("ascii")
+
+        self.assertEqual(truncated, figures.png_without_text(truncated))
+        self.assertEqual("not base64!", figures.png_without_text("not base64!"))
+        self.assertEqual(1, len(self.committed_and_executed(whole, truncated)))
+
+
 class MainTests(unittest.TestCase):
     def run_main(self, *args: str) -> tuple[int, str]:
         stdout = io.StringIO()
@@ -208,14 +270,20 @@ class CommittedNotebookTests(unittest.TestCase):
     def test_layouts_and_samplers_that_feed_figures_are_seeded(self) -> None:
         unseeded = []
         for name in SEEDED_NOTEBOOKS:
+            # An unseeded layout after `np.random.seed(...)` draws from that
+            # global state and is already repeatable; seeding it explicitly
+            # would shift every later draw from the global state.
+            globally_seeded = False
             for index, cell in enumerate(self.load(name)["cells"]):
                 if cell["cell_type"] != "code":
                     continue
                 for line in "".join(cell["source"]).splitlines():
-                    if "spring_layout(" in line and "seed=" not in line:
+                    if "spring_layout(" in line and "seed=" not in line and not globally_seeded:
                         unseeded.append((name, index, line.strip()))
                     if line.lstrip().startswith("nx.draw(") and "pos=" not in line:
                         unseeded.append((name, index, line.strip()))
+                    if line.lstrip().startswith("np.random.seed("):
+                        globally_seeded = True
         qubo_sampling = [
             line.strip()
             for cell in self.load(SEEDED_NOTEBOOKS[0])["cells"]
@@ -224,7 +292,24 @@ class CommittedNotebookTests(unittest.TestCase):
             if "simAnnSampler.sample(" in line
         ]
 
+        benchmark_cells = self.load(SEEDED_NOTEBOOKS[2])["cells"]
+        global_seed_cell = next(
+            index
+            for index, cell in enumerate(benchmark_cells)
+            if "np.random.seed(42)" in "".join(cell["source"])
+        )
+        layouts_after_global_seed = [
+            line.strip()
+            for cell in benchmark_cells[global_seed_cell:]
+            for line in "".join(cell["source"]).splitlines()
+            if "spring_layout(" in line
+        ]
+
         self.assertEqual([], unseeded)
+        # The committed figures downstream were rendered with the layout
+        # consuming the global state.
+        self.assertEqual(1, len(layouts_after_global_seed))
+        self.assertRegex(layouts_after_global_seed[0], r"spring_layout\(nx_graph\),")
         self.assertEqual(2, len(qubo_sampling))
         for line in qubo_sampling:
             with self.subTest(line=line):
