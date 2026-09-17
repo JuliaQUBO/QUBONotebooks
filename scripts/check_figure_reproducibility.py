@@ -4,15 +4,19 @@
 `make verify-notebooks` writes executed copies to `.nbverify/`. This check
 compares the figures in those copies with the committed notebooks, so a figure
 that changes on every execution fails here instead of being rewritten into
-history by the next re-render. A cell whose figure cannot reproduce, such as a
-wall-clock timing plot, carries the `nondeterministic-output` tag and is
-skipped.
+history by the next re-render. PNGs are compared without their text chunks,
+which hold metadata such as the matplotlib version. A cell whose figure cannot
+reproduce, such as a wall-clock timing plot, carries the
+`nondeterministic-output` tag and is skipped.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
+import struct
 import sys
 from pathlib import Path
 
@@ -21,17 +25,51 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EXECUTED_DIR = REPO_ROOT / ".nbverify"
 EXEMPT_TAG = "nondeterministic-output"
 FIGURE_TYPES = ("image/png", "image/jpeg", "image/svg+xml")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+PNG_TEXT_CHUNKS = (b"tEXt", b"zTXt", b"iTXt")
 
 
-def cell_figures(cell: dict) -> list[tuple[str, str]]:
-    """Return the ``(MIME type, payload)`` of every figure a cell stores, in order."""
+def png_without_text(payload: str) -> str | bytes:
+    """Return a base64 PNG's decoded bytes without its text chunks.
+
+    Matplotlib writes its version into a ``tEXt`` chunk, so a dependency update
+    would otherwise fail this check on figures whose pixels did not change.
+    A payload that is not a well-formed PNG is returned unchanged.
+    """
+    try:
+        data = base64.b64decode(payload, validate=False)
+    except (binascii.Error, ValueError):
+        return payload
+    if not data.startswith(PNG_SIGNATURE):
+        return payload
+    kept = [PNG_SIGNATURE]
+    offset = len(PNG_SIGNATURE)
+    while offset < len(data):
+        if offset + 8 > len(data):
+            return payload
+        (length,) = struct.unpack(">I", data[offset : offset + 4])
+        chunk_type = data[offset + 4 : offset + 8]
+        end = offset + 12 + length
+        if end > len(data):
+            return payload
+        if chunk_type not in PNG_TEXT_CHUNKS:
+            kept.append(data[offset:end])
+        offset = end
+    return b"".join(kept)
+
+
+def cell_figures(cell: dict) -> list[tuple[str, str | bytes]]:
+    """Return the ``(MIME type, comparable payload)`` of every figure a cell stores, in order."""
     figures = []
     for output in cell.get("outputs", []):
         data = output.get("data", {})
         for mime in FIGURE_TYPES:
             if mime in data:
                 payload = data[mime]
-                figures.append((mime, "".join(payload) if isinstance(payload, list) else payload))
+                payload = "".join(payload) if isinstance(payload, list) else payload
+                if mime == "image/png":
+                    payload = png_without_text(payload)
+                figures.append((mime, payload))
     return figures
 
 
@@ -126,7 +164,10 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if not messages:
-        print(f"Re-execution reproduced every committed figure in {len(args.notebooks)} notebook(s).")
+        print(
+            "Re-execution reproduced every committed figure in "
+            f"{len(args.notebooks)} notebook(s)."
+        )
         return 0
 
     print(f"{len(messages)} figure reproducibility problem(s):")

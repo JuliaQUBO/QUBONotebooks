@@ -219,20 +219,28 @@ That rule depends on re-execution being repeatable:
 - Seed every random layout and sampler that feeds a figure, for example
   `nx.spring_layout(G, seed=...)` or `sampler.sample(..., seed=...)`. An
   unseeded figure changes on every run, so there is never an "unchanged"
-  output to keep.
+  output to keep. A call that runs after a notebook-level `np.random.seed(...)`
+  is already repeatable, because it draws from that global state. Giving such a
+  call its own seed changes what every later unseeded call draws, so check the
+  figures downstream before adding one.
 - A figure that can never reproduce, such as a wall-clock timing plot, gets
   the `nondeterministic-output` cell tag. Keep its committed output unless the
   change is about that figure.
-- `make check-figure-reproducibility` compares the figures of the notebooks
-  most recently executed into `.nbverify/` with the committed ones. It fails on
-  any untagged figure that re-execution did not reproduce, and on a tag that
-  marks a cell without a figure. CI runs it after executing the portable Python
-  notebooks.
+- `make check-figure-reproducibility` compares the committed figures of the
+  notebooks named by `NOTEBOOKS` (the portable Python notebooks by default)
+  with their executed copies in `.nbverify/`. After another verify target, pass
+  the same `NOTEBOOKS=...`. It fails on any untagged figure that re-execution
+  did not reproduce, and on a tag that marks a cell without a figure. PNG text
+  metadata, such as the matplotlib version, is ignored. CI runs the check after
+  executing the portable Python notebooks.
+- A dependency update that genuinely changes rendered pixels is output that
+  actually changed. Re-render the affected figures in that same pull request.
 
 `make report-notebook-output-churn` measures the other side. For each notebook
 a branch touches, it walks every commit on the branch and reports the output
-payloads that neither the merge-base version of that notebook nor an earlier
-commit on the branch stored. It also reports the code cells whose output
+payloads that neither an earlier commit on the branch nor a commit the branch
+builds on (the merge base, or the original fork point after `main` was merged
+in) stored. It also reports the code cells whose output
 differs from the merge base while their source does not. It compares against
 `origin/main` by default; set `CHURN_BASE` for another base. CI posts the
 report on every pull request as information, not as a merge gate.

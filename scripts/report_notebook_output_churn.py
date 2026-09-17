@@ -6,10 +6,11 @@ other quantity: every commit that rewrites a notebook's output adds the new
 payloads to history for good, because base64 figures barely delta-compress.
 
 For each notebook the branch touches, it walks every commit on the branch and
-counts the output payloads that neither the merge-base version of that notebook
-nor an earlier commit on the branch stored. It also counts the code cells whose
-output differs from the merge base although their source does not, which is
-what an unintended re-render looks like.
+counts the output payloads that neither the commits the branch builds on (the
+merge base and any other boundary commit) nor an earlier commit on the branch
+stored. It also counts the code cells whose output differs from the merge base
+although their source does not, which is what an unintended re-render looks
+like.
 
 The report is informational. It exits 0 whenever it can read the history.
 """
@@ -133,13 +134,20 @@ def changed_notebooks(commit: str) -> list[str]:
 def measure(base: str, head: str) -> tuple[str, list[NotebookChurn]]:
     """Walk ``merge-base(base, head)..head`` and return the per-notebook churn."""
     merge_base = git("merge-base", base, head).strip()
-    commits = git("rev-list", "--reverse", "--topo-order", f"{merge_base}..{head}").split()
+    walk = git("rev-list", "--reverse", "--topo-order", "--boundary", f"{merge_base}..{head}")
+    commits = [line for line in walk.split() if not line.startswith("-")]
+    # Boundary commits are already in history. After a branch merges its base,
+    # the merge base moves forward, and payloads the branch still carries from
+    # its original fork point are only stored at those older boundaries.
+    boundaries = {line[1:] for line in walk.split() if line.startswith("-")} | {merge_base}
     churn: dict[str, NotebookChurn] = {}
     for commit in commits:
         for path in changed_notebooks(commit):
             if path not in churn:
-                base_payloads = output_payloads(read_notebook(merge_base, path))
-                churn[path] = NotebookChurn(path, seen=set(base_payloads))
+                stored: set[str] = set()
+                for boundary in sorted(boundaries):
+                    stored.update(output_payloads(read_notebook(boundary, path)))
+                churn[path] = NotebookChurn(path, seen=stored)
             churn[path].record(output_payloads(read_notebook(commit, path)))
     for path, entry in churn.items():
         entry.rerendered = rerendered_cells(

@@ -189,9 +189,9 @@ class HistoryTests(unittest.TestCase):
         self.git("merge", "-q", "--no-commit", "-s", "ours", "main")
         self.commit({NOTEBOOK: figure_notebook(("a", ["main-1"]), ("b", ["resolved"]))})
 
-        # The merge base is now main's tip, so "main-1" is free while "base-1",
-        # "branch", and the merge's own "resolved" are new to it.
-        self.assertEqual({NOTEBOOK: (2, 3, 20, 1)}, self.measure())
+        # "main-1" is at the merge base and "base-1" at the original fork
+        # point, so only "branch" and the merge's own "resolved" are new.
+        self.assertEqual({NOTEBOOK: (2, 2, 14, 1)}, self.measure())
 
     def test_an_unparsable_version_adds_no_payload(self) -> None:
         self.git("switch", "-q", "-c", "work")
