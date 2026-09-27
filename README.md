@@ -34,6 +34,13 @@ The notebooks are published as a Jupyter Book at
 **<https://juliaqubo.github.io/QUBONotebooks/>**, with navigation across the
 Julia and Python series and an "Open in Colab" action on every notebook page.
 
+## Workshop editions
+
+Run `make workshops` to generate student and instructor ZIPs in
+`dist/workshops`. Student copies omit solutions; both editions retain worked
+examples and their supporting data and environments. See the
+[workshop guide](workshops.md) for setup and suggested teaching routes.
+
 ## Jupyter Book
 
 The source landing page is [index.md](index.md), and
