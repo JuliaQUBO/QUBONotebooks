@@ -370,3 +370,27 @@ class CommandConstructionTests(unittest.TestCase):
         self.assertIn("--ExecutePreprocessor.kernel_name=test-kernel", cmd)
         self.assertEqual(cmd[-1], "notebooks_py/1-MathProg_python.ipynb")
         self.assertEqual(env, {"JUPYTER_PATH": "/tmp/kernels"})
+
+
+class JuliaFigureTargetTests(unittest.TestCase):
+    def test_figure_target_uses_the_local_lanes_notebook_variables(self):
+        cases = (
+            ((), ["notebooks_jl/6-QCi.ipynb", "notebooks_jl/7-CanonicalProblems.ipynb"]),
+            (("QCI_JULIA_NOTEBOOK=notebooks_jl/relocated-qci.ipynb",
+              "CANONICAL_PROBLEMS_JULIA_NOTEBOOK=notebooks_jl/relocated-canonical.ipynb"),
+             ["notebooks_jl/relocated-qci.ipynb", "notebooks_jl/relocated-canonical.ipynb"]),
+        )
+        for overrides, notebooks in cases:
+            with self.subTest(overrides=overrides):
+                result = subprocess.run(
+                    ["make", "--dry-run", "check-julia-figure-reproducibility",
+                     "PYTHON=python-test", *overrides],
+                    cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+                )
+                commands = [shlex.split(line) for line in result.stdout.splitlines()]
+                checks = [command for command in commands
+                          if "./scripts/check_figure_reproducibility.py" in command]
+                self.assertEqual(
+                    [["python-test", "./scripts/check_figure_reproducibility.py", *notebooks]],
+                    checks,
+                )

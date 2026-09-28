@@ -66,6 +66,12 @@ jobs:
       - name: QCI Julia notebook
         run: make verify-qci-julia-local
 
+      - name: Canonical Julia notebook
+        run: make verify-canonical-problems-julia
+
+      - name: Julia figure reproducibility
+        run: make check-julia-figure-reproducibility
+
       - name: Portable Python notebooks
         run: make verify-python-portable
 

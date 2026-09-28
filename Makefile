@@ -84,6 +84,11 @@ report-notebook-output-churn:
 check-figure-reproducibility:
 	$(PYTHON) ./scripts/check_figure_reproducibility.py $(NOTEBOOKS)
 
+.PHONY: check-julia-figure-reproducibility
+
+check-julia-figure-reproducibility:
+	$(MAKE) check-figure-reproducibility NOTEBOOKS="$(QCI_JULIA_NOTEBOOK) $(CANONICAL_PROBLEMS_JULIA_NOTEBOOK)"
+
 clear-notebook-outputs:
 	$(PYTHON) -m jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace $(NOTEBOOK_FILES)
 

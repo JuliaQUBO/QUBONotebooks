@@ -212,6 +212,25 @@ whether it exists. When a literal is unavoidable, use the narrowest stable
 symbol or configuration key and leave a comment naming the recurring defect
 class it protects.
 
+### Julia figure reproducibility
+
+CI executes the local QCi and canonical-problems notebooks and compares their
+figures with the committed outputs. The canonical Max-Cut plot explicitly
+publishes PNG so local kernels use the same representation as the book.
+Execute these local lanes and check their figures with:
+
+```bash
+make verify-qci-julia-local verify-canonical-problems-julia
+make check-julia-figure-reproducibility
+```
+
+The check uses the same `QCI_JULIA_NOTEBOOK` and
+`CANONICAL_PROBLEMS_JULIA_NOTEBOOK` variables as the execution targets.
+
+This gate covers the Julia notebooks executed in CI. The remaining figure
+reproducibility work for the earlier Julia lessons is tracked in
+[issue #160](https://github.com/JuliaQUBO/QUBONotebooks/issues/160).
+
 ### Python verification environment
 
 The generic verifier can execute selected notebooks by overriding `NOTEBOOKS`
