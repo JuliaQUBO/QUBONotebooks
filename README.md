@@ -180,6 +180,7 @@ make test
 make test-python
 make test-julia
 make test-qciopt-dwave-coexistence
+make test-benchmarking-julia
 make check-notebook-output-hygiene
 make check-notebook-output-budgets
 make verify-qubo-python
