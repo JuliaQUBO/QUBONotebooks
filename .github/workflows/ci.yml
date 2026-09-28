@@ -70,7 +70,7 @@ jobs:
         run: make verify-canonical-problems-julia
 
       - name: Julia figure reproducibility
-        run: make check-figure-reproducibility NOTEBOOKS="notebooks_jl/6-QCi.ipynb notebooks_jl/7-CanonicalProblems.ipynb"
+        run: make check-julia-figure-reproducibility
 
       - name: Portable Python notebooks
         run: make verify-python-portable

@@ -217,11 +217,15 @@ class it protects.
 CI executes the local QCi and canonical-problems notebooks and compares their
 figures with the committed outputs. The canonical Max-Cut plot explicitly
 publishes PNG so local kernels use the same representation as the book.
-After executing another Julia notebook, check its figures with:
+Execute these local lanes and check their figures with:
 
 ```bash
-make check-figure-reproducibility NOTEBOOKS="notebooks_jl/7-CanonicalProblems.ipynb"
+make verify-qci-julia-local verify-canonical-problems-julia
+make check-julia-figure-reproducibility
 ```
+
+The check uses the same `QCI_JULIA_NOTEBOOK` and
+`CANONICAL_PROBLEMS_JULIA_NOTEBOOK` variables as the execution targets.
 
 This gate covers the Julia notebooks executed in CI. The remaining figure
 reproducibility work for the earlier Julia lessons is tracked in
