@@ -63,6 +63,9 @@ jobs:
       - name: QCIOpt and DWave coexistence
         run: make test-qciopt-dwave-coexistence
 
+      - name: Julia benchmark bootstrap regression
+        run: make test-benchmarking-julia
+
       - name: QCI Julia notebook
         run: make verify-qci-julia-local
 

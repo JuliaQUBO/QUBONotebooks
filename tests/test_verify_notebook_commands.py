@@ -73,6 +73,33 @@ class CudaqTargetTests(unittest.TestCase):
         self.assertEqual(["notebooks_py/2-QUBO_python.ipynb", "notebooks_py/3-GAMA_python.ipynb"], run[-2:])
 
 
+class BenchmarkingJuliaTargetTests(unittest.TestCase):
+    def test_benchmark_commands_ignore_inherited_python_bridge_settings(self):
+        names = ("JULIA_CONDAPKG_BACKEND", "JULIA_PYTHONCALL_EXE", "DWAVE_API_TOKEN")
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            probe = tmp / "julia_probe.py"
+            output = tmp / "environments.jsonl"
+            probe.write_text(
+                "import json, os\n"
+                "with open(os.environ['QUBONOTEBOOKS_ENV_PROBE'], 'a') as out:\n"
+                f"    out.write(json.dumps({{name: os.environ.get(name) for name in {names!r}}}) + '\\n')\n"
+            )
+            subprocess.run(
+                ["make", "test-benchmarking-julia",
+                 f"JULIA={shlex.join([sys.executable, str(probe)])}"],
+                cwd=REPO_ROOT,
+                env={**os.environ, "JULIA_CONDAPKG_BACKEND": "Null",
+                     "JULIA_PYTHONCALL_EXE": "inherited-python",
+                     "DWAVE_API_TOKEN": "test-token",
+                     "QUBONOTEBOOKS_ENV_PROBE": str(output)},
+                capture_output=True, text=True, check=True,
+            )
+            environments = [json.loads(line) for line in output.read_text().splitlines()]
+        # Both project instantiation and the regression process must be isolated.
+        self.assertEqual([{name: None for name in names}] * 2, environments)
+
+
 class ParseExecutionTimeoutSecondsTests(unittest.TestCase):
     def test_uses_default_timeout_when_env_is_unset(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
