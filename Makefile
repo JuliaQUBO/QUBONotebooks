@@ -197,5 +197,5 @@ verify-annealing-julia-qpu:
 .PHONY: test-benchmarking-julia
 
 test-benchmarking-julia:
-	env -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking -e 'import Pkg; Pkg.instantiate()'
-	env -u DWAVE_API_TOKEN GKSwstype=100 JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking test/benchmarking_bootstrap.jl
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking -e 'import Pkg; Pkg.instantiate()'
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u DWAVE_API_TOKEN GKSwstype=100 JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking test/benchmarking_bootstrap.jl
