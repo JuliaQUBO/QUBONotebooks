@@ -1,4 +1,5 @@
 name: Build and Deploy Jupyter Book
+run-name: "${{ inputs.dependabot_pr && format('Dependabot documentation PR #{0}', inputs.dependabot_pr) || github.event.pull_request.title || github.event.head_commit.message || 'Documentation' }}"
 
 on:
   push:
@@ -28,13 +29,18 @@ on:
       - "colab.html"
       - "Makefile"
   workflow_dispatch:
-
+    inputs:
+      dependabot_pr:
+        description: Merged Dependabot PR whose publication is being refreshed
+        type: string
+        required: false
 permissions:
   contents: read
 
 concurrency:
-  group: "pages-${{ github.ref }}"
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: documentation-publishing
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   build:
@@ -74,7 +80,7 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
