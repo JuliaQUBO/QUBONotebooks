@@ -816,7 +816,7 @@ wheels = [
 
 [[package]]
 name = "idaes-pse"
-version = "2.12.0"
+version = "2.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -837,9 +837,9 @@ dependencies = [
     { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sympy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/74/de1ba21c293267d0b132f48f731149937aa4667532fcb0d20aeb920695a1/idaes_pse-2.12.0.tar.gz", hash = "sha256:44110d3865f9d1ba187b26d20baf71ccdac83f7c814c8f16c0b91d124681dd7f", size = 22566800, upload-time = "2026-06-24T20:08:52.983Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/df/7f/b5adeb03980406724d0d8a626804e596b84a03a348eb0dab951709057137/idaes_pse-2.13.0.tar.gz", hash = "sha256:f2a96ea4e8edfd92976f4345c053b027d7df3458bb52cb6d47c7681383bed37f", size = 22580883, upload-time = "2026-09-16T22:52:14.714Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/e2/85438c2bc1748318135af4930bd6ae8f9cb4db389e422ea088d24ab24256/idaes_pse-2.12.0-py3-none-any.whl", hash = "sha256:eca194cc99123d41fe0e67b79764ecd17ef80e13572849498812e9444aa71ace", size = 5848878, upload-time = "2026-06-24T20:08:50.623Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/22/f6e54755ac180a49cd6d338db758748983c4389081f64d272236ea68563e/idaes_pse-2.13.0-py3-none-any.whl", hash = "sha256:2b67301afe6dc0c2f0e7342253ebcbab6e91607c0204d9bd663a2735f1ec85f9", size = 5852338, upload-time = "2026-09-16T22:52:12.481Z" },
 ]
 
 [[package]]
@@ -1037,7 +1037,7 @@ wheels = [
 
 [[package]]
 name = "jupyter-book"
-version = "2.1.6"
+version = "2.1.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ipykernel" },
@@ -1046,9 +1046,9 @@ dependencies = [
     { name = "nodeenv" },
     { name = "platformdirs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/39/df74148121170368574b18b325cff961d871fb1bba536f774829d354a7e3/jupyter_book-2.1.6.tar.gz", hash = "sha256:fb52cf7f7056a8475aebefa78376801e45cc3daa010a48ac3ea089a5f10dd17c", size = 3222318, upload-time = "2026-07-05T16:14:58.105Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/bf/c9a13513a26a235a11199bec9594989cc9c43c674ead557e953941447465/jupyter_book-2.1.7.tar.gz", hash = "sha256:e58de6026bb362c7e2e20a1703257a830645ea5521ce06a24018711643d203db", size = 3207225, upload-time = "2026-09-23T12:55:35.658Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/5c/07bd7d4e5cb58451fea187d187722976f8b152e09569ec8cb215167fdd58/jupyter_book-2.1.6-py3-none-any.whl", hash = "sha256:677a11211a142757405a0c6cc6f4b36a371ef4887220a4833ed00101b0d52691", size = 2623674, upload-time = "2026-07-05T16:14:56.154Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/49/b166f24e2638d3227dd3e8c6f8a6fb2d9b6a012696660bb5d1f71730bb6a/jupyter_book-2.1.7-py3-none-any.whl", hash = "sha256:eeef6ee8f25df129a1428c7c97ac0e8f63665879942cdb7b46fc4ef42547cb76", size = 2608762, upload-time = "2026-09-23T12:55:32.995Z" },
 ]
 
 [[package]]
@@ -1171,7 +1171,7 @@ wheels = [
 
 [[package]]
 name = "jupyterlab"
-version = "4.6.3"
+version = "4.6.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-lru" },
@@ -1190,9 +1190,9 @@ dependencies = [
     { name = "traitlets" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/00/c0/45934229995d4c6e38192ca118d93185f60808f64157e3df3c5c28f8c5fd/jupyterlab-4.6.3.tar.gz", hash = "sha256:2e3db6e3a12495ebd188276e985bf5ac502fbde3d1e8628819920210008de498", size = 28319771, upload-time = "2026-08-10T18:50:57.947Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/8d/995cc142f6083346b35e7d3eadc5a6717ee89ce64ea53577010ac493bc3c/jupyterlab-4.6.4.tar.gz", hash = "sha256:404f49b081819378524886c9db66dba57a5565981eff885830df1baba3a17df5", size = 28335647, upload-time = "2026-09-21T15:25:18.779Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e9/47/242f46de028074651c9bd6d8000fc340ed0d3cdd1a0eae4387826123413a/jupyterlab-4.6.3-py3-none-any.whl", hash = "sha256:0a1ebc6567186f1eabd99536e94df7ed9e96d1e7c5ddf3e4406ae16e88abacb7", size = 17168312, upload-time = "2026-08-10T18:50:53.044Z" },
+    { url = "https://files.pythonhosted.org/packages/3b/e4/072bc0d3c6d45d414062a06af7ee81c02a2c12d769c358ec9919f9995ffd/jupyterlab-4.6.4-py3-none-any.whl", hash = "sha256:15b13f991d3985129c797eb84d9949eeb8b6615e14b444868e642411f2c418b2", size = 17171596, upload-time = "2026-09-21T15:25:14.123Z" },
 ]
 
 [[package]]
@@ -2343,7 +2343,7 @@ qubo = [
 cudaq = [{ name = "cuda-quantum-cu13", marker = "python_full_version >= '3.11'", specifier = ">=0.16.0,<0.17" }]
 docs = [
     { name = "ipykernel", specifier = ">=7.3.0,<8" },
-    { name = "jupyter-book", specifier = "==2.1.6" },
+    { name = "jupyter-book", specifier = "==2.1.7" },
     { name = "jupyterlab", specifier = ">=4.6.3,<5" },
     { name = "nbconvert", specifier = ">=7,<8" },
     { name = "numpy", specifier = ">=1.26,<3" },
@@ -2779,14 +2779,14 @@ wheels = [
 
 [[package]]
 name = "tqdm"
-version = "4.70.0"
+version = "4.70.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/21/3b/6c24bec5be5e743ffd99576daa5cc077722fc7d5bbc00bd133fa0c698dc6/tqdm-4.70.0.tar.gz", hash = "sha256:55b0b0dbd97462d06ebee91e4dac24ed4d4702be82b24f07e6c1d27e08cea220", size = 795438, upload-time = "2026-07-27T11:33:15.271Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f9/1c/01bfd571a64e7f270e6bab5e33777debe0edc56759233ce84f27dec92d14/tqdm-4.70.0-py3-none-any.whl", hash = "sha256:7f585706bfddbdebf89daac705b2dfcc16890130727d3197ca62c732b4310953", size = 80184, upload-time = "2026-07-27T11:33:13.167Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl", hash = "sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73", size = 80199, upload-time = "2026-09-11T07:25:14.599Z" },
 ]
 
 [[package]]
