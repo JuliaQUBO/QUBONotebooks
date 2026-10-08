@@ -1,0 +1,19 @@
+{
+  "repository": "JuliaQUBO/QUBONotebooks",
+  "required_checks": [
+    "Python 3.12 / Julia 1.10",
+    "Julia 1.12 Colab bootstrap",
+    "Dependabot policy"
+  ],
+  "protected_checks": [
+    "Python 3.12 / Julia 1.10",
+    "Julia 1.12 Colab bootstrap"
+  ],
+  "publication": [
+    {
+      "workflow": "jupyter-book.yml",
+      "input": "dependabot_pr",
+      "title": "Dependabot documentation"
+    }
+  ]
+}
