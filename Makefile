@@ -1,6 +1,6 @@
-.PHONY: test build-book sysimage test-python test-cudaq-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-dwave-python-local verify-cudaq-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
+.PHONY: test build-book sysimage test-python test-cudaq-python test-julia test-qciopt-dwave-coexistence check-notebook-output-hygiene check-notebook-output-budgets report-notebook-output-churn check-figure-reproducibility clear-notebook-outputs refresh-tcga-aml refresh-julia-notebook-environments verify-notebooks verify-python-portable verify-qubo-python verify-gama-python verify-benchmarking-python verify-dwave-python-local verify-cudaq-python verify-qci-julia-local verify-qci-julia-cloud verify-canonical-problems-julia verify-order-partitioning-julia verify-cancer-genomics-julia verify-qaoa-julia-local verify-annealing-julia-local verify-five-starter-problems-julia-local verify-colab-bootstrap-output verify-colab-hosted verify-qaoa-julia-ibm verify-annealing-julia-qpu
 
-.PHONY: verify-mathprog-python-local
+.PHONY: verify-mathprog-python-local workshops
 
 PYTHON ?= python3
 UV ?= uv
@@ -33,6 +33,8 @@ ANNEALING_JULIA_NOTEBOOK ?= notebooks_jl/11-Annealing.ipynb
 FIVE_STARTER_JULIA_NOTEBOOKS ?= $(CANONICAL_PROBLEMS_JULIA_NOTEBOOK) $(ORDER_PARTITIONING_JULIA_NOTEBOOK) $(CANCER_GENOMICS_JULIA_NOTEBOOK) $(QAOA_JULIA_NOTEBOOK) $(ANNEALING_JULIA_NOTEBOOK)
 NOTEBOOKS ?= $(PORTABLE_PYTHON_NOTEBOOKS)
 NOTEBOOK_FILES ?= notebooks_jl/*.ipynb notebooks_py/*.ipynb
+CHURN_BASE ?= origin/main
+CHURN_HEAD ?= HEAD
 
 test:
 	@if git grep -nE '(github\.com|raw\.githubusercontent\.com)/(psrenergy|psrnergy)/QUBO\.jl' -- '*.md' '*.ipynb' '*.yml' '*.yaml'; then \
@@ -43,6 +45,11 @@ test:
 		echo "Found stale QUBONotebooks repository links"; \
 		exit 1; \
 	fi
+
+WORKSHOP_OUTPUT_DIR ?= dist/workshops
+
+workshops:
+	$(PYTHON) ./scripts/export_workshops.py --output-dir "$(WORKSHOP_OUTPUT_DIR)"
 
 build-book:
 	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) run --locked --group docs jupyter book build --html --ci --strict
@@ -70,6 +77,17 @@ check-notebook-output-hygiene:
 
 check-notebook-output-budgets:
 	$(PYTHON) ./scripts/check_notebook_output_budgets.py
+
+report-notebook-output-churn:
+	$(PYTHON) ./scripts/report_notebook_output_churn.py --base $(CHURN_BASE) --head $(CHURN_HEAD)
+
+check-figure-reproducibility:
+	$(PYTHON) ./scripts/check_figure_reproducibility.py $(NOTEBOOKS)
+
+.PHONY: check-julia-figure-reproducibility
+
+check-julia-figure-reproducibility:
+	$(MAKE) check-figure-reproducibility NOTEBOOKS="$(QCI_JULIA_NOTEBOOK) $(CANONICAL_PROBLEMS_JULIA_NOTEBOOK)"
 
 clear-notebook-outputs:
 	$(PYTHON) -m jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace $(NOTEBOOK_FILES)
@@ -180,3 +198,9 @@ verify-annealing-julia-qpu:
 	QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=1 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"
 
 .PHONY: verify-qci-python-local test-qci-python
+
+.PHONY: test-benchmarking-julia
+
+test-benchmarking-julia:
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking -e 'import Pkg; Pkg.instantiate()'
+	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u DWAVE_API_TOKEN GKSwstype=100 JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking test/benchmarking_bootstrap.jl

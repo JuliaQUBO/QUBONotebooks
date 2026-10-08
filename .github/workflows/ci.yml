@@ -63,11 +63,44 @@ jobs:
       - name: QCIOpt and DWave coexistence
         run: make test-qciopt-dwave-coexistence
 
+      - name: Julia benchmark bootstrap regression
+        run: make test-benchmarking-julia
+
       - name: QCI Julia notebook
         run: make verify-qci-julia-local
 
+      - name: Canonical Julia notebook
+        run: make verify-canonical-problems-julia
+
+      - name: Julia figure reproducibility
+        run: make check-julia-figure-reproducibility
+
       - name: Portable Python notebooks
         run: make verify-python-portable
+
+      - name: Benchmark bootstrap regression tests
+        run: uv run --locked --group docs --group qubo python -m unittest discover -s tests -p test_benchmarking_bootstrap.py
+
+      - name: Portable Python figure reproducibility
+        run: make check-figure-reproducibility
+
+  output-churn:
+    name: Notebook output churn (report only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The report walks every commit on the branch back to the merge base.
+          fetch-depth: 0
+
+      - name: Report notebook output churn
+        # Informational: the report is not a merge gate.
+        continue-on-error: true
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: make report-notebook-output-churn CHURN_BASE="origin/$BASE_REF" CHURN_HEAD="$HEAD_SHA"
 
   colab-bootstrap:
     name: Julia 1.12 Colab bootstrap

@@ -31,6 +31,7 @@ project:
   toc:
     - file: index.md
     - file: local-setup.md
+    - file: workshops.md
     - title: Mathematical Programming
       children:
         - file: notebooks_py/1-MathProg_python.ipynb

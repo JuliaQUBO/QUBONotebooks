@@ -1,0 +1,30 @@
+name: Workshop bundles
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Test workshop exports
+        run: python -m unittest discover -s tests -p test_workshop_exports.py -v
+      - name: Build student and instructor bundles
+        run: make workshops
+      - name: Upload workshop bundles
+        uses: actions/upload-artifact@v7
+        with:
+          name: workshop-bundles
+          path: dist/workshops/*.zip
+          if-no-files-found: error
