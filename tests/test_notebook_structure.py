@@ -179,8 +179,14 @@ class JupyterBookConfigurationTests(unittest.TestCase):
         self.assertEqual("warn", severities.get("doi-link-valid"))
         self.assertEqual("error", severities.get("reference-target-resolves"))
         # A cancelled deploy can leave Pages half-published.
+        self.assertIn("group: documentation-publishing", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
+        self.assertIn("queue: max", workflow)
+        # Reconciled token merges can publish through a trusted-main dispatch.
         self.assertIn(
-            "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+            "if: (github.event_name == 'push' || "
+            "github.event_name == 'workflow_dispatch') && "
+            "github.ref == 'refs/heads/main'",
             workflow,
         )
         # Jupyter Book 2 reads myst.yml; the JB1 files must stay deleted.
