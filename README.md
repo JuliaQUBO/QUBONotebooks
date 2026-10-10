@@ -307,7 +307,8 @@ graph. A new minor-runtime source lock is seeded from the focused Julia 1.10
 lock with stale stdlib pins removed before resolution. Installation can use
 network access; the lesson's solves and scalar checks run offline afterwards.
 The verification target first runs `prepare-decomposition-julia` to install and
-precompile the focused environment. This first-time setup is separate from the
+load the focused packages after IJulia, matching the notebook's import context.
+This first-time setup is separate from the
 180-second cell execution limit; the complete CI job remains bounded to ten
 minutes. The Python notebook runner requires a single executable path, which
 is why the Juliaup verification examples resolve each binary before calling it.
