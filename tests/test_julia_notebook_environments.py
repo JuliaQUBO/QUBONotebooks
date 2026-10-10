@@ -82,6 +82,10 @@ EXPECTED_DIRECT_DEPENDENCIES = {
         "Printf",
         "QUBO",
     },
+    "12-Decomposition": {
+        "JuMP", "MathOptInterface", "QUBODecomposition", "QUBODrivers",
+        "QUBOTools", "ToQUBO",
+    },
 }
 
 

@@ -80,6 +80,10 @@ project:
           title: Local-first QAOA
         - file: notebooks_jl/11-Annealing.ipynb
           title: Local Simulated and Quantum Annealing
+    - title: Julia Decomposition
+      children:
+        - file: notebooks_jl/12-Decomposition.ipynb
+          title: QUBO Decomposition and Reconstruction
 site:
   template: book-theme
   options:

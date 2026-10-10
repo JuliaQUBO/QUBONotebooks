@@ -84,6 +84,38 @@ jobs:
       - name: Portable Python figure reproducibility
         run: make check-figure-reproducibility
 
+  decomposition:
+    name: Decomposition / Julia ${{ matrix.julia }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        julia: ["1.10.11", "1.12.6"]
+    env:
+      UV_CACHE_DIR: .uv-cache
+      JULIA_DEPOT_PATH: ${{ github.workspace }}/.julia-depot
+      JULIA_PKG_PRECOMPILE_AUTO: "0"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v10.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.julia }}
+      - uses: julia-actions/cache@v3
+      - name: Execute local decomposition lesson
+        run: make verify-decomposition-julia-local
+      - name: Numerical and work-bound regressions
+        run: make test-decomposition-julia
+      - name: Decomposition figure reproducibility
+        run: make check-figure-reproducibility NOTEBOOKS=notebooks_jl/12-Decomposition.ipynb
+
   output-churn:
     name: Notebook output churn (report only)
     if: github.event_name == 'pull_request'

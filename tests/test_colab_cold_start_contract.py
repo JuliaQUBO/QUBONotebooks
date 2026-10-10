@@ -100,7 +100,10 @@ class ColabColdStartContractTests(unittest.TestCase):
                     (notebook_path.as_posix(), guard_count)
                 )
 
-        self.assertEqual(11, len(verify_colab_bootstrap.NOTEBOOK_PATHS))
+        self.assertEqual(
+            len(tuple((REPO_ROOT / "notebooks_jl").glob("*.ipynb"))),
+            len(verify_colab_bootstrap.NOTEBOOK_PATHS),
+        )
         self.assertEqual([], missing_activation_guard)
         self.assertEqual([], duplicate_activation_guard)
 

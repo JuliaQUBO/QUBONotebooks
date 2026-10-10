@@ -99,6 +99,21 @@ benchmark regeneration belongs in follow-up work. Ask learners to distinguish
 the original objective, penalized energy, feasibility, and observed success
 frequency when they explain a result.
 
+## A 60-minute Julia decomposition session
+
+After preparing the [focused development environment](README.md#decomposition-development-environment),
+use [Decomposition and Reconstruction](notebooks_jl/12-Decomposition.ipynb).
+The exported bundles include both Julia runtime locks and the immutable source
+pin; installation needs internet, and the subsequent solves need no credentials.
+
+| Minutes | Activity |
+| --- | --- |
+| 0–15 | Compare direct solving with independent components; audit the full energy. |
+| 15–30 | Enumerate a supplied separator and inspect reconstruction maps. |
+| 30–40 | Explain why exact neighborhood solves can stagnate. |
+| 40–50 | Decode the constrained model under weak and sufficient penalties. |
+| 50–60 | Attempt the three exercises and discuss statuses versus oracle evidence. |
+
 ## Maintaining workshop editions
 
 Edit the canonical notebooks and regenerate the bundles. Mark answer cells with

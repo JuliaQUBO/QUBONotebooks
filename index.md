@@ -33,6 +33,7 @@ QAOA lesson in Lecture 10.
 | Altered cancer pathways | — | [9-CancerGenomics.ipynb](notebooks_jl/9-CancerGenomics.ipynb) |
 | Local-first QAOA | — | [10-QAOA.ipynb](notebooks_jl/10-QAOA.ipynb) |
 | Local simulated and quantum annealing | — | [11-Annealing.ipynb](notebooks_jl/11-Annealing.ipynb) |
+| QUBO decomposition and reconstruction | — | [12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) |
 
 See [Local Setup](local-setup.md) to build the book or reproduce notebook
 outputs. Each notebook page also provides an **Open in Colab** action.
