@@ -87,7 +87,9 @@ jobs:
   decomposition:
     name: Decomposition / Julia ${{ matrix.julia }}
     runs-on: ubuntu-22.04
-    timeout-minutes: 10
+    # Include cold installation, both import contexts, and cache transfer.
+    # Notebook cells and the numerical runner retain their 180-second limits.
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:

@@ -162,6 +162,7 @@ verify-decomposition-julia-local: prepare-decomposition-julia
 	QUBONOTEBOOKS_NOTEBOOK_TIMEOUT=180 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(DECOMPOSITION_JULIA_NOTEBOOK)"
 
 test-decomposition-julia:
+	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 JULIA_NUM_PRECOMPILE_TASKS=2 $(JULIA) --startup-file=no --project=notebooks_jl/environments/12-Decomposition -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); Pkg.precompile()'
 	JULIA_BIN="$(JULIA)" JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 $(PYTHON) ./scripts/test_decomposition_notebook.py
 
 verify-five-starter-problems-julia-local:

@@ -309,12 +309,14 @@ network access; the lesson's solves and scalar checks run offline afterwards.
 The verification target first runs `prepare-decomposition-julia` to install and
 load the focused packages after IJulia, matching the notebook's import context.
 This first-time setup is separate from the
-180-second cell execution limit; the complete CI job remains bounded to ten
+180-second cell execution limit; the complete CI job remains bounded to fifteen
 minutes. The Python notebook runner requires a single executable path, which
 is why the Juliaup verification examples resolve each binary before calling it.
 `make test-decomposition-julia` executes the lesson's numerical cells and hidden
 solutions in its focused environment, including guard and interrupted-plan
-checks. CI executes the complete notebook on Julia 1.10.11 and 1.12.6 in a
+checks. It separately precompiles the standalone focused environment before
+starting its 180-second numerical-process limit. CI executes the complete
+notebook on Julia 1.10.11 and 1.12.6 in a
 bounded lane and compares the deterministic SVG. The existing Colab smoke
 inventory includes the new setup and deferred-import cells; hosted Colab and
 quantum-provider interactions are not implicit validation steps.
