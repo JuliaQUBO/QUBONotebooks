@@ -30,6 +30,8 @@ ORDER_PARTITIONING_JULIA_NOTEBOOK ?= notebooks_jl/8-OrderPartitioning.ipynb
 CANCER_GENOMICS_JULIA_NOTEBOOK ?= notebooks_jl/9-CancerGenomics.ipynb
 QAOA_JULIA_NOTEBOOK ?= notebooks_jl/10-QAOA.ipynb
 ANNEALING_JULIA_NOTEBOOK ?= notebooks_jl/11-Annealing.ipynb
+DECOMPOSITION_JULIA_NOTEBOOK ?= notebooks_jl/12-Decomposition.ipynb
+JULIA_NOTEBOOK_PROJECTS ?=
 FIVE_STARTER_JULIA_NOTEBOOKS ?= $(CANONICAL_PROBLEMS_JULIA_NOTEBOOK) $(ORDER_PARTITIONING_JULIA_NOTEBOOK) $(CANCER_GENOMICS_JULIA_NOTEBOOK) $(QAOA_JULIA_NOTEBOOK) $(ANNEALING_JULIA_NOTEBOOK)
 NOTEBOOKS ?= $(PORTABLE_PYTHON_NOTEBOOKS)
 NOTEBOOK_FILES ?= notebooks_jl/*.ipynb notebooks_py/*.ipynb
@@ -96,7 +98,7 @@ refresh-tcga-aml:
 	$(PYTHON) ./scripts/fetch_tcga_aml.py
 
 refresh-julia-notebook-environments:
-	JULIA_PKG_PRECOMPILE_AUTO=0 $(JULIA) --startup-file=no --project=./notebooks_jl ./scripts/refresh_notebook_environments.jl
+	JULIA_PKG_PRECOMPILE_AUTO=0 $(JULIA) --startup-file=no --project=./notebooks_jl ./scripts/refresh_notebook_environments.jl $(JULIA_NOTEBOOK_PROJECTS)
 
 verify-notebooks:
 	UV_CACHE_DIR=$(UV_CACHE_DIR) $(UV) sync --locked $(UV_GROUP_FLAGS)
@@ -150,6 +152,18 @@ verify-qaoa-julia-local:
 
 verify-annealing-julia-local:
 	QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"
+
+.PHONY: prepare-decomposition-julia verify-decomposition-julia-local test-decomposition-julia
+
+prepare-decomposition-julia:
+	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 JULIA_NUM_PRECOMPILE_TASKS=2 $(JULIA) --startup-file=no --project=notebooks_jl -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); using IJulia; include("scripts/notebook_bootstrap.jl"); QUBONotebooksBootstrap.bootstrap_notebook("12-Decomposition"; warm_packages=true, chdir_to_notebooks=false)'
+
+verify-decomposition-julia-local: prepare-decomposition-julia
+	QUBONOTEBOOKS_NOTEBOOK_TIMEOUT=180 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(DECOMPOSITION_JULIA_NOTEBOOK)"
+
+test-decomposition-julia:
+	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 JULIA_NUM_PRECOMPILE_TASKS=2 $(JULIA) --startup-file=no --project=notebooks_jl/environments/12-Decomposition -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); Pkg.precompile()'
+	JULIA_BIN="$(JULIA)" JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 $(PYTHON) ./scripts/test_decomposition_notebook.py
 
 verify-five-starter-problems-julia-local:
 	QUBONOTEBOOKS_QAOA_ENABLE_IBM=0 QUBONOTEBOOKS_QAOA_REQUIRE_IBM=0 QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(FIVE_STARTER_JULIA_NOTEBOOKS)"

@@ -56,6 +56,7 @@ make verify-python-portable
 make verify-dwave-python-local
 make verify-qci-julia-local
 make verify-five-starter-problems-julia-local
+make verify-decomposition-julia-local
 ```
 
 Additional targets and environment details are listed in the repository

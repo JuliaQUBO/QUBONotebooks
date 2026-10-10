@@ -56,6 +56,10 @@ const NOTEBOOK_IMPORTS = Dict(
     "9-CancerGenomics" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
     "10-QAOA" => :(using JuMP, QiskitOpt),
     "11-Annealing" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
+    "12-Decomposition" => :(begin
+        using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO
+        import MathOptInterface as MOI
+    end),
 )
 
 timestamp() = Dates.format(now(), "HH:MM:SS")
