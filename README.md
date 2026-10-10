@@ -294,8 +294,10 @@ project to avoid unrelated lock churn:
 ```bash
 make refresh-julia-notebook-environments JULIA="julia +1.10" JULIA_NOTEBOOK_PROJECTS=12-Decomposition
 make refresh-julia-notebook-environments JULIA="julia +1.12" JULIA_NOTEBOOK_PROJECTS=12-Decomposition
-make verify-decomposition-julia-local JULIA="julia +1.10"
-make verify-decomposition-julia-local JULIA="julia +1.12"
+julia_110_bin=$(julia +1.10 -e 'print(joinpath(Sys.BINDIR, Base.julia_exename()))')
+julia_112_bin=$(julia +1.12 -e 'print(joinpath(Sys.BINDIR, Base.julia_exename()))')
+make verify-decomposition-julia-local JULIA="$julia_110_bin"
+make verify-decomposition-julia-local JULIA="$julia_112_bin"
 make check-figure-reproducibility NOTEBOOKS=notebooks_jl/12-Decomposition.ipynb
 ```
 
@@ -304,6 +306,11 @@ manifest; projects declaring immutable sources retain their focused dependency
 graph. A new minor-runtime source lock is seeded from the focused Julia 1.10
 lock with stale stdlib pins removed before resolution. Installation can use
 network access; the lesson's solves and scalar checks run offline afterwards.
+The verification target first runs `prepare-decomposition-julia` to install and
+precompile the focused environment. This first-time setup is separate from the
+180-second cell execution limit; the complete CI job remains bounded to ten
+minutes. The Python notebook runner requires a single executable path, which
+is why the Juliaup verification examples resolve each binary before calling it.
 `make test-decomposition-julia` executes the lesson's numerical cells and hidden
 solutions in its focused environment, including guard and interrupted-plan
 checks. CI executes the complete notebook on Julia 1.10.11 and 1.12.6 in a

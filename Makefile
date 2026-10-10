@@ -153,9 +153,12 @@ verify-qaoa-julia-local:
 verify-annealing-julia-local:
 	QUBONOTEBOOKS_ANNEALING_ENABLE_QPU=0 QUBONOTEBOOKS_ANNEALING_REQUIRE_QPU=0 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(ANNEALING_JULIA_NOTEBOOK)"
 
-.PHONY: verify-decomposition-julia-local test-decomposition-julia
+.PHONY: prepare-decomposition-julia verify-decomposition-julia-local test-decomposition-julia
 
-verify-decomposition-julia-local:
+prepare-decomposition-julia:
+	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 JULIA_NUM_PRECOMPILE_TASKS=2 $(JULIA) --startup-file=no --project=notebooks_jl/environments/12-Decomposition -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+
+verify-decomposition-julia-local: prepare-decomposition-julia
 	QUBONOTEBOOKS_NOTEBOOK_TIMEOUT=180 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(DECOMPOSITION_JULIA_NOTEBOOK)"
 
 test-decomposition-julia:
