@@ -126,7 +126,7 @@ queue after the local notebook work.
 | Cancer genomics (9) | offline/portable; opt-in live data refresh | `make verify-cancer-genomics-julia` | About 30–90 seconds | None required; reads only committed aggregates |
 | QAOA (10) | local but heavyweight; opt-in IBM hardware | `make verify-qaoa-julia-local` | About 1–3 minutes | None required for local Aer |
 | Annealing (11) | local but heavyweight; opt-in D-Wave QPU | `make verify-annealing-julia-local` | About 1–2 minutes | None required for local Neal |
-| Decomposition (12) | offline/portable after installation | `make verify-decomposition-julia-local` | Per-cell execution limit: 180 seconds; CI budget: 10 minutes including installation | None required |
+| Decomposition (12) | offline/portable after installation | `make verify-decomposition-julia-local` | Per-cell execution limit: 180 seconds; CI budget: 15 minutes including installation | None required |
 | Complete stable local series | offline and local credential-free aggregate | `make verify-five-starter-problems-julia-local` | About 2–5 minutes | None required |
 | Refresh committed TCGA AML aggregates | opt-in live data refresh | `make refresh-tcga-aml` | About 1–3 minutes, network-dependent | None required; public cBioPortal access |
 | Submit the QCi QUBO | opt-in QCI cloud | `make verify-qci-julia-cloud` | Local validation time plus the QCI queue | `QUBONOTEBOOKS_QCI_ENABLE_CLOUD=1` and `QCI_TOKEN` |
