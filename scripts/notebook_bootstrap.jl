@@ -57,7 +57,7 @@ const NOTEBOOK_IMPORTS = Dict(
     "10-QAOA" => :(using JuMP, QiskitOpt),
     "11-Annealing" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
     "12-Decomposition" => :(begin
-        using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO
+        using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO, GLPK
         import MathOptInterface as MOI
     end),
 )

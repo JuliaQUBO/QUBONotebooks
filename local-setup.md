@@ -59,6 +59,10 @@ make verify-five-starter-problems-julia-local
 make verify-decomposition-julia-local
 ```
 
+Notebook 12 currently has a deliberate published-release/execution gate for its
+substantive application rewrite; see the [bounded plan](docs/decomposition-execution-plan.md).
+Its stale locks and cleared changed outputs are not new execution evidence.
+
 Additional targets and environment details are listed in the repository
 [README](https://github.com/JuliaQUBO/QUBONotebooks/blob/main/README.md). In
 particular, Julia notebooks activate their own focused projects, and the Python

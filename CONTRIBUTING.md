@@ -57,11 +57,16 @@ the repository link policy, not these contracts.
 | Unindented raw HTML | Every line of a raw-HTML markdown block starts at column zero. A four-space indent publishes the tags as literal source in engines without CommonMark HTML blocks. |
 | Hidden installation cells | Installation, bootstrap, and `versioninfo()` code cells, and any install-titled section outside `## Setup`, carry both the `hide-cell` and `installation` tags. |
 | Setup never follows Summary | Each notebook has exactly one `## Summary`, and no level-2 through level-6 heading whose text contains an install, setup, or validation term appears after it. Setup belongs in the canonical section at the top; tagging a trailing appendix `hide-cell` hides it from the book but leaves the duplication in the source. |
-| Exercise checkpoints | At least three cells marked `# EXERCISE` and three marked with the exact string `# SOLUTION (hidden in workshop version):` — the short `# SOLUTION` form is not counted. The first three solution cells carry the `hide-cell` and `solution` tags; every solution cell must contain real code, not only comments. |
+| Exercise checkpoints | Except the explicitly application-focused Julia notebook 12, at least three cells marked `# EXERCISE` and three marked with the exact string `# SOLUTION (hidden in workshop version):` — the short `# SOLUTION` form is not counted. The first three solution cells carry the `hide-cell` and `solution` tags; every solution cell must contain real code, not only comments. |
 | Footer structure | Acknowledgments sections and back-to-top links are selected structurally, by heading and in-page anchor, rather than by prose phrase. |
 | In-page anchors | Anchor identifiers are unique across the whole project, and every `#`-link resolves inside its own notebook. |
 | Relative links | Every relative link in a notebook, `index.md`, `local-setup.md`, `README.md`, or this file resolves to a file that exists. |
 | Colab routes | Every notebook in the table of contents has both a slash and a dot route in `colab.html`, with no duplicate keys. |
+
+Julia notebook 12 is an application/development example under the maintainer's
+explicit no-exercises direction. It contains no exercise or hidden-solution
+markers/tags; useful regression checks belong in tests. All other notebooks keep
+the exercise-checkpoint contract above.
 
 One further contract binds the Python family alone: Python notebooks carry
 portable `python3` kernel metadata, so they open without a machine-specific
@@ -86,6 +91,11 @@ site renders, and they keep the book reproducible without putting solver
 credentials into GitHub Actions or spending cloud credits on every docs build.
 
 Clearing outputs is therefore not an acceptable way to shrink a notebook.
+For the substantively rewritten, still-held notebook 12 only, stale outputs from
+the replaced application must be removed during static preparation. Its release
+and execution gates must remain visibly pending. This is not publication-ready:
+final acceptance requires fresh-kernel execution, retained measured evidence and
+genuine committed outputs before the hold can be resolved.
 
 ### Size budgets
 

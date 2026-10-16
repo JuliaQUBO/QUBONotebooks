@@ -1,65 +1,93 @@
-"""Independent fixture oracles and the published decomposition/environment contract."""
-
-import itertools
+"""Independent application oracle, absence of stale results and release gates."""
+import hashlib
+import importlib.util
 import json
 from pathlib import Path
+import re
 import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = ROOT / "notebooks_jl/environments/12-Decomposition"
-PIN = "3a9e78de5022a62b41fabdc9995e81c8e5cbb785"
-
-
-def states(n):
-    return itertools.product((0, 1), repeat=n)
+SPEC = importlib.util.spec_from_file_location("decomposition_gate", ROOT / "scripts/check_decomposition_release_gate.py")
+GATE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(GATE)
 
 
 class DecompositionNotebookTests(unittest.TestCase):
-    def test_source_provenance_survives_both_runtime_locks(self):
-        # Defect class: a refresh replaces a feature-complete immutable source
-        # with floating main, a registry release, or a local checkout.
-        project = tomllib.loads((PROJECT / "Project.toml").read_text())
-        trees = []
-        for name in ("Manifest.toml", "Manifest-v1.12.toml"):
-            manifest = tomllib.loads((PROJECT / name).read_text())
-            decomposition = manifest["deps"]["QUBODecomposition"][0]
-            self.assertEqual(project["sources"]["QUBODecomposition"]["rev"], PIN)
-            self.assertEqual(decomposition["repo-rev"], PIN)
-            self.assertEqual(decomposition["repo-url"], project["sources"]["QUBODecomposition"]["url"])
-            self.assertFalse(any("path" in entry for entries in manifest["deps"].values() for entry in entries))
-            self.assertEqual(manifest["deps"]["ToQUBO"][0]["version"], "0.7.1")
-            self.assertEqual(manifest["deps"]["QUBODrivers"][0]["version"], "0.6.5")
-            self.assertEqual(manifest["deps"]["QUBOTools"][0]["version"], "0.16.2")
-            trees.append(decomposition["git-tree-sha1"])
-        self.assertEqual(trees[0], trees[1])
+    def setUp(self):
+        self.notebook = json.loads((ROOT / "notebooks_jl/12-Decomposition.ipynb").read_text())
+        self.data = tomllib.loads((ROOT / "notebooks_data/decomposition_platform.toml").read_text())
 
-    def test_published_comparison_matches_independent_scalar_oracles(self):
-        # Defect class: committed results drift from the independently known
-        # original objective, while setup and notebook structure remain green.
-        energy_a = lambda x: 5-3*x[0]+2*x[1]+4*x[0]*x[1]-x[2]-2*x[3]+2*x[2]*x[3]
-        energy_b = lambda x: 3+sum(x)-2*sum(x[i]*x[i+1] for i in range(4))
-        energy_c = lambda x: sum(x)-2*sum(x[i]*x[j] for i in range(6) for j in range(i+1,6))
-        oracle_a = min(map(energy_a, states(4)))
-        oracle_b = min(map(energy_b, states(5)))
-        oracle_c = min(map(energy_c, states(6)))
-        source = lambda x: 5+3*x[0]+2*x[1]
-        oracle_d = lambda penalty: max(source(x)-penalty*(sum(x)-1)**2 for x in states(2))
-        notebook = json.loads((ROOT / "notebooks_jl/12-Decomposition.ipynb").read_text())
-        cell = next(cell for cell in notebook["cells"] if cell["id"] == "decomposition-comparison")
-        tables = [output["data"]["text/markdown"] for output in cell["outputs"] if "text/markdown" in output.get("data", {})]
-        self.assertEqual(len(tables), 1)
-        table = "".join(tables[0]) if isinstance(tables[0], list) else tables[0]
-        rows = [list(map(str.strip, line.strip("|").split("|"))) for line in table.splitlines()[2:]]
-        expected = [(oracle_a,oracle_a), (oracle_a,oracle_a), (oracle_b,oracle_b), (oracle_b,oracle_b), (0,oracle_c), (oracle_d(0.1),oracle_d(0.1)), (oracle_d(10),oracle_d(10))]
-        self.assertEqual(len(rows), len(expected))
-        for row, (observed, optimum) in zip(rows, expected):
-            self.assertAlmostEqual(float(row[1]), observed)
-            self.assertAlmostEqual(float(row[2]), optimum)
-            self.assertEqual(row[3], "LOCALLY_SOLVED")
-            self.assertEqual(row[4], "false")
-            self.assertLessEqual(int(row[6]), 32)
-            self.assertLessEqual(int(row[7]), 32*256)
-        self.assertEqual(max(source(x) for x in states(2) if sum(x)==1), 8)
-        self.assertGreater(oracle_d(0.1), 8)
-        self.assertEqual([min(energy_b(x) for x in states(5) if x[2]==s) for s in (0,1)], [3,0])
+    def test_source_reference_and_coordination_barrier(self):
+        # Independent source arithmetic, never production fixing/lifting code.
+        b, c, cost = self.data["base"], self.data["platform_increment"], self.data["platform_cost"]
+        self.assertEqual((len(b), len(c)), (8, 8))
+        self.assertTrue(all(len(row) == 6 for row in b+c))
+        branches = [sum(max(base+platform*y for base, platform in zip(row_b, row_c)) for row_b, row_c in zip(b,c))-cost*y for y in (0,1)]
+        self.assertEqual(branches, [205,259])
+        choices = [max(range(6), key=lambda i:b[g][i]) for g in range(8)]
+        self.assertEqual(choices, [0]*8)
+        # At the best y=0 assignment, every departmental choice is optimal,
+        # while the platform singleton alone loses its positive activation cost.
+        incumbent = sum(b[g][choices[g]] for g in range(8))
+        self.assertEqual(incumbent, 205)
+        self.assertEqual(sum(c[g][choices[g]] for g in range(8))-cost, -60)
+        self.assertEqual(max(branches)-incumbent, 54)
+
+    def test_full_problem_precedes_code_and_single_large_search_cell(self):
+        first_code = next(i for i,c in enumerate(self.notebook["cells"]) if c["cell_type"]=="code")
+        introduction = "".join("".join(c["source"]) for c in self.notebook["cells"][:first_code])
+        self.assertIn(r"x_{gi}\in\{0,1\}", introduction)
+        self.assertIn(r"y\in\{0,1\}", introduction)
+        self.assertIn("49 original binary variables", introduction)
+        self.assertIn("max_variables=6", introduction)
+        code = ["".join(c["source"]) for c in self.notebook["cells"] if c["cell_type"]=="code"]
+        self.assertEqual(sum("DA.correctness_demo()" in s for s in code),1)
+        self.assertFalse(any("run_attempt(" in s for s in code))
+        self.assertFalse(any("binary_states(" in s for s in code))
+
+    def test_no_exercises_bad_penalty_or_old_status_override(self):
+        for cell in self.notebook["cells"]:
+            source = "".join(cell["source"])
+            self.assertNotRegex(source,r"(?m)^\s*#\s*(EXERCISE|SOLUTION)\b")
+            self.assertFalse({"exercise","solution"} & set(cell["metadata"].get("tags",[])))
+        implementation=(ROOT / "scripts/decomposition_application.jl").read_text()
+        self.assertNotIn("ConstraintEncodingPenaltyHint",implementation)
+        self.assertNotIn("MaxPenaltyUpdates",implementation)
+        self.assertNotRegex(implementation,r"function\s+MOI\.get")
+        self.assertIn("ToQUBO.project_original_state",implementation)
+        self.assertIn("ToQUBO.reformulation_metadata",implementation)
+
+    def test_pending_is_explicit_and_cannot_pass_as_released_execution(self):
+        gate=tomllib.loads((PROJECT / "RELEASE-GATES.toml").read_text())
+        project=tomllib.loads((PROJECT / "Project.toml").read_text())
+        self.assertNotIn("sources",project)
+        self.assertIn("GLPK",project["deps"])
+        if gate["status"]=="pending":
+            self.assertTrue(GATE.readiness_errors())
+            self.assertEqual(gate["decomposition_version"],"")
+            self.assertIn("pending",self.notebook["metadata"]["qubonotebooks_execution_status"])
+            self.assertTrue(all(not c.get("outputs") for c in self.notebook["cells"] if c["cell_type"]=="code"))
+            return
+        self.assertEqual(GATE.readiness_errors(),[])
+        report=tomllib.loads((ROOT / "notebooks_data/decomposition_comparison/summary.toml").read_text())
+        self.assertEqual(len(report["attempts"]),16)
+        for path, expected in report["plan"]["input_hashes"].items():
+            self.assertEqual(hashlib.sha256((ROOT/path).read_bytes()).hexdigest(),expected,path)
+        for method in ("direct_mip","separator_mip","partition_mip","separator_exact"):
+            rows=[row for row in report["attempts"] if row["method"]==method]
+            self.assertEqual(sorted(row["repetition"] for row in rows),[0,1,2,3])
+            for row in rows:
+                if "source_objective" not in row:
+                    self.assertEqual(row["outcome"],"failed")
+                    continue
+                if row["source_feasible"]:
+                    self.assertEqual(row["source_optimum"],259)
+                    self.assertEqual(row["source_gap"],259-row["source_objective"])
+                if method=="partition_mip":
+                    self.assertFalse(row["logical_global_proof"])
+                if row["logical_global_proof"]:
+                    self.assertEqual(row["public_status"],"OPTIMAL")
+        correctness=next(c for c in self.notebook["cells"] if c["id"]=="decomposition-correctness")
+        self.assertTrue(correctness["outputs"],"Final tutorial needs genuine fresh-kernel outputs")

@@ -445,6 +445,15 @@ class NotebookPedagogyCellTests(unittest.TestCase):
                     in "".join(cell.get("source", []))
                 ]
 
+                # Notebook 12 is explicitly an application/development example.
+                # The maintainer's no-exercises direction is a narrow exception.
+                if path.name == "12-Decomposition.ipynb":
+                    self.assertFalse(exercise_cells)
+                    self.assertFalse(solution_cells)
+                    for cell in cells:
+                        self.assertFalse({"exercise", "solution"} & set(cell.get("metadata", {}).get("tags", [])))
+                        self.assertNotRegex("".join(cell.get("source", [])), r"(?m)^\s*#\s*(EXERCISE|SOLUTION)\b")
+                    continue
                 self.assertGreaterEqual(len(exercise_cells), 3)
                 self.assertGreaterEqual(len(solution_cells), 3)
                 self.assertTrue(

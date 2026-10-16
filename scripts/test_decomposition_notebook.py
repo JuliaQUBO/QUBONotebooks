@@ -1,83 +1,56 @@
 #!/usr/bin/env python3
-"""Execute the decomposition lesson's numerical cells and additional guard probes."""
-
-import json
+"""Pure guard/source-oracle checks; no extra large tutorial optimizer solves."""
 import os
 from pathlib import Path
 import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTEBOOK = ROOT / "notebooks_jl/12-Decomposition.ipynb"
 PROJECT = ROOT / "notebooks_jl/environments/12-Decomposition"
 
 
 def main():
-    notebook = json.loads(NOTEBOOK.read_text())
-    cells = [
-        cell for cell in notebook["cells"]
-        if cell["cell_type"] == "code"
-        and "installation" not in cell.get("metadata", {}).get("tags", [])
-        and not cell.get("metadata", {}).get("qubonotebooks_colab_import_id")
-    ]
-    with tempfile.TemporaryDirectory(prefix="decomposition-tests-") as temporary:
-        directory = Path(temporary)
-        sources = []
-        for i, cell in enumerate(cells):
-            path = directory / f"{i}.jl"
-            path.write_text("".join(cell["source"]))
-            sources.append(str(path))
-        runner = directory / "run.jl"
-        runner.write_text('''using Test, REPL
-using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO
-import MathOptInterface as MOI
-for path in ARGS
-    include_string(REPL.softscope, Main, read(path, String), path)
-end
-@testset "Decomposition numerical and guard regressions" begin
-    # Defect class: a logical/compiled dimension is checked after allocation or dispatch.
-    @test_throws ArgumentError binary_states(9)
-    @test_throws ArgumentError binary_states(-1)
-    @test_throws ArgumentError binary_states(typemax(Int))
-    @test_throws ArgumentError qubo_model(zeros(9), [])
-    @test_throws ArgumentError tiny_solve(model_a; capacity=9)
-    oversized = MOI.Utilities.Model{Float64}()
-    MOI.add_variables(oversized, 9)
-    @test_throws ArgumentError tiny_solve(oversized; strategy=:direct)
-    @test length(binary_states(8)) == 256
-    @test binary_states(0) == [Int[]]
-    # Defect class: missing boundary terms or duplicated constants survive a solver-only check.
-    @test components_a.bits == [1,0,0,1]
-    @test components_a.energy == 0
-    @test separator_b.bits == ones(Int,5)
-    @test separator_b.energy == 0
-    @test separator_b.data["candidate_evaluations"] == 21
-    @test separator_b.data["completed_calls"] == 4
-    @test all(call["valid_results"] == 4 for call in separator_b.data["calls"])
-    @test Set(call["boundary_fixed_variables"][3] for call in separator_b.data["calls"]) == Set((0,1))
-    @test sweeps_c.energy - oracle_c == 24
-    @test all(call["public_status"] == "LOCALLY_SOLVED" for call in sweeps_c.data["calls"])
-    # Defect class: a globally best compiled state is presented as source feasible.
-    @test weak_d.decoded == [1,1]
-    @test weak_d.residual == 1 && !weak_d.source_feasible
-    @test weak_d.result.energy ≈ 9.9
-    @test strong_d.decoded == [1,0]
-    @test strong_d.residual == 0 && strong_d.source_feasible
-    @test strong_d.source_objective == 8
-    @test all(!row[2].data["separator"]["proof_complete"] for row in comparison_rows if row[2].data !== nothing && row[2].data["separator"] !== nothing)
-    # Defect class: exhausted allowances accidentally retain an exact-route proof.
-    @test limited_b.status == MOI.ITERATION_LIMIT
-    @test limited_b.data["completed_calls"] == 1
-    truncated = tiny_solve(model_b; strategy=:separator, separator=[3], candidates=2)
-    @test truncated.status == MOI.ITERATION_LIMIT
-    @test truncated.data["candidate_evaluations"] == 2
-    @test truncated.data["attempted_calls"] == 0
-    @test truncated.data["separator"]["completed_branches"] == 0
-    @test truncated.energy == energy_b(truncated.bits)
+    subprocess.run([os.environ.get("PYTHON", "python3"), str(ROOT / "scripts/check_decomposition_release_gate.py")], check=True)
+    with tempfile.TemporaryDirectory(prefix="decomposition-guards-") as temporary:
+        runner = Path(temporary) / "run.jl"
+        runner.write_text('''using Test
+include(ARGS[1])
+const DA=DecompositionApplication
+@testset "Department/platform independent source and pre-dispatch guards" begin
+    data=DA.instance()
+    reference=DA.source_reference(data)
+    @test reference.values==[205,259]
+    @test reference.platform==1
+    @test reference.choices==fill(6,8)
+    @test DA.exact_assignments(6)==64
+    for n in (-1,7,49,typemax(Int),true)
+        @test_throws ArgumentError DA.exact_assignments(n)
+    end
+    xids=reshape(collect(1:48),8,6);yid=49
+    decoded=Dict(id=>Int(i==6) for (g,i,id) in ((g,i,xids[g,i]) for g in 1:8 for i in 1:6))
+    decoded[yid]=1
+    audit=DA.source_audit(data,decoded,xids,yid)
+    @test audit.feasible && audit.objective==259 && audit.gap==0
+    @test_throws ErrorException DA.source_audit(data,filter(p->first(p)!=yid,decoded),xids,yid)
+    bad=copy(decoded);bad[xids[1,1]]=1
+    @test !DA.source_audit(data,bad,xids,yid).feasible
+    bad[xids[1,1]]=0.5
+    @test_throws ErrorException DA.source_audit(data,bad,xids,yid)
+    # The application itself has a block-coordinate trap at the y=0 source optimum.
+    @test all(argmax(data.b[g])==1 for g in 1:8)
+    @test all(iszero(data.c[g][1]) for g in 1:8)
+    @test data.cost>0 # platform flip alone reduces value; departments already maximize at y=0
+    ledger=DA.Ledger(max_attempts=1,max_assignments=1024)
+    @test DA.reserve!(ledger,:separator_exact).assignments==1024
+    @test_throws ErrorException DA.reserve!(ledger,:separator_exact)
+    @test ledger.reserved_assignments==1024 # refused work cannot erase prior reservations
+    @test ledger.compiler_calls==ledger.parent_calls==0
+    @test DA.method_limits(:separator_exact).evaluations==1029
+    @test DA.method_limits(:partition_mip).calls==27
+    @test_throws ArgumentError DA.method_limits(:unknown)
 end
 ''')
-        command = [os.environ.get("JULIA_BIN", "julia"), "--startup-file=no", f"--project={PROJECT}", str(runner), *sources]
-        subprocess.run(command, cwd=ROOT, check=True, timeout=180)
+        subprocess.run([os.environ.get("JULIA_BIN", "julia"), "--startup-file=no", f"--project={PROJECT}", str(runner), str(ROOT / "scripts/decomposition_application.jl")], cwd=ROOT, check=True, timeout=180)
 
 
 if __name__ == "__main__":

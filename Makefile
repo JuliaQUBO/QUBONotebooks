@@ -156,12 +156,14 @@ verify-annealing-julia-local:
 .PHONY: prepare-decomposition-julia verify-decomposition-julia-local test-decomposition-julia
 
 prepare-decomposition-julia:
+	$(PYTHON) ./scripts/check_decomposition_release_gate.py
 	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 JULIA_NUM_PRECOMPILE_TASKS=2 $(JULIA) --startup-file=no --project=notebooks_jl -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); using IJulia; include("scripts/notebook_bootstrap.jl"); QUBONotebooksBootstrap.bootstrap_notebook("12-Decomposition"; warm_packages=true, chdir_to_notebooks=false)'
 
 verify-decomposition-julia-local: prepare-decomposition-julia
 	QUBONOTEBOOKS_NOTEBOOK_TIMEOUT=180 $(MAKE) verify-notebooks UV_GROUP_FLAGS="--group docs" NOTEBOOKS="$(DECOMPOSITION_JULIA_NOTEBOOK)"
 
 test-decomposition-julia:
+	$(PYTHON) ./scripts/check_decomposition_release_gate.py
 	JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 JULIA_NUM_PRECOMPILE_TASKS=2 $(JULIA) --startup-file=no --project=notebooks_jl/environments/12-Decomposition -e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false); Pkg.precompile()'
 	JULIA_BIN="$(JULIA)" JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 $(PYTHON) ./scripts/test_decomposition_notebook.py
 

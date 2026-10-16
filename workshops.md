@@ -99,20 +99,22 @@ benchmark regeneration belongs in follow-up work. Ask learners to distinguish
 the original objective, penalized energy, feasibility, and observed success
 frequency when they explain a result.
 
-## A 60-minute Julia decomposition session
+## A 60-minute Julia decomposition application discussion
 
-After preparing the [focused development environment](README.md#decomposition-development-environment),
-use [Decomposition and Reconstruction](notebooks_jl/12-Decomposition.ipynb).
-The exported bundles include both Julia runtime locks and the immutable source
-pin; installation needs internet, and the subsequent solves need no credentials.
+[Notebook 12](notebooks_jl/12-Decomposition.ipynb) is an application/development
+example with no exercises or hidden solutions. Its rewritten source currently
+awaits the [release and execution gates](docs/decomposition-execution-plan.md).
+Do not describe the old locked/source-pinned edition as execution evidence for
+this new model. Once accepted, both exported editions retain the same worked
+application, genuine outputs, data and supported runtime locks.
 
 | Minutes | Activity |
 | --- | --- |
-| 0–15 | Compare direct solving with independent components; audit the full energy. |
-| 15–30 | Enumerate a supplied separator and inspect reconstruction maps. |
-| 30–40 | Explain why exact neighborhood solves can stagnate. |
-| 40–50 | Decode the constrained model under weak and sufficient penalties. |
-| 50–60 | Attempt the three exercises and discuss statuses versus oracle evidence. |
+| 0–15 | State the 49-variable departmental/platform model, units and child limit. |
+| 15–30 | Explain the two platform branches, eight residual groups and boundary terms. |
+| 30–40 | Inspect automatic compilation, public mappings and the decoded source audit. |
+| 40–50 | Explain the partition search's restricted coordinated moves and certificate limits. |
+| 50–60 | Discuss retained quality/capacity/full-cost observations and their limitations. |
 
 ## Maintaining workshop editions
 

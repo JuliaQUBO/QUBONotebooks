@@ -105,7 +105,7 @@ Problems](#source-of-the-five-starter-problems).
 | Altered cancer pathways from TCGA AML aggregates | [notebooks_jl/9-CancerGenomics.ipynb](notebooks_jl/9-CancerGenomics.ipynb) | Not available | Offline, credential-free Julia notebook covered by `make verify-cancer-genomics-julia`; a tiny incidence fixture is solved exhaustively and a seeded local sampler validates the committed aggregate without claiming clinical significance. |
 | Local-first QAOA | [notebooks_jl/10-QAOA.ipynb](notebooks_jl/10-QAOA.ipynb) | Not available | Credential-free local Aer path covered by `make verify-qaoa-julia-local`; fixed seeds, exact baselines, circuit-resource audits, and a separate environment-gated IBM hardware cell keep the default tutorial bounded and service-free. |
 | Local simulated and quantum annealing | [notebooks_jl/11-Annealing.ipynb](notebooks_jl/11-Annealing.ipynb) | Not available | Seeded `DWave.Neal.Optimizer` runs for all five starter models are covered by `make verify-annealing-julia-local`; exact checks cover the small models, while the D-Wave QPU path is credentialed, fail-closed, and explicitly optional. |
-| QUBO decomposition and reconstruction | [notebooks_jl/12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) | Not available | Credential-free local tutorial covered by `make verify-decomposition-julia-local`; independent exhaustive checks distinguish components, separators, coupled sweeps, and constrained source feasibility. Uses an immutable development-source pin. |
+| QUBO decomposition and reconstruction | [notebooks_jl/12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) | Not available | Application draft intended for `make verify-decomposition-julia-local`; 49-source-binary application with six-variable children, automatic formulation, public certificates and independent source audit. Rewritten source/released locks/results currently pending. |
 
 ### Execution matrix
 
@@ -266,60 +266,44 @@ aggregate dependency, maintainers refresh both focused lock sets with
 
 ### Decomposition development environment
 
-Notebook 12 uses `notebooks_jl/environments/12-Decomposition/`, independently
-resolved from the aggregate project. Both locks pin QUBODecomposition to merged
-revision `3a9e78de5022a62b41fabdc9995e81c8e5cbb785` (package tree
-`dd42da508b68aeb0e46a2c793b2e0bdcd79c82d5`). Its `0.1.0` Project version identifies development
-source, not registry adoption. The [registration PR](https://github.com/JuliaRegistries/General/pull/171137)
-was still open when the environment was generated; the submitted release need
-not contain the later separator features. Do not replace this pin with a
-registry version without verifying all demonstrated APIs and installation.
+Notebook 12 is being rewritten around a fixed synthetic 49-binary departmental
+choice/shared-platform application, with a six-logical-variable child limit.
+It uses automatic ToQUBO penalties, public metadata/decoding, independent source
+feasibility/objective checks and a source oracle over the two platform choices.
+Its exercise and hidden-solution cells have been removed under the maintainer's
+explicit application-example direction; regression checks live in tests.
 
-Both runtimes resolve released QUBODrivers 0.6.5, QUBOTools 0.16.2,
-ToQUBO 0.7.1, JuMP 1.32.1, and MathOptInterface 1.54.0. No local development
-path, Python bridge, or external solver is required. The aggregate and existing
-focused locks are unchanged. The Project `[sources]` declaration records the
-immutable source; the refresh script also applies it explicitly for Julia 1.10,
-which predates Pkg's `[sources]` support.
+**Current static draft: execution and published dependency adoption are pending.**
+The focused `notebooks_jl/environments/12-Decomposition/RELEASE-GATES.toml` blocks
+setup until published QUBODrivers >=0.6.6 and the final supported decomposition
+release containing standalone #17/#18 resolve normally. The old two manifests
+remain pending historical inputs and are not a working lock for the rewritten
+source. Its former source override has been removed from Project.toml; no local
+source pin, fake release version or refreshed execution output is supplied.
+GLPK is added only to this focused notebook environment. Other notebooks and
+aggregate locks are unchanged. Preprocessing #16 remains separately gated.
 
-To generate the first Julia 1.10 lock from the focused Project, use:
-
-```bash
-julia +1.10 --project=notebooks_jl/environments/12-Decomposition -e 'using Pkg; Pkg.add(url="https://github.com/JuliaQUBO/QUBODecomposition.jl.git", rev="3a9e78de5022a62b41fabdc9995e81c8e5cbb785"); Pkg.resolve()'
-```
-
-Then use the shared generation target for both runtimes, selecting only this
-project to avoid unrelated lock churn:
+After those releases exist, record the accepted exact version/evidence, refresh
+both focused locks, verify clean supported installs/cache identities, and mark
+the gate ready. Then run one fresh-kernel correctness demonstration per runtime:
 
 ```bash
 make refresh-julia-notebook-environments JULIA="julia +1.10" JULIA_NOTEBOOK_PROJECTS=12-Decomposition
 make refresh-julia-notebook-environments JULIA="julia +1.12" JULIA_NOTEBOOK_PROJECTS=12-Decomposition
-julia_110_bin=$(julia +1.10 -e 'print(joinpath(Sys.BINDIR, Base.julia_exename()))')
-julia_112_bin=$(julia +1.12 -e 'print(joinpath(Sys.BINDIR, Base.julia_exename()))')
-make verify-decomposition-julia-local JULIA="$julia_110_bin"
-make verify-decomposition-julia-local JULIA="$julia_112_bin"
-make check-figure-reproducibility NOTEBOOKS=notebooks_jl/12-Decomposition.ipynb
+make verify-decomposition-julia-local JULIA="/absolute/path/to/reviewed/julia"
+make test-decomposition-julia JULIA="/absolute/path/to/reviewed/julia"
 ```
 
-The full refresh still seeds ordinary notebook projects from the aggregate
-manifest; projects declaring immutable sources retain their focused dependency
-graph. A new minor-runtime source lock is seeded from the focused Julia 1.10
-lock with stale stdlib pins removed before resolution. Installation can use
-network access; the lesson's solves and scalar checks run offline afterwards.
-The verification target first runs `prepare-decomposition-julia` to install and
-load the focused packages after IJulia, matching the notebook's import context.
-This first-time setup is separate from the
-180-second cell execution limit; the complete CI job remains bounded to fifteen
-minutes. The Python notebook runner requires a single executable path, which
-is why the Juliaup verification examples resolve each binary before calling it.
-`make test-decomposition-julia` executes the lesson's numerical cells and hidden
-solutions in its focused environment, including guard and interrupted-plan
-checks. It separately precompiles the standalone focused environment before
-starting its 180-second numerical-process limit. CI executes the complete
-notebook on Julia 1.10.11 and 1.12.6 in a
-bounded lane and compares the deterministic SVG. The existing Colab smoke
-inventory includes the new setup and deferred-import cells; hosted Colab and
-quantum-provider interactions are not implicit validation steps.
+The numerical test target covers source arithmetic, malformed/missing source
+assignments and pre-dispatch guards without duplicating the notebook's large
+search solve. The notebook has one actual ExactSampler separator solve and reads
+saved comparison observations; it never launches a campaign on open. The
+separate [bounded execution plan](docs/decomposition-execution-plan.md) proposes
+16 opt-in CPU comparison attempts plus exactly two fresh-kernel correctness
+solves. All remain unexecuted pending root review and authorization. Future
+execution must use the stated memory/time/thread/depot controls and retain
+failures, not replace them. Genuine committed outputs and a new maintainer
+acceptance decision are required before final publication.
 
 ### Colab Python bridge
 

@@ -1,0 +1,8 @@
+status = "pending"
+minimum_driver_version = "0.6.6"
+decomposition_version = ""
+required_decomposition_features = ["coarse orientation (#17)", "sample-guided fixing (#18)"]
+published_release_evidence = []
+reason = "Await published QUBODrivers >=0.6.6 and a released QUBODecomposition containing the completed standalone #17/#18 milestone; then regenerate both runtime locks and validate fresh installs."
+# Existing manifests remain historical pending inputs, not a lock for this rewrite.
+previous_source_revision = "3a9e78de5022a62b41fabdc9995e81c8e5cbb785"
