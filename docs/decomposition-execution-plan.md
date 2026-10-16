@@ -28,7 +28,7 @@ separator runs covered both platform branches. Direct HiGHS returned `OPTIMAL`;
 the solver certificate remains subject to floating-point feasibility tolerances.
 Partition results carry no global certificate.
 
-These observations show that the example works with a stronger direct baseline.
+These observations show that the example works with HiGHS as the direct baseline.
 The separator methods used smaller children and finished faster in these runs.
 They do not establish general speedups: this is one deliberately structured
 synthetic instance, its source oracle needs only 96 option evaluations, and
@@ -114,3 +114,15 @@ this campaign. Its one exact separator demonstration is bounded by 16 children,
 The [historical GLPK summary](../notebooks_data/decomposition_comparison/history/glpk/README.md)
 is byte-identical to the previously published cohort and retains its original
 source/hash identities. It is not relabeled as HiGHS evidence.
+
+## Notebook execution checks
+
+Fresh kernels completed the notebook on Julia 1.10.11 and 1.12.6 from source
+commit `108251363ed70f0ca16f684844ea965a525a1f7e`. The committed solver outputs
+come from the 1.10.11 run. Both executions agreed on all result fields after
+coalescing split output streams and excluding runtime-dependent phase timings;
+the problem table, structure diagram and retained comparison tables also agreed.
+Each correctness demonstration used 16 child calls, 1029 parent evaluations and
+1024 exhaustive assignments, returned source value 259 and covered both platform
+branches. Notebook metadata records the raw execution hashes. Unchanged figures
+and tables retain their existing outputs; transient setup timestamps are omitted.
