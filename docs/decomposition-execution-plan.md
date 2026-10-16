@@ -97,7 +97,7 @@ MIP search nodes are unavailable through this public sampler path and are never
 replaced with the one returned incumbent sample. ExactSampler assignments come
 from each actual sampler's public `optimizer.evaluations` result metadata.
 
-## Frozen local allowance and observed work
+## Bounded local execution and observed work
 
 The local allowance is 16 comparison attempts plus two separate fresh-kernel
 correctness demonstrations, one each on Julia 1.10.11 and 1.12.6. The comparison
@@ -183,11 +183,9 @@ annealer, hardware, paid backend or external-service optimization ran.
 
 IJulia/Jupyter preparation and both local kernels used owned data/config/runtime
 and IPython directories, an owned locked Python 3.12 docs environment, and
-`IJULIA_NODEFAULTKERNEL=1`; HOME is never overridden. Earlier setup incident and
-unknown user-kernel baseline are preserved in developer evidence. Subsequent
-protected preparations, campaign and kernel runs left the current user-kernel
-snapshots unchanged. Each completed kernel was checked for actual process
-quiescence before the next runtime started; no owned Julia processes survived.
+`IJULIA_NODEFAULTKERNEL=1`; HOME is never overridden. Each completed kernel was
+checked for actual process quiescence before the next runtime started; no owned
+Julia processes survived.
 
 An aggregate-first kernel initially timed out in the original 180-second import
 cell before reaching application code. One longer import-only setup succeeded,
@@ -195,8 +193,8 @@ but the next full invocation still exceeded that import limit. A subsequent
 zero-solver diagnostic established that IJulia had already loaded aggregate
 Preferences 1.5.2 while the focused lock required 1.6.0; Julia rejected focused
 PrecompileTools, MOI and QUBOTools caches as incompatible with that loaded module.
-All failed preflight/import attempts and the diagnostic are retained, with no
-scientific calls charged to them. No application failure was retried or replaced.
+All failed preflight/import attempts and the diagnostic are retained; none reached
+application code. No application failure was retried or replaced.
 
 The focused-startup fix selects the focused project and a load path with the
 aggregate project as kernel-tool fallback **before** importing IJulia. Actual
@@ -216,18 +214,12 @@ timings, statuses and work counts are untouched. Raw execution timestamps and
 the original setup output remain in the retained notebooks. These prepared
 local environments do not establish cold current-head CI behavior.
 
-## Developer acceptance audit
+## Publication checks
 
 The comparison, pure guards and both genuine fresh-kernel notebook executions
-passed, and observed outputs are committed. Output hygiene/budgets, deterministic
-figure checks, workshop export, strict book build,
-final independent review, current-head CI and the substantive maintainer hold
-remain acceptance checks. Reuse unchanged setup/guard evidence and avoid implicit
-duplicate notebook solves. The two local correctness calls are consumed; no
-additional local scientific run is allocated.
-
-PR180's historical workflow counters persist: posted review 1/3 used, formal
-verification 3/3 reported spent, CI-fix trailer commits 3/3 used. The ordinary
-implementation/setup/guard checks and fixed cohort do not reset those counters.
-The maintainer hold still needs a substantive decision; no human approval or
-final tutorial acceptance is inferred from dependency readiness or CI policy.
+passed, and observed outputs are committed. Publication checks cover output
+hygiene/budgets, deterministic figures, workshop export, a strict book build,
+independent review and current-head CI. They can reuse the retained executions
+without duplicating scientific solves. [PR 180](https://github.com/JuliaQUBO/QUBONotebooks/pull/180)
+records live check results and the substantive maintainer review; dependency
+readiness or individual successful commands do not imply human approval.

@@ -10,10 +10,10 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts"))
 SPEC = importlib.util.spec_from_file_location("decomposition_launcher", ROOT / "scripts/run_decomposition_campaign.py")
 LAUNCHER = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(LAUNCHER)
+with patch.object(sys, "path", [str(ROOT / "scripts"), *sys.path]):
+    SPEC.loader.exec_module(LAUNCHER)
 
 
 class DecompositionLauncherTests(unittest.TestCase):

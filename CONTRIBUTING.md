@@ -91,11 +91,11 @@ site renders, and they keep the book reproducible without putting solver
 credentials into GitHub Actions or spending cloud credits on every docs build.
 
 Clearing outputs is therefore not an acceptable way to shrink a notebook.
-For the substantively rewritten, still-held notebook 12 only, stale outputs from
-the replaced application must be removed during static preparation. Its release
-and execution gates must remain visibly pending. This is not publication-ready:
-final acceptance requires fresh-kernel execution, retained measured evidence and
-genuine committed outputs before the hold can be resolved.
+During a substantive application rewrite of notebook 12, stale outputs from the
+replaced application must be removed during static preparation. Unfulfilled
+release and execution requirements must be visible. Such a draft is not
+publication-ready: publication requires fresh-kernel execution, retained measured
+evidence and genuine committed outputs for the rewritten application.
 
 ### Size budgets
 

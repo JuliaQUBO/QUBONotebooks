@@ -106,8 +106,9 @@ with no exercises or hidden solutions. Published runtime locks, a retained
 16-attempt comparison and genuine correctness executions on Julia 1.10.11 and
 1.12.6 support the discussion. Both exported editions retain the same worked
 application, outputs, data and runtime locks. The
-[execution audit](docs/decomposition-execution-plan.md) distinguishes observed
-results from the remaining CI, publication and maintainer-acceptance gates.
+[execution audit](docs/decomposition-execution-plan.md) records the retained
+observations and bounded work; [PR 180](https://github.com/JuliaQUBO/QUBONotebooks/pull/180)
+records live CI and review status.
 
 | Minutes | Activity |
 | --- | --- |

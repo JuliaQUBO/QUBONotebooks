@@ -331,8 +331,8 @@ Make verification in fresh Julia 1.10.11 and 1.12.6 kernels. Each correctness
 demonstration returned feasible value 259 with `OPTIMAL`, 16 child calls,
 1029 parent evaluations and 1024 exact assignments. The committed outputs use
 the genuine 1.10 run; retained raw notebooks establish semantic parity across
-both runtimes. Current-head CI and substantive maintainer acceptance remain
-separate gates.
+both runtimes. Live CI and review status are recorded in
+[PR 180](https://github.com/JuliaQUBO/QUBONotebooks/pull/180).
 
 ### Colab Python bridge
 
