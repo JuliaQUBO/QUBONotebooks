@@ -105,7 +105,7 @@ Problems](#source-of-the-five-starter-problems).
 | Altered cancer pathways from TCGA AML aggregates | [notebooks_jl/9-CancerGenomics.ipynb](notebooks_jl/9-CancerGenomics.ipynb) | Not available | Offline, credential-free Julia notebook covered by `make verify-cancer-genomics-julia`; a tiny incidence fixture is solved exhaustively and a seeded local sampler validates the committed aggregate without claiming clinical significance. |
 | Local-first QAOA | [notebooks_jl/10-QAOA.ipynb](notebooks_jl/10-QAOA.ipynb) | Not available | Credential-free local Aer path covered by `make verify-qaoa-julia-local`; fixed seeds, exact baselines, circuit-resource audits, and a separate environment-gated IBM hardware cell keep the default tutorial bounded and service-free. |
 | Local simulated and quantum annealing | [notebooks_jl/11-Annealing.ipynb](notebooks_jl/11-Annealing.ipynb) | Not available | Seeded `DWave.Neal.Optimizer` runs for all five starter models are covered by `make verify-annealing-julia-local`; exact checks cover the small models, while the D-Wave QPU path is credentialed, fail-closed, and explicitly optional. |
-| QUBO decomposition and reconstruction | [notebooks_jl/12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) | Not available | Application draft intended for `make verify-decomposition-julia-local`; 49-source-binary application with six-variable children, automatic formulation, public certificates and independent source audit. Published focused locks/imports validated; application execution and results pending. |
+| QUBO decomposition and reconstruction | [notebooks_jl/12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) | Not available | Application draft intended for `make verify-decomposition-julia-local`; 49-source-binary application with six-variable children, automatic formulation, public certificates and independent source audit. Published focused locks/imports validated; retained 16-attempt synthetic comparison distinguishes complete separator certificates from limited direct solving and heuristic sweeps. |
 
 ### Execution matrix
 
@@ -273,7 +273,7 @@ feasibility/objective checks and a source oracle over the two platform choices.
 Its exercise and hidden-solution cells have been removed under the maintainer's
 explicit application-example direction; regression checks live in tests.
 
-**Dependency adoption is ready; application execution and results are pending.**
+The focused environment uses published registry dependencies.
 Both focused locks were genuinely generated from Project-only registry resolution
 under Julia 1.10.11 and 1.12.6 and independently instantiated/imported in fresh
 depots without lock drift. They contain published QUBODrivers 0.6.6,
@@ -289,8 +289,8 @@ For future lock regeneration, use isolated Project-only resolution per runtime
 and inspect genuine Pkg output before copying it. The generic aggregate-seed
 refresh helper retained its old driver 0.6.5 during this adoption and is unsuitable
 for this minimum-version transition; it and other projects remain unchanged.
-After explicit execution authorization, run one fresh-kernel correctness
-demonstration per runtime using its actual executable:
+Run one fresh-kernel correctness demonstration with the selected runtime using
+its actual executable:
 
 ```bash
 make verify-decomposition-julia-local JULIA="/absolute/path/to/reviewed/julia"
@@ -301,14 +301,22 @@ The numerical test target covers source arithmetic, malformed/missing source
 assignments and pre-dispatch guards without duplicating the notebook's large
 search solve. The notebook has one actual ExactSampler separator solve and reads
 saved comparison observations; it never launches a campaign on open. The
-separate [bounded execution plan](docs/decomposition-execution-plan.md) proposes
-16 opt-in CPU comparison attempts plus exactly two local fresh-kernel correctness
-solves. These 18 local solves remain unexecuted pending root review and
-authorization. Required CI's two-runtime correctness replays are recorded
-separately per pushed head and are not campaign observations. Future
-execution must use the stated memory/time/thread/depot controls and retain
-failures, not replace them. Genuine committed outputs and a new maintainer
-acceptance decision are required before final publication.
+retained [comparison audit](docs/decomposition-execution-plan.md) records one
+16-attempt CPU cohort: both complete separator variants reached feasible value
+259 with global logical certificates; partition sweeps finished at 205 with a
+54-point source gap and no global certificate; direct GLPK MIPSampler on the
+penalized QUBO returned 233 with a time limit. All direct attempts retained their
+cooperative deadline overruns, including the 38.7467-second cold solver warmup.
+The very short separator timings do not establish a general timing ranking or
+solver superiority; the synthetic source oracle already finds the optimum with
+96 option evaluations. Every observation and its complete cost is retained.
+
+The local allocation is 16 comparison attempts plus two separate fresh-kernel
+correctness demonstrations, one per runtime. Required CI correctness replays are
+recorded separately per pushed head and are not campaign observations. Reproduction
+uses the stated memory/time/thread/depot controls and retains failures without
+replacement. Pure guards already passed on both runtimes; fresh-kernel outputs
+and remaining publication checks are separate acceptance evidence.
 
 ### Colab Python bridge
 

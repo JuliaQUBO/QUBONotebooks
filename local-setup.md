@@ -61,9 +61,10 @@ make verify-decomposition-julia-local
 
 Notebook 12 has adopted published registry dependencies for its
 substantive application rewrite; see the [bounded plan](docs/decomposition-execution-plan.md).
-Both runtime locks passed fresh-depot installation/import checks; the ready
-release gate is not application validation. Its cleared changed outputs are not
-execution evidence, and the comparison/fresh-kernel runs still require approval.
+Both runtime locks passed fresh-depot installation/import checks. The retained
+16-attempt comparison records source quality, certificates and complete costs;
+opening the notebook performs one correctness demonstration and reads those saved
+observations. The default notebook never launches the comparison campaign.
 
 Additional targets and environment details are listed in the repository
 [README](https://github.com/JuliaQUBO/QUBONotebooks/blob/main/README.md). In
