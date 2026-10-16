@@ -42,8 +42,8 @@ const PYTHON_PACKAGE_IMPORT_NAMES = Dict(
     "requests" => "requests",
 )
 const NOTEBOOK_IMPORTS = Dict(
-    "1-MathProg" => :(using Plots, JuMP, GLPK, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
-    "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, GLPK, DWave, Luxor),
+    "1-MathProg" => :(using Plots, JuMP, HiGHS, Cbc, Ipopt, SpecialFunctions, AmplNLWriter, Bonmin_jll, Couenne_jll),
+    "2-QUBO" => :(using Karnak, LinearAlgebra, Graphs, JuMP, QUBO, Plots, HiGHS, DWave, Luxor),
     "3-GAMA" => :(using BinaryWrappers, DelimitedFiles, Downloads, NPZ, JuMP, DWave, LinearAlgebra, Measures, Random, Plots, StatsBase, StatsPlots, lib4ti2_jll),
     "4-DWave" => :(using LinearAlgebra, Plots, JuMP, QUBO, DWave),
     "5-Benchmarking" => :(using JuMP, QUBO, LinearAlgebra, Plots, Measures, DWave, Random, Statistics, ZipFile, JSON, StatsBase),
@@ -57,7 +57,7 @@ const NOTEBOOK_IMPORTS = Dict(
     "10-QAOA" => :(using JuMP, QiskitOpt),
     "11-Annealing" => :(using DWave, JSON, JuMP, LinearAlgebra, Logging, Printf, QUBO),
     "12-Decomposition" => :(begin
-        using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO, GLPK
+        using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO, HiGHS
         import MathOptInterface as MOI
     end),
 )

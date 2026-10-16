@@ -23,7 +23,6 @@ const PACKAGES = [
     "Bonmin_jll",
     "Cbc",
     "Couenne_jll",
-    "GLPK",
     "HiGHS",
     "Ipopt",
     "JuMP",

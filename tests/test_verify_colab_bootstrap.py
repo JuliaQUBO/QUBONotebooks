@@ -248,7 +248,7 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
             "1-MathProg": (
                 "imports-plots",
                 "imports-jump",
-                "imports-glpk",
+                "imports-highs",
                 "imports-cbc",
                 "imports-ipopt",
                 "imports-specialfunctions",
@@ -262,7 +262,7 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
                 "imports-jump",
                 "imports-qubo",
                 "imports-plots",
-                "imports-glpk",
+                "imports-highs",
                 "imports-dwave",
                 "imports-luxor",
             ),

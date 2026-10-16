@@ -223,3 +223,9 @@ verify-annealing-julia-qpu:
 test-benchmarking-julia:
 	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u DWAVE_API_TOKEN JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) JULIA_PKG_PRECOMPILE_AUTO=0 $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking -e 'import Pkg; Pkg.instantiate()'
 	env -u JULIA_CONDAPKG_BACKEND -u JULIA_PYTHONCALL_EXE -u DWAVE_API_TOKEN GKSwstype=100 JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) $(JULIA) --startup-file=no --project=./notebooks_jl/environments/5-Benchmarking test/benchmarking_bootstrap.jl
+
+.PHONY: test-highs-julia
+
+# Actual LP/MIP notebook cells only: four tiny solves, no plots or cloud adapters.
+test-highs-julia:
+	JULIA_BIN="$(JULIA)" JULIA_DEPOT_PATH=$(JULIA_DEPOT_PATH) $(PYTHON) ./scripts/test_highs_notebooks.py

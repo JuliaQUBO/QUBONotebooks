@@ -63,7 +63,7 @@ class DecompositionNotebookTests(unittest.TestCase):
         gate=tomllib.loads((PROJECT / "RELEASE-GATES.toml").read_text())
         project=tomllib.loads((PROJECT / "Project.toml").read_text())
         self.assertNotIn("sources",project)
-        self.assertIn("GLPK",project["deps"])
+        self.assertIn("HiGHS",project["deps"])
         if gate["status"]=="pending":
             self.assertTrue(GATE.readiness_errors())
             self.assertEqual(gate["decomposition_version"],"")
