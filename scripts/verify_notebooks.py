@@ -81,17 +81,29 @@ def classify_notebook(path: Path) -> str:
     raise ValueError(f"Unsupported notebook path: {path}")
 
 
-def instantiate_julia_project(julia_executable: str) -> None:
+def focused_julia_env(project: Path | None) -> dict[str, str]:
+    if project is None:
+        return {}
+    # Select the notebook graph before IJulia loads any shared dependencies.
+    # The aggregate environment supplies kernel tools absent from that graph.
+    return {
+        "JULIA_LOAD_PATH": os.pathsep.join(["@", str(JULIA_PROJECT), "@stdlib"]),
+        "IJULIA_NODEFAULTKERNEL": "1",
+    }
+
+
+def instantiate_julia_project(julia_executable: str, *, project: Path | None = None) -> None:
     run(
         [
             julia_executable,
-            "--project=./notebooks_jl",
+            f"--project={project}" if project is not None else "--project=./notebooks_jl",
             "-e",
             "import Pkg; Pkg.instantiate()",
         ],
         env={
             "JULIA_DEPOT_PATH": default_julia_depot_path(),
             "JULIA_PKG_PRECOMPILE_AUTO": "0",
+            **focused_julia_env(project),
         },
     )
 
@@ -158,7 +170,9 @@ def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
     }
 
 
-def julia_kernel_spec_dir(tmpdir: Path, *, julia_executable: str) -> tuple[str, dict[str, str]]:
+def julia_kernel_spec_dir(
+    tmpdir: Path, *, julia_executable: str, project: Path | None = None,
+) -> tuple[str, dict[str, str]]:
     kernels_dir = tmpdir / "kernels" / JULIA_KERNEL_NAME
     kernels_dir.mkdir(parents=True, exist_ok=True)
     kernel_spec = {
@@ -166,7 +180,7 @@ def julia_kernel_spec_dir(tmpdir: Path, *, julia_executable: str) -> tuple[str, 
             julia_executable,
             "-i",
             "--color=yes",
-            f"--project={JULIA_PROJECT}",
+            f"--project={project if project is not None else JULIA_PROJECT}",
             "-e",
             "import IJulia; IJulia.run_kernel()",
             "{connection_file}",
@@ -176,6 +190,7 @@ def julia_kernel_spec_dir(tmpdir: Path, *, julia_executable: str) -> tuple[str, 
         "env": {
             "JULIA_DEPOT_PATH": default_julia_depot_path(),
             "JULIA_PKG_PRECOMPILE_AUTO": "0",
+            **focused_julia_env(project),
         },
         "interrupt_mode": "signal",
     }
@@ -184,6 +199,7 @@ def julia_kernel_spec_dir(tmpdir: Path, *, julia_executable: str) -> tuple[str, 
         "JUPYTER_PATH": str(tmpdir),
         "JULIA_DEPOT_PATH": default_julia_depot_path(),
         "JULIA_PKG_PRECOMPILE_AUTO": "0",
+        **focused_julia_env(project),
     }
     return JULIA_KERNEL_NAME, env
 
@@ -232,6 +248,11 @@ def parse_args() -> argparse.Namespace:
         description="Execute selected QUBONotebooks notebooks locally through Jupyter."
     )
     parser.add_argument(
+        "--julia-project",
+        type=Path,
+        help="Start Julia in this project, with the shared notebooks project as kernel-tool fallback.",
+    )
+    parser.add_argument(
         "notebooks",
         nargs="*",
         default=[str(path) for path in DEFAULT_NOTEBOOKS],
@@ -251,6 +272,13 @@ def main() -> int:
 
     julia_notebooks = [path for path in notebooks if classify_notebook(path) == "julia"]
     python_notebooks = [path for path in notebooks if classify_notebook(path) == "python"]
+    julia_project = args.julia_project
+    if julia_project is not None:
+        julia_project = (REPO_ROOT / julia_project).resolve()
+        if not julia_notebooks:
+            raise ValueError("--julia-project requires a Julia notebook")
+        if not (julia_project / "Project.toml").is_file():
+            raise FileNotFoundError(f"Julia project was not found: {julia_project}")
 
     if python_notebooks:
         with tempfile.TemporaryDirectory(prefix="qubonotebooks-python-kernels-") as tmp:
@@ -265,11 +293,14 @@ def main() -> int:
 
     if julia_notebooks:
         julia_executable = find_julia_executable()
-        instantiate_julia_project(julia_executable)
+        instantiate_julia_project(julia_executable, project=JULIA_PROJECT if julia_project is not None else None)
+        if julia_project is not None:
+            instantiate_julia_project(julia_executable, project=julia_project)
         with tempfile.TemporaryDirectory(prefix="qubonotebooks-jupyter-kernels-") as tmp:
             kernel_name, env = julia_kernel_spec_dir(
                 Path(tmp),
                 julia_executable=julia_executable,
+                project=julia_project,
             )
             for notebook in julia_notebooks:
                 execute_notebook(

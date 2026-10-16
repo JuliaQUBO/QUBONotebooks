@@ -11,8 +11,8 @@ notebooks locally.
 
 ## Notebook families
 
-The repository publishes eleven Julia notebooks and six Python notebooks.
-Notebooks 1 through 6 exist in both languages; notebooks 7 through 11 are Julia
+The repository publishes twelve Julia notebooks and six Python notebooks.
+Notebooks 1 through 6 exist in both languages; notebooks 7 through 12 are Julia
 only.
 
 ### The Python notebooks are on-ramps, not mirrors
@@ -31,11 +31,11 @@ number of sections, a different example, or a different ordering than the
 Julia notebook it is paired with, and that is not a defect.
 
 The reason is drift. An implied mirror turns a single convention change into a
-seventeen-file edit, and the mirror then slips in ways that look like
+eighteen-file edit, and the mirror then slips in ways that look like
 sloppiness: one family's section renamed while the other kept the old title,
 one family abbreviating a term the other spells out. Requiring parity without
 enforcing it produces exactly that class of defect and no way to catch it.
-Notebooks 7 through 11 already have no Python counterpart, so the asymmetry is
+Notebooks 7 through 12 already have no Python counterpart, so the asymmetry is
 the existing precedent rather than a new concession.
 
 A change that *does* alter a shared contract must be applied to both families.
@@ -44,7 +44,7 @@ mirrored.
 
 ### Contracts that bind every notebook
 
-These hold for all seventeen notebooks in both families and are enforced by
+These hold for all eighteen notebooks in both families and are enforced by
 `tests/test_notebook_structure.py`, which runs under `make test-python`. Run
 it before opening a pull request. `make test` is a separate target covering
 the repository link policy, not these contracts.
@@ -57,11 +57,16 @@ the repository link policy, not these contracts.
 | Unindented raw HTML | Every line of a raw-HTML markdown block starts at column zero. A four-space indent publishes the tags as literal source in engines without CommonMark HTML blocks. |
 | Hidden installation cells | Installation, bootstrap, and `versioninfo()` code cells, and any install-titled section outside `## Setup`, carry both the `hide-cell` and `installation` tags. |
 | Setup never follows Summary | Each notebook has exactly one `## Summary`, and no level-2 through level-6 heading whose text contains an install, setup, or validation term appears after it. Setup belongs in the canonical section at the top; tagging a trailing appendix `hide-cell` hides it from the book but leaves the duplication in the source. |
-| Exercise checkpoints | At least three cells marked `# EXERCISE` and three marked with the exact string `# SOLUTION (hidden in workshop version):` — the short `# SOLUTION` form is not counted. The first three solution cells carry the `hide-cell` and `solution` tags; every solution cell must contain real code, not only comments. |
+| Exercise checkpoints | Except the explicitly application-focused Julia notebook 12, at least three cells marked `# EXERCISE` and three marked with the exact string `# SOLUTION (hidden in workshop version):` — the short `# SOLUTION` form is not counted. The first three solution cells carry the `hide-cell` and `solution` tags; every solution cell must contain real code, not only comments. |
 | Footer structure | Acknowledgments sections and back-to-top links are selected structurally, by heading and in-page anchor, rather than by prose phrase. |
 | In-page anchors | Anchor identifiers are unique across the whole project, and every `#`-link resolves inside its own notebook. |
 | Relative links | Every relative link in a notebook, `index.md`, `local-setup.md`, `README.md`, or this file resolves to a file that exists. |
 | Colab routes | Every notebook in the table of contents has both a slash and a dot route in `colab.html`, with no duplicate keys. |
+
+Julia notebook 12 is an application/development example under the maintainer's
+explicit no-exercises direction. It contains no exercise or hidden-solution
+markers/tags; useful regression checks belong in tests. All other notebooks keep
+the exercise-checkpoint contract above.
 
 One further contract binds the Python family alone: Python notebooks carry
 portable `python3` kernel metadata, so they open without a machine-specific
@@ -74,7 +79,7 @@ and that is deliberate. Both notebooks in a pair are published, correct, and
 maintained; labelling the Python entry as secondary in the navigation would
 misrepresent the paired pedagogy and read as "unmaintained", which is the
 opposite of the contract above. The asymmetry that a reader needs is already
-structural: notebooks 7 through 11 appear under their own Julia section, and
+structural: notebooks 7 through 12 appear under their own Julia section, and
 the notebook map in [index.md](index.md) marks their missing Python
 counterparts.
 
@@ -86,6 +91,11 @@ site renders, and they keep the book reproducible without putting solver
 credentials into GitHub Actions or spending cloud credits on every docs build.
 
 Clearing outputs is therefore not an acceptable way to shrink a notebook.
+During a substantive application rewrite of notebook 12, stale outputs from the
+replaced application must be removed during static preparation. Unfulfilled
+release and execution requirements must be visible. Such a draft is not
+publication-ready: publication requires fresh-kernel execution, retained measured
+evidence and genuine committed outputs for the rewritten application.
 
 ### Size budgets
 
@@ -97,7 +107,7 @@ change to the lesson. These budgets bound that drift:
 | --- | --- |
 | One code cell | 256 KB of stored output |
 | One notebook | 1.5 MB of stored output |
-| All notebooks | 24 MB of stored output |
+| All notebooks | 25.5 MB of stored output |
 
 The three scopes are not equally load-bearing, and they were not set the same
 way.
@@ -112,9 +122,9 @@ re-emitted under several cells, each of them individually reasonable.
 
 `All notebooks` is a backstop, not a design constraint. It exists so that
 diffuse growth can still fail before every notebook independently reaches its
-allowance. At the current 17-notebook collection, the plain per-notebook
-ceilings total 25.5 MB. The one per-notebook grant raises the operative
-aggregate to 26.34 MB. The 24 MB collection ceiling is one 1.5 MB notebook
+allowance. At the current 18-notebook collection, the plain per-notebook
+ceilings total 27 MB. The one per-notebook grant raises the operative
+aggregate to 27.84 MB. The 25.5 MB collection ceiling is one 1.5 MB notebook
 allowance below the plain total, and 2.34 MB below the granted total, so the
 per-notebook scope remains the ordinary diagnostic while the collection
 retains a reproducible aggregate constraint. The check enforces that exact

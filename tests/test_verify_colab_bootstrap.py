@@ -293,6 +293,7 @@ class ColabBootstrapSmokeTests(unittest.TestCase):
             "9-CancerGenomics": ("imports",),
             "10-QAOA": ("imports",),
             "11-Annealing": ("imports",),
+            "12-Decomposition": ("imports",),
         }
 
         for notebook_path in verify_colab_bootstrap.NOTEBOOK_PATHS:

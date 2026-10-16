@@ -39,7 +39,8 @@ using Test
         path -> endswith(path, ".ipynb"),
         readdir(notebooks_dir; join = true),
     )
-    @test length(notebook_paths) == 11
+    @test Set(splitext.(basename.(notebook_paths)) .|> first) ==
+        Set(keys(QUBONotebooksBootstrap.NOTEBOOK_IMPORTS))
     for notebook_path in notebook_paths
         notebook = read(notebook_path, String)
         disables_activation_auto_precompile = occursin(

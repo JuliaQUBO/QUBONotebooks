@@ -1,0 +1,6 @@
+# Fixed synthetic annual net-value points; no empirical utility claim.
+departments = ["Admissions", "Library", "Facilities", "Research", "Finance", "Human resources", "IT", "Student services"]
+alternatives = ["Essential", "Standard", "Premium", "Analytics", "Integrated", "Platform-native"]
+base = [[25,23,20,18,16,15], [28,26,23,21,19,17], [22,21,20,18,17,16], [30,27,25,23,21,19], [24,23,21,20,18,17], [26,24,23,21,20,18], [27,25,24,22,20,19], [23,22,20,19,18,16]]
+platform_increment = [[0,1,3,7,13,22], [0,2,4,8,15,24], [0,1,4,9,14,20], [0,2,5,10,16,25], [0,1,4,8,14,22], [0,2,5,9,15,23], [0,2,4,9,16,24], [0,1,3,8,14,22]]
+platform_cost = 60

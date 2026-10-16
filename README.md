@@ -105,6 +105,7 @@ Problems](#source-of-the-five-starter-problems).
 | Altered cancer pathways from TCGA AML aggregates | [notebooks_jl/9-CancerGenomics.ipynb](notebooks_jl/9-CancerGenomics.ipynb) | Not available | Offline, credential-free Julia notebook covered by `make verify-cancer-genomics-julia`; a tiny incidence fixture is solved exhaustively and a seeded local sampler validates the committed aggregate without claiming clinical significance. |
 | Local-first QAOA | [notebooks_jl/10-QAOA.ipynb](notebooks_jl/10-QAOA.ipynb) | Not available | Credential-free local Aer path covered by `make verify-qaoa-julia-local`; fixed seeds, exact baselines, circuit-resource audits, and a separate environment-gated IBM hardware cell keep the default tutorial bounded and service-free. |
 | Local simulated and quantum annealing | [notebooks_jl/11-Annealing.ipynb](notebooks_jl/11-Annealing.ipynb) | Not available | Seeded `DWave.Neal.Optimizer` runs for all five starter models are covered by `make verify-annealing-julia-local`; exact checks cover the small models, while the D-Wave QPU path is credentialed, fail-closed, and explicitly optional. |
+| QUBO decomposition and reconstruction | [notebooks_jl/12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) | Not available | Application draft intended for `make verify-decomposition-julia-local`; 49-source-binary application with six-variable children, automatic formulation, public certificates and independent source audit. Published focused locks/imports validated; retained 16-attempt synthetic comparison distinguishes complete separator certificates from limited direct solving and heuristic sweeps. |
 
 ### Execution matrix
 
@@ -125,6 +126,7 @@ queue after the local notebook work.
 | Cancer genomics (9) | offline/portable; opt-in live data refresh | `make verify-cancer-genomics-julia` | About 30–90 seconds | None required; reads only committed aggregates |
 | QAOA (10) | local but heavyweight; opt-in IBM hardware | `make verify-qaoa-julia-local` | About 1–3 minutes | None required for local Aer |
 | Annealing (11) | local but heavyweight; opt-in D-Wave QPU | `make verify-annealing-julia-local` | About 1–2 minutes | None required for local Neal |
+| Decomposition (12) | offline/portable after installation | `make verify-decomposition-julia-local` | Per-cell execution limit: 180 seconds; CI budget: 15 minutes including installation | None required |
 | Complete stable local series | offline and local credential-free aggregate | `make verify-five-starter-problems-julia-local` | About 2–5 minutes | None required |
 | Refresh committed TCGA AML aggregates | opt-in live data refresh | `make refresh-tcga-aml` | About 1–3 minutes, network-dependent | None required; public cBioPortal access |
 | Submit the QCi QUBO | opt-in QCI cloud | `make verify-qci-julia-cloud` | Local validation time plus the QCI queue | `QUBONOTEBOOKS_QCI_ENABLE_CLOUD=1` and `QCI_TOKEN` |
@@ -194,6 +196,8 @@ make verify-cancer-genomics-julia
 make verify-qaoa-julia-local
 make verify-annealing-julia-local
 make verify-five-starter-problems-julia-local
+make verify-decomposition-julia-local
+make test-decomposition-julia
 make verify-colab-bootstrap-output JULIA="julia +1.12"
 make verify-colab-hosted
 ```
@@ -260,6 +264,76 @@ aggregate dependency, maintainers refresh both focused lock sets with
 `make refresh-julia-notebook-environments JULIA="julia +1.10"` and then
 `make refresh-julia-notebook-environments JULIA="julia +1.12"`.
 
+### Decomposition development environment
+
+Notebook 12 presents a fixed synthetic 49-binary departmental
+choice/shared-platform application, with a six-logical-variable child limit.
+It uses automatic ToQUBO penalties, public metadata/decoding, independent source
+feasibility/objective checks and a source oracle over the two platform choices.
+Its exercise and hidden-solution cells have been removed under the maintainer's
+explicit application-example direction; regression checks live in tests.
+
+The focused environment uses published registry dependencies.
+Both focused locks were genuinely generated from Project-only registry resolution
+under Julia 1.10.11 and 1.12.6 and independently instantiated/imported in fresh
+depots without lock drift. They contain published QUBODrivers 0.6.6,
+QUBODecomposition 0.1.4 (including standalone #17/#18), QUBOTools 0.16.2,
+ToQUBO 0.7.1, JuMP 1.32.1, MathOptInterface 1.54.0 and GLPK 1.2.1.
+The ready `RELEASE-GATES.toml` records release/General identities. Every focused
+dependency uses registry tracking; no source/path override is supplied. This
+installation evidence does not validate the application or imply a solver run.
+GLPK belongs only to this focused notebook environment. Other notebooks and
+aggregate locks are unchanged. Preprocessing #16 remains separately gated.
+
+For future lock regeneration, use isolated Project-only resolution per runtime
+and inspect genuine Pkg output before copying it. The generic aggregate-seed
+refresh helper retained its old driver 0.6.5 during this adoption and was unsuitable
+for this minimum-version transition. It and other projects were unchanged during
+the release-adoption and comparison stages; the full PR also contains earlier
+refresh-helper support and a dedicated decomposition CI lane.
+Run one fresh-kernel correctness demonstration with the selected runtime using
+its actual executable:
+
+```bash
+make verify-decomposition-julia-local JULIA="/absolute/path/to/reviewed/julia"
+make test-decomposition-julia JULIA="/absolute/path/to/reviewed/julia"
+```
+
+The decomposition target starts Julia in its focused project before loading
+IJulia. The shared notebooks environment supplies kernel tools through a fallback
+load-path entry, while the focused lock controls shared dependencies. Preparation
+uses the same order. Starting IJulia in the aggregate project and switching only
+afterward can retain an older Preferences module and force repeated solver-cache
+compilation. Other notebook targets retain their existing startup defaults. For
+direct verifier use, select
+`--julia-project notebooks_jl/environments/12-Decomposition`.
+
+The numerical test target covers source arithmetic, malformed/missing source
+assignments and pre-dispatch guards without duplicating the notebook's large
+search solve. The notebook has one actual ExactSampler separator solve and reads
+saved comparison observations; it never launches a campaign on open. The
+retained [comparison audit](docs/decomposition-execution-plan.md) records one
+16-attempt CPU cohort: both complete separator variants reached feasible value
+259 with global logical certificates; partition sweeps finished at 205 with a
+54-point source gap and no global certificate; direct GLPK MIPSampler on the
+penalized QUBO returned 233 with a time limit. All direct attempts retained their
+cooperative deadline overruns, including the 38.7467-second cold solver warmup.
+The very short separator timings do not establish a general timing ranking or
+solver superiority; the synthetic source oracle already finds the optimum with
+96 option evaluations. Every observation and its complete cost is retained.
+
+The local allocation is 16 comparison attempts plus two separate fresh-kernel
+correctness demonstrations, one per runtime. Required CI correctness replays are
+recorded separately per pushed head and are not campaign observations. Reproduction
+uses the stated memory/time/thread/depot controls and retains failures without
+replacement. Pure guards passed on both runtimes, followed by the documented
+Make verification in fresh Julia 1.10.11 and 1.12.6 kernels. Each correctness
+demonstration returned feasible value 259 with `OPTIMAL`, 16 child calls,
+1029 parent evaluations and 1024 exact assignments. The committed outputs use
+the genuine 1.10 run; retained raw notebooks establish semantic parity across
+both runtimes. Live CI and review status are recorded in
+[PR 180](https://github.com/JuliaQUBO/QUBONotebooks/pull/180).
+
 ### Colab Python bridge
 
 In native
@@ -283,7 +357,7 @@ during their first implicit compilation even when the imports succeed.
 Every notebook keeps package loading out of the default bootstrap and routes
 each real import cell through the shared Colab-aware output-suppressed loader.
 Notebooks 1–5 retain their lesson-scoped deferred import boundaries, while
-notebooks 6–11 load one declared package group. Real package-load failures
+notebooks 6–12 load one declared package group. Real package-load failures
 still propagate from the helper.
 
 ### Colab bootstrap
@@ -322,7 +396,7 @@ make verify-colab-hosted
 ```
 
 The first invocation that contacts Colab prompts for Google OAuth. By default,
-the target tests all 11 Julia notebooks in separate fresh hosted CPU VMs so one
+the target tests all 12 Julia notebooks in separate fresh hosted CPU VMs so one
 notebook's compiled package cache cannot hide another notebook's cold-start
 behavior. Each invocation fetches the exact current Git commit, executes the
 real bootstrap, activation, and marked import cells through Colab's native
