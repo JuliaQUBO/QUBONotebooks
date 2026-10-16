@@ -34,8 +34,8 @@ const DA=DecompositionApplication
     @test_throws ErrorException DA.source_audit(data,filter(p->first(p)!=yid,decoded),xids,yid)
     bad=copy(decoded);bad[xids[1,1]]=1
     @test !DA.source_audit(data,bad,xids,yid).feasible
-    bad[xids[1,1]]=0.5
-    @test_throws ErrorException DA.source_audit(data,bad,xids,yid)
+    fractional=Dict{Int,Float64}(bad);fractional[xids[1,1]]=0.5
+    @test_throws ErrorException DA.source_audit(data,fractional,xids,yid)
     # The application itself has a block-coordinate trap at the y=0 source optimum.
     @test all(argmax(data.b[g])==1 for g in 1:8)
     @test all(iszero(data.c[g][1]) for g in 1:8)
