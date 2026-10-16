@@ -21,7 +21,7 @@ def readiness_errors(project=PROJECT):
         errors.append("Project still declares source overrides")
     for filename in ("Manifest.toml", "Manifest-v1.12.toml"):
         lock = tomllib.loads((project / filename).read_text())
-        for name in ("QUBODrivers", "QUBODecomposition", "GLPK"):
+        for name in ("QUBODrivers", "QUBODecomposition", "HiGHS"):
             entries = lock["deps"].get(name, [])
             if len(entries) != 1:
                 errors.append(f"{filename}: missing registered {name}")
