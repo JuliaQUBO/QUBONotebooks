@@ -101,8 +101,8 @@ from each actual sampler's public `optimizer.evaluations` result metadata.
 
 The local allowance is 16 comparison attempts plus two separate fresh-kernel
 correctness demonstrations, one each on Julia 1.10.11 and 1.12.6. The comparison
-used all 16 attempts; the two kernel demonstrations remain unexecuted at this
-audit checkpoint. Each notebook has one correctness solve and loads the saved
+used all 16 attempts; both kernel demonstrations subsequently passed through
+`make verify-decomposition-julia-local`. Each notebook has one correctness solve and loads the saved
 comparison rather than launching a campaign. Pure source/guard tests make no
 compiler or solver optimize call and do not duplicate that solve.
 
@@ -128,18 +128,32 @@ attempts used 16 calls and 21 parent evaluations; partition attempts used 18 cal
 and 19 evaluations. Direct returned-state/source audits are not decomposition
 candidate scans.
 
-The two reserved kernel demonstrations add at most 32 backend calls, 2058 parent
-evaluations and 2048 exact assignments. Across the local 16+2 allowance: at most
+The two kernel demonstrations each returned source/compiled value 259, zero
+source residuals/gap, `OPTIMAL`, two completed branches and 16 actual child
+statuses of `OPTIMAL`. Each used 16 backend calls, 1029 parent evaluations and
+1024 actual ExactSampler assignments. Each also made one compiler-only ToQUBO
+invocation, with zero compiler search dispatches and zero penalty refinements.
+Their inner complete-attempt durations were 18.872946130 seconds (Julia 1.10.11)
+and 23.389402055 seconds (Julia 1.12.6); complete correctness-cell durations were
+26.449 and 33.974 seconds. These fresh-kernel timings include compilation effects
+and are not comparison-cohort observations.
+
+Together the two demonstrations added 32 backend calls, 2058 parent evaluations
+and 2048 exact assignments. The observed local totals are 18 compiler-only calls,
+18 parent search calls, 236 backend calls, 6334 parent evaluations and 6144 exact
+assignments. Across the unchanged local 16+2 allowance: at most
 18 compiler-only calls, 18 parent search calls, 272 backend calls, 17206 parent
 evaluations and 6144 exact assignments. This is a **local** allowance. Required
 remote CI separately replays one correctness notebook per runtime per pushed
 head, each bounded by one parent / 16 children / 1029 evaluations / 1024 exact
 assignments. Remote attempts and reruns are recorded separately and are not
-campaign observations. There is no global 18-solve claim or workflow change.
+campaign observations. There is no global 18-solve claim. The decomposition CI
+lane was introduced earlier in this PR; its workflow was unchanged during the
+subsequent release-adoption and comparison stages.
 
 ## Reproducibility and resources
 
-The producing source was `9377a45d4f4f0627bec9171acb3037cf8e6776ba`.
+The comparison-producing source was `9377a45d4f4f0627bec9171acb3037cf8e6776ba`.
 The retained plan binds all nine application/runner/data/Project/lock/gate inputs
 by SHA256. Subsequent publication prose may change; executable cells and all nine
 bound inputs remain identical. The complete raw cohort contains one plan, all
@@ -153,7 +167,9 @@ MathOptInterface 1.54.0 and GLPK 1.2.1. Independent fresh-depot imports and the
 subsequent IJulia-context preparations passed without Project/lock drift. Every
 focused dependency uses registry tracking. The former aggregate-seed refresh
 retained old driver 0.6.5; isolated Project-only resolution generated these actual
-locks. No generic helper or unrelated notebook was changed. GLPK is notebook-only;
+locks. No generic helper or unrelated notebook was changed during that adoption
+and comparison stage. Earlier changes in the full PR include focused refresh-helper
+support and the decomposition CI lane. GLPK is notebook-only;
 preprocessing #16 is a separate gate and has no execution path here.
 
 Commands used hard/soft 8 GiB RLIMIT_AS and one Julia/precompile/BLAS thread.
@@ -165,21 +181,50 @@ the direct overruns above are retained. Each text artifact is capped at 256 KiB
 and the cohort at 4 MiB; actual retained files were below both limits. No native
 annealer, hardware, paid backend or external-service optimization ran.
 
-IJulia/Jupyter preparation and future local kernels use owned data/config/runtime
+IJulia/Jupyter preparation and both local kernels used owned data/config/runtime
 and IPython directories, an owned locked Python 3.12 docs environment, and
 `IJULIA_NODEFAULTKERNEL=1`; HOME is never overridden. Earlier setup incident and
 unknown user-kernel baseline are preserved in developer evidence. Subsequent
-protected preparations and the campaign left the current user-kernel snapshots
-unchanged. Notebook kernels need their own lifecycle/quiescence checks; campaign
-watchdog evidence alone is not a kernel-cleanup claim.
+protected preparations, campaign and kernel runs left the current user-kernel
+snapshots unchanged. Each completed kernel was checked for actual process
+quiescence before the next runtime started; no owned Julia processes survived.
+
+An aggregate-first kernel initially timed out in the original 180-second import
+cell before reaching application code. One longer import-only setup succeeded,
+but the next full invocation still exceeded that import limit. A subsequent
+zero-solver diagnostic established that IJulia had already loaded aggregate
+Preferences 1.5.2 while the focused lock required 1.6.0; Julia rejected focused
+PrecompileTools, MOI and QUBOTools caches as incompatible with that loaded module.
+All failed preflight/import attempts and the diagnostic are retained, with no
+scientific calls charged to them. No application failure was retried or replaced.
+
+The focused-startup fix selects the focused project and a load path with the
+aggregate project as kernel-tool fallback **before** importing IJulia. Actual
+kernel checks confirmed focused Preferences 1.6.0 and PrecompileTools 1.2.1/1.3.4
+for Julia 1.10/1.12 respectively, plus every scientific package's committed
+version/source identity. The original import cells then took 2.339/3.336 seconds
+in setup-only checks. Both full runs used the documented Make target, including
+preparation, locked owned Python setup and unchanged 180-second cell limits.
+They executed source `c7f3bb84efe59cd1e9149b360a3aed96a3aeda9a`; all nine campaign
+inputs and all notebook cell sources were unchanged. Raw notebooks are retained
+with SHA256 `0a681a30c3f0d4ae259adb441a9695eb3c5eb3b82746149d388124431867e2a6`
+(1.10) and `5aeff044707a14520e932dc52a38d3f836f2e0d93ae7ebc774864124031d9444`
+(1.12). Non-timing correctness fields match exactly; data tables, deterministic
+SVG and both 12-row comparison tables also match. The committed canonical 1.10
+outputs omit only the timestamped package-loading setup log; scientific values,
+timings, statuses and work counts are untouched. Raw execution timestamps and
+the original setup output remain in the retained notebooks. These prepared
+local environments do not establish cold current-head CI behavior.
 
 ## Developer acceptance audit
 
-The comparison and pure guards passed; genuine fresh-kernel notebook outputs,
-output hygiene/budgets, deterministic SVG, workshop export, strict book build,
+The comparison, pure guards and both genuine fresh-kernel notebook executions
+passed, and observed outputs are committed. Output hygiene/budgets, deterministic
+figure checks, workshop export, strict book build,
 final independent review, current-head CI and the substantive maintainer hold
 remain acceptance checks. Reuse unchanged setup/guard evidence and avoid implicit
-duplicate notebook solves. Preserve the two remaining local correctness calls.
+duplicate notebook solves. The two local correctness calls are consumed; no
+additional local scientific run is allocated.
 
 PR180's historical workflow counters persist: posted review 1/3 used, formal
 verification 3/3 reported spent, CI-fix trailer commits 3/3 used. The ordinary

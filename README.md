@@ -266,7 +266,7 @@ aggregate dependency, maintainers refresh both focused lock sets with
 
 ### Decomposition development environment
 
-Notebook 12 is being rewritten around a fixed synthetic 49-binary departmental
+Notebook 12 presents a fixed synthetic 49-binary departmental
 choice/shared-platform application, with a six-logical-variable child limit.
 It uses automatic ToQUBO penalties, public metadata/decoding, independent source
 feasibility/objective checks and a source oracle over the two platform choices.
@@ -287,8 +287,10 @@ aggregate locks are unchanged. Preprocessing #16 remains separately gated.
 
 For future lock regeneration, use isolated Project-only resolution per runtime
 and inspect genuine Pkg output before copying it. The generic aggregate-seed
-refresh helper retained its old driver 0.6.5 during this adoption and is unsuitable
-for this minimum-version transition; it and other projects remain unchanged.
+refresh helper retained its old driver 0.6.5 during this adoption and was unsuitable
+for this minimum-version transition. It and other projects were unchanged during
+the release-adoption and comparison stages; the full PR also contains earlier
+refresh-helper support and a dedicated decomposition CI lane.
 Run one fresh-kernel correctness demonstration with the selected runtime using
 its actual executable:
 
@@ -324,8 +326,13 @@ The local allocation is 16 comparison attempts plus two separate fresh-kernel
 correctness demonstrations, one per runtime. Required CI correctness replays are
 recorded separately per pushed head and are not campaign observations. Reproduction
 uses the stated memory/time/thread/depot controls and retains failures without
-replacement. Pure guards already passed on both runtimes; fresh-kernel outputs
-and remaining publication checks are separate acceptance evidence.
+replacement. Pure guards passed on both runtimes, followed by the documented
+Make verification in fresh Julia 1.10.11 and 1.12.6 kernels. Each correctness
+demonstration returned feasible value 259 with `OPTIMAL`, 16 child calls,
+1029 parent evaluations and 1024 exact assignments. The committed outputs use
+the genuine 1.10 run; retained raw notebooks establish semantic parity across
+both runtimes. Current-head CI and substantive maintainer acceptance remain
+separate gates.
 
 ### Colab Python bridge
 

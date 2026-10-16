@@ -101,12 +101,13 @@ frequency when they explain a result.
 
 ## A 60-minute Julia decomposition application discussion
 
-[Notebook 12](notebooks_jl/12-Decomposition.ipynb) is an application/development
-example with no exercises or hidden solutions. Its rewritten source currently
-awaits the [release and execution gates](docs/decomposition-execution-plan.md).
-Do not describe the old locked/source-pinned edition as execution evidence for
-this new model. Once accepted, both exported editions retain the same worked
-application, genuine outputs, data and supported runtime locks.
+[Notebook 12](notebooks_jl/12-Decomposition.ipynb) is a worked application
+with no exercises or hidden solutions. Published runtime locks, a retained
+16-attempt comparison and genuine correctness executions on Julia 1.10.11 and
+1.12.6 support the discussion. Both exported editions retain the same worked
+application, outputs, data and runtime locks. The
+[execution audit](docs/decomposition-execution-plan.md) distinguishes observed
+results from the remaining CI, publication and maintainer-acceptance gates.
 
 | Minutes | Activity |
 | --- | --- |
