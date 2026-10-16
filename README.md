@@ -105,7 +105,7 @@ Problems](#source-of-the-five-starter-problems).
 | Altered cancer pathways from TCGA AML aggregates | [notebooks_jl/9-CancerGenomics.ipynb](notebooks_jl/9-CancerGenomics.ipynb) | Not available | Offline, credential-free Julia notebook covered by `make verify-cancer-genomics-julia`; a tiny incidence fixture is solved exhaustively and a seeded local sampler validates the committed aggregate without claiming clinical significance. |
 | Local-first QAOA | [notebooks_jl/10-QAOA.ipynb](notebooks_jl/10-QAOA.ipynb) | Not available | Credential-free local Aer path covered by `make verify-qaoa-julia-local`; fixed seeds, exact baselines, circuit-resource audits, and a separate environment-gated IBM hardware cell keep the default tutorial bounded and service-free. |
 | Local simulated and quantum annealing | [notebooks_jl/11-Annealing.ipynb](notebooks_jl/11-Annealing.ipynb) | Not available | Seeded `DWave.Neal.Optimizer` runs for all five starter models are covered by `make verify-annealing-julia-local`; exact checks cover the small models, while the D-Wave QPU path is credentialed, fail-closed, and explicitly optional. |
-| QUBO decomposition and reconstruction | [notebooks_jl/12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) | Not available | Application draft intended for `make verify-decomposition-julia-local`; 49-source-binary application with six-variable children, automatic formulation, public certificates and independent source audit. Rewritten source/released locks/results currently pending. |
+| QUBO decomposition and reconstruction | [notebooks_jl/12-Decomposition.ipynb](notebooks_jl/12-Decomposition.ipynb) | Not available | Application draft intended for `make verify-decomposition-julia-local`; 49-source-binary application with six-variable children, automatic formulation, public certificates and independent source audit. Published focused locks/imports validated; application execution and results pending. |
 
 ### Execution matrix
 
@@ -273,23 +273,26 @@ feasibility/objective checks and a source oracle over the two platform choices.
 Its exercise and hidden-solution cells have been removed under the maintainer's
 explicit application-example direction; regression checks live in tests.
 
-**Current static draft: execution and published dependency adoption are pending.**
-The focused `notebooks_jl/environments/12-Decomposition/RELEASE-GATES.toml` blocks
-setup until published QUBODrivers >=0.6.6 and the final supported decomposition
-release containing standalone #17/#18 resolve normally. The old two manifests
-remain pending historical inputs and are not a working lock for the rewritten
-source. Its former source override has been removed from Project.toml; no local
-source pin, fake release version or refreshed execution output is supplied.
-GLPK is added only to this focused notebook environment. Other notebooks and
+**Dependency adoption is ready; application execution and results are pending.**
+Both focused locks were genuinely generated from Project-only registry resolution
+under Julia 1.10.11 and 1.12.6 and independently instantiated/imported in fresh
+depots without lock drift. They contain published QUBODrivers 0.6.6,
+QUBODecomposition 0.1.4 (including standalone #17/#18), QUBOTools 0.16.2,
+ToQUBO 0.7.1, JuMP 1.32.1, MathOptInterface 1.54.0 and GLPK 1.2.1.
+The ready `RELEASE-GATES.toml` records release/General identities. Every focused
+dependency uses registry tracking; no source/path override is supplied. This
+installation evidence does not validate the application or imply a solver run.
+GLPK belongs only to this focused notebook environment. Other notebooks and
 aggregate locks are unchanged. Preprocessing #16 remains separately gated.
 
-After those releases exist, record the accepted exact version/evidence, refresh
-both focused locks, verify clean supported installs/cache identities, and mark
-the gate ready. Then run one fresh-kernel correctness demonstration per runtime:
+For future lock regeneration, use isolated Project-only resolution per runtime
+and inspect genuine Pkg output before copying it. The generic aggregate-seed
+refresh helper retained its old driver 0.6.5 during this adoption and is unsuitable
+for this minimum-version transition; it and other projects remain unchanged.
+After explicit execution authorization, run one fresh-kernel correctness
+demonstration per runtime using its actual executable:
 
 ```bash
-make refresh-julia-notebook-environments JULIA="julia +1.10" JULIA_NOTEBOOK_PROJECTS=12-Decomposition
-make refresh-julia-notebook-environments JULIA="julia +1.12" JULIA_NOTEBOOK_PROJECTS=12-Decomposition
 make verify-decomposition-julia-local JULIA="/absolute/path/to/reviewed/julia"
 make test-decomposition-julia JULIA="/absolute/path/to/reviewed/julia"
 ```
@@ -299,8 +302,10 @@ assignments and pre-dispatch guards without duplicating the notebook's large
 search solve. The notebook has one actual ExactSampler separator solve and reads
 saved comparison observations; it never launches a campaign on open. The
 separate [bounded execution plan](docs/decomposition-execution-plan.md) proposes
-16 opt-in CPU comparison attempts plus exactly two fresh-kernel correctness
-solves. All remain unexecuted pending root review and authorization. Future
+16 opt-in CPU comparison attempts plus exactly two local fresh-kernel correctness
+solves. These 18 local solves remain unexecuted pending root review and
+authorization. Required CI's two-runtime correctness replays are recorded
+separately per pushed head and are not campaign observations. Future
 execution must use the stated memory/time/thread/depot controls and retain
 failures, not replace them. Genuine committed outputs and a new maintainer
 acceptance decision are required before final publication.

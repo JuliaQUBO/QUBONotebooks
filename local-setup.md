@@ -59,9 +59,11 @@ make verify-five-starter-problems-julia-local
 make verify-decomposition-julia-local
 ```
 
-Notebook 12 currently has a deliberate published-release/execution gate for its
+Notebook 12 has adopted published registry dependencies for its
 substantive application rewrite; see the [bounded plan](docs/decomposition-execution-plan.md).
-Its stale locks and cleared changed outputs are not new execution evidence.
+Both runtime locks passed fresh-depot installation/import checks; the ready
+release gate is not application validation. Its cleared changed outputs are not
+execution evidence, and the comparison/fresh-kernel runs still require approval.
 
 Additional targets and environment details are listed in the repository
 [README](https://github.com/JuliaQUBO/QUBONotebooks/blob/main/README.md). In

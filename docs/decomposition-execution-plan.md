@@ -13,12 +13,16 @@ sources first. No campaign begins on a dirty tree. Output publication is a later
 output-only commit with identical cell sources. Bind Julia source, fixed data,
 runner, Project, both actual manifests and release gate by SHA256 before solving.
 
-`RELEASE-GATES.toml` must be ready after published QUBODrivers >=0.6.6 and a
-registered QUBODecomposition release containing standalone #17/#18 resolve. Its
-exact final version/release evidence is unknown and pending. Remove the old
-source override, regenerate both runtime locks using published packages, and
-verify source/compiled/cache identities in clean environments. GLPK is a
-notebook-only dependency. Never manufacture a lock/version or commit a local path.
+`RELEASE-GATES.toml` is ready for published QUBODrivers 0.6.6 and registered
+QUBODecomposition 0.1.4, including standalone #17/#18. Both runtime locks were
+generated from isolated Project-only registry resolution, then independently
+instantiated/imported in fresh depots without Project/lock drift. Versions,
+registered trees and actual imported source paths were checked; no optimizer or
+compiler optimize call ran. This is dependency adoption, not application or
+notebook validation. GLPK is a notebook-only dependency. No source/path override
+or manufactured lock/version is supplied. Future refreshes must preserve this
+normal registry provenance; the unchanged generic aggregate-seed helper retained
+old driver 0.6.5 and failed this minimum-version transition.
 
 ## Fixed model and independent reference
 
@@ -53,9 +57,9 @@ There are at most 168 nonzero off-diagonal edges, so the inspected direct
 MIPSampler product linearization adds at most 168 backend binaries to the 49
 logical ones (217 total). That backend size is different from child logical size.
 
-## Allowance: 16 comparison attempts and two correctness demonstrations
+## Local allowance: 16 comparison attempts and two correctness demonstrations
 
-The proposal is **18 top-level search solves total**. No allowance has yet been
+The proposal is **18 local top-level search solves**. No local allowance has yet been
 used. The source guard tests execute no search solver and do not rerun the large
 notebook call. Do not add convenience solves in another cell or test.
 
@@ -89,11 +93,21 @@ search. Charge failures conservatively; never reconstruct unknown work as zero.
 The campaign ledger enforces at most 16 attempts, 240 backend search calls,
 15148 decomposition candidate evaluations and 4096 ExactSampler assignments.
 The two correctness calls add at most 32 backend calls, 2058 parent evaluations
-and 2048 exact assignments. Across all 18: at most 18 compiler-only optimize
+and 2048 exact assignments. Across all 18 local solves: at most 18 compiler-only optimize
 calls, 18 manually requested parent/search optimize calls, 272 backend search
 calls, 17206 decomposition evaluations and 6144 exact assignments. The direct
 rows' separate returned-state/source audits are not called decomposition scans.
 No source oracle is a backend optimizer call.
+
+Required remote CI separately executes one fresh-kernel correctness replay on
+Julia 1.10 and one on Julia 1.12 for each pushed head. Each invocation has the
+same one parent / at most 16 child calls, 1029 parent evaluations and 1024 exact
+assignments. A complete two-runtime CI pair therefore reserves at most 32 child
+calls, 2058 parent evaluations and 2048 assignments. These are remote correctness
+replays, not measured campaign observations or part of the 18-local-solve budget.
+Record actual remote attempts, failures and reruns per head separately; do not
+claim a global 18-solve limit. The revised local source has not been pushed and
+has no remote correctness result yet. No CI workflow changes are proposed.
 
 Use fresh instances and the same GLPK factory/settings for the first three
 methods, with no explicit solver warm start. Composite input defaults to zero;
@@ -108,7 +122,8 @@ Every Julia command, including setup/probes, must receive root's hard 8 GiB
 RLIMIT_AS, a timeout <=600 seconds, one Julia/precompile/BLAS thread and an owned
 writable depot over read-only caches. This is a virtual-address bound, not a
 cgroup RSS/no-swap claim. One heavy command at a time. Use approved local sockets
-only for notebook kernels. No such command is authorized during static preparation.
+only for notebook kernels. Setup authorization covered lock generation and imports
+only; solver, compiler optimize, kernel and campaign execution remain ungranted.
 
 Each attempt has 30 seconds of available end-to-end time; pass the remainder
 (after construction/compilation/copy preparation) to the solver/parent. This is
@@ -153,11 +168,14 @@ measurements are short/noisy or mixed, state that and emphasize capacity/quality
 
 ## Implementation validation and acceptance gates
 
-Static preparation permits notebook JSON/source inspection, light Python syntax,
-96-option arithmetic and policy/structure checks. It has not executed Julia,
-notebooks, solvers, kernels, builds or this campaign. Before later execution:
+Static preparation covered notebook JSON/source inspection, light Python syntax,
+96-option arithmetic and policy/structure checks. Subsequent bounded setup ran
+Pkg resolution and fresh-depot package imports only. Application Julia guards,
+notebooks, solvers, kernels, builds and this campaign remain unexecuted. Before
+later execution:
 
-1. Publish/adopt the required real package releases and generate both clean locks.
+1. Preserve the completed real release adoption and both genuine locks; repeat
+   affected setup checks if those inputs change.
 2. Root approves this exact 16+2 allocation, resource wrapper and artifact limits.
 3. Commit the reviewed source; perform ordinary changed-behavior tests, numerical
    guards, `make test`, relevant Python/Julia tests and clean install/cache probes.

@@ -1,8 +1,11 @@
-status = "pending"
+status = "ready"
 minimum_driver_version = "0.6.6"
-decomposition_version = ""
+decomposition_version = "0.1.4"
 required_decomposition_features = ["coarse orientation (#17)", "sample-guided fixing (#18)"]
-published_release_evidence = []
-reason = "Await published QUBODrivers >=0.6.6 and a released QUBODecomposition containing the completed standalone #17/#18 milestone; then regenerate both runtime locks and validate fresh installs."
-# Existing manifests remain historical pending inputs, not a lock for this rewrite.
+published_release_evidence = ["https://github.com/JuliaQUBO/QUBODrivers.jl/releases/tag/v0.6.6", "https://github.com/JuliaRegistries/General/pull/172081", "https://github.com/JuliaQUBO/QUBODecomposition.jl/releases/tag/v0.1.4", "https://github.com/JuliaRegistries/General/pull/172082"]
+reason = "Published registry locks and independent fresh-depot imports validated on Julia 1.10.11 and 1.12.6. Application optimization, comparison observations and fresh-kernel outputs remain unexecuted."
+driver_tree = "b5078adcfb5410b144ae1c93e3966609e99a8296"
+decomposition_tree = "24da544c9802275babb62a6b8c831f49c2a5b1d6"
+validated_runtimes = ["1.10.11", "1.12.6"]
+# Retain the superseded source revision solely as historical provenance.
 previous_source_revision = "3a9e78de5022a62b41fabdc9995e81c8e5cbb785"
