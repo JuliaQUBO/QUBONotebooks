@@ -297,6 +297,15 @@ make verify-decomposition-julia-local JULIA="/absolute/path/to/reviewed/julia"
 make test-decomposition-julia JULIA="/absolute/path/to/reviewed/julia"
 ```
 
+The decomposition target starts Julia in its focused project before loading
+IJulia. The shared notebooks environment supplies kernel tools through a fallback
+load-path entry, while the focused lock controls shared dependencies. Preparation
+uses the same order. Starting IJulia in the aggregate project and switching only
+afterward can retain an older Preferences module and force repeated solver-cache
+compilation. Other notebook targets retain their existing startup defaults. For
+direct verifier use, select
+`--julia-project notebooks_jl/environments/12-Decomposition`.
+
 The numerical test target covers source arithmetic, malformed/missing source
 assignments and pre-dispatch guards without duplicating the notebook's large
 search solve. The notebook has one actual ExactSampler separator solve and reads
