@@ -40,7 +40,11 @@ plan=Dict("source_head"=>readchomp(`git -C $(DA.ROOT) rev-parse HEAD`),
     "whole_command_timeout_seconds"=>600,"hard_address_space_bytes"=>8589934592,
     "julia_threads"=>1,"blas_threads"=>1,"retries"=>0,"replacement_attempts"=>0,
     "compiler_search_dispatches"=>0,"iterative_penalty_refinements"=>0,
-    "start_policy"=>"No explicit solver warm start; composite uses zero input; GLPK initialization is internal",
+    "mip_backend"=>"HiGHS",
+    "mip_backend_julia_version"=>string(pkgversion(DA.HiGHS)),
+    "mip_backend_native_version"=>unsafe_string(DA.HiGHS.Highs_version()),
+    "mip_backend_settings"=>Dict("threads"=>1,"mip_rel_gap"=>0.0,"mip_abs_gap"=>0.0),
+    "start_policy"=>"Composite uses zero input; no explicit HiGHS warm start; ExactSampler enumerates child assignments",
     "schedule"=>[Dict("method"=>string(row.method),"repetition"=>row.repetition) for row in schedule])
 save(joinpath(output,"plan.toml"),plan) # freeze before the first compile/solve
 isempty(readchomp(`git -C $(DA.ROOT) status --porcelain -uall`)) || error("Commit reviewed sources before execution")

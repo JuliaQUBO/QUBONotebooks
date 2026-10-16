@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 module DecompositionApplication
-using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO, GLPK
+using JuMP, QUBODecomposition, QUBODrivers, QUBOTools, ToQUBO, HiGHS
 using TOML, SHA, Pkg
 import MathOptInterface as MOI
 
@@ -212,7 +212,10 @@ end
 
 function mip_child()
     child=QUBODrivers.MIPSampler.Optimizer()
-    backend=MOI.OptimizerWithAttributes(GLPK.Optimizer,MOI.Silent()=>true)
+    backend=MOI.OptimizerWithAttributes(HiGHS.Optimizer,
+        MOI.Silent()=>true, MOI.NumberOfThreads()=>1,
+        MOI.RawOptimizerAttribute("mip_rel_gap")=>0.0,
+        MOI.RawOptimizerAttribute("mip_abs_gap")=>0.0)
     MOI.set(child,QUBODrivers.MIPSampler.MIPOptimizer(),backend)
     return child
 end
@@ -313,7 +316,10 @@ function run_attempt(method; ledger=Ledger(), seconds=ATTEMPT_SECONDS)
         "construction_compile_sec"=>construction_compile_sec,"copy_solve_sec"=>copy_solve_sec,
         "decode_audit_sec"=>decode_audit_sec,"end_to_end_sec"=>total_sec,
         "compiler_search_dispatches"=>0,"iterative_penalty_refinements"=>0,
-        "start_handling"=>"No explicit solver warm start; composite starts at zero, GLPK initializes internally")
+        "start_handling"=>method==:separator_exact ?
+            "Composite starts at zero; ExactSampler enumerates every child assignment" :
+            method==:direct_mip ? "No explicit warm start; HiGHS initializes internally" :
+            "Composite starts at zero; no explicit child warm start; HiGHS initializes internally")
     row["result_construction_sec"]=(time_ns()-result_started)/1e9
     row["reported_compilation_sec"]=MOI.get(compiled.compiler,ToQUBO.Attributes.CompilationTime())
     row["end_to_end_sec"]=(time_ns()-started)/1e9

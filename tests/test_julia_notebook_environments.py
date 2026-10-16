@@ -14,7 +14,7 @@ EXPECTED_DIRECT_DEPENDENCIES = {
         "Bonmin_jll",
         "Cbc",
         "Couenne_jll",
-        "GLPK",
+        "HiGHS",
         "Ipopt",
         "JuMP",
         "Plots",
@@ -22,7 +22,7 @@ EXPECTED_DIRECT_DEPENDENCIES = {
     },
     "2-QUBO": {
         "DWave",
-        "GLPK",
+        "HiGHS",
         "Graphs",
         "JuMP",
         "Karnak",
@@ -84,7 +84,7 @@ EXPECTED_DIRECT_DEPENDENCIES = {
     },
     "12-Decomposition": {
         "JuMP", "MathOptInterface", "QUBODecomposition", "QUBODrivers",
-        "QUBOTools", "ToQUBO", "GLPK",
+        "QUBOTools", "ToQUBO", "HiGHS",
     },
 }
 
@@ -112,14 +112,7 @@ class JuliaNotebookEnvironmentTests(unittest.TestCase):
                 self.assertEqual("1.10.11", manifest_110["julia_version"])
                 self.assertEqual("1.12.6", manifest_112["julia_version"])
                 for manifest in (manifest_110, manifest_112):
-                    # The held notebook-12 rewrite deliberately retains old locks
-                    # until its required published releases exist. GLPK is the
-                    # sole new direct dependency awaiting that exact refresh.
                     locked_dependencies = expected_dependencies
-                    if project_key == "12-Decomposition":
-                        gate = tomllib.loads((project_dir / "RELEASE-GATES.toml").read_text())
-                        if gate["status"] == "pending":
-                            locked_dependencies = expected_dependencies - {"GLPK"}
                     self.assertTrue(
                         locked_dependencies.issubset(manifest["deps"]),
                         locked_dependencies - set(manifest["deps"]),

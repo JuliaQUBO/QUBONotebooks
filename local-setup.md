@@ -89,11 +89,12 @@ deprecations. Revisit those workarounds when updating ipykernel or Tornado;
 
 ## MathProg Python local execution
 
-The complete MathProg notebook requires GLPK, CBC, IPOPT, BONMIN, and Couenne.
-On Ubuntu 22.04, install GLPK and the runtime libraries once:
+The complete MathProg notebook requires HiGHS, CBC, IPOPT, BONMIN, and Couenne.
+HiGHS is provided by `highspy` in the locked `mathprog` dependency group.
+On Ubuntu 22.04, install the IDAES runtime libraries once:
 
 ```bash
-sudo apt-get install glpk-utils libgfortran5 libgomp1 liblapack3 libblas3
+sudo apt-get install libgfortran5 libgomp1 liblapack3 libblas3
 ```
 
 Then install the locked Python groups and the versioned IDAES solver bundle:
@@ -252,7 +253,7 @@ below is a dependency of any notebook project. They are documented here because
 the notebooks are a starting point for your own models, where an LP/MIP or
 MINLP licence is often worth having. The mathematical-programming notebook,
 the one where a commercial solver would otherwise be expected, solves its
-examples with GLPK, Cbc, Ipopt, Bonmin, and Couenne, all open source.
+examples with HiGHS, Cbc, Ipopt, Bonmin, and Couenne, all open source.
 
 **Gurobi** is one of the most powerful LP and MIP solvers available today, and
 free academic licences are offered. Visit
