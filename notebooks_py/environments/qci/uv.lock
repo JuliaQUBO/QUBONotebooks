@@ -376,7 +376,7 @@ wheels = [
 
 [[package]]
 name = "eqc-models"
-version = "0.21.0"
+version = "0.22.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lightgbm" },
@@ -389,9 +389,9 @@ dependencies = [
     { name = "xgboost", version = "3.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "xgboost", version = "3.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/97/99338a18dd27dff15517d6724d7179c62b43f66ebbeeaa674884d8fabf56/eqc_models-0.21.0.tar.gz", hash = "sha256:6230f2659373f219fa4db0b1661b4c0e6952fe4fcad8184cf3f652cb17dfdbd0", size = 4775202, upload-time = "2026-08-13T18:16:21.569Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/42/5d/5b2739a2f980d023bfb6255f00a348b852b0835a383bb82537722633cd87/eqc_models-0.22.1.tar.gz", hash = "sha256:ec7df19bdb14ad42156f55a95ce79c9b781c52cc8a177b735ce70960ed2e5d28", size = 4778319, upload-time = "2026-10-07T15:32:27.222Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/d8/3547f41d953a0d027515a3ca78383a9f9b823a96df69b24afdfeacfaffed/eqc_models-0.21.0-py3-none-any.whl", hash = "sha256:4ec8b8fa894ebcae97356e4e5745c1700a8b6e21bcdfadba4c71560d64fb6b5d", size = 276704, upload-time = "2026-08-13T18:16:15.646Z" },
+    { url = "https://files.pythonhosted.org/packages/50/8f/5f752ae808e27b1bf1c9f74a20337ab21240a6e0ee6223031d3a84a9e43a/eqc_models-0.22.1-py3-none-any.whl", hash = "sha256:921e1bec2d8d47b427fec42df11a4b141822900ab458077a3f4ae292ae63bb3e", size = 283109, upload-time = "2026-10-07T15:32:20.627Z" },
 ]
 
 [[package]]
@@ -1046,7 +1046,7 @@ wheels = [
 
 [[package]]
 name = "nbconvert"
-version = "7.17.1"
+version = "7.17.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -1064,9 +1064,9 @@ dependencies = [
     { name = "pygments" },
     { name = "traitlets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/01/b1/708e53fe2e429c103c6e6e159106bcf0357ac41aa4c28772bd8402339051/nbconvert-7.17.1.tar.gz", hash = "sha256:34d0d0a7e73ce3cbab6c5aae8f4f468797280b01fd8bd2ca746da8569eddd7d2", size = 865311, upload-time = "2026-04-08T00:44:14.914Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/6a/252c7620305a9661205aed7a2a4b3592f5207bfca56ad11b7dea2c5ec2f6/nbconvert-7.17.2.tar.gz", hash = "sha256:344a218e8595117ce37396ed025d994f146d076226ebac59255a2fa085ab24d8", size = 865989, upload-time = "2026-10-12T09:11:19.583Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/f8/bb0a9d5f46819c821dc1f004aa2cc29b1d91453297dbf5ff20470f00f193/nbconvert-7.17.1-py3-none-any.whl", hash = "sha256:aa85c087b435e7bf1ffd03319f658e285f2b89eccab33bc1ba7025495ab3e7c8", size = 261927, upload-time = "2026-04-08T00:44:12.845Z" },
+    { url = "https://files.pythonhosted.org/packages/81/fd/a8d457af68848a8e5c12dd1d84ff35c415db471af78280e0703db4efbb12/nbconvert-7.17.2-py3-none-any.whl", hash = "sha256:6a143c11c00bf831604da4b1be4347d36ea52367057eb920135d69bc2862fed2", size = 262094, upload-time = "2026-10-12T09:11:17.215Z" },
 ]
 
 [[package]]
@@ -1519,7 +1519,7 @@ wheels = [
 
 [[package]]
 name = "qci-client"
-version = "5.0.2"
+version = "5.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "networkx" },
@@ -1530,9 +1530,9 @@ dependencies = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a1/b9/a2911feaa4aa74cffd158e7f05f505881453451c0ad3a126dd6a4e9391c6/qci_client-5.0.2.tar.gz", hash = "sha256:72f6cceded73a55b9cffcdb87951f8277bfcef0e0c38eb07cc41c7558deaa4bd", size = 33634, upload-time = "2026-08-11T19:11:35.868Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/cd/b9a0388185e7624dd1e4d6c5b135079c67247159101dc6e9992242ea6323/qci_client-5.0.3.tar.gz", hash = "sha256:c3eea244cecfcf8bf03e6ac1d96f3a1fec0f01d0ab326141c299ab480060c29a", size = 36827, upload-time = "2026-10-05T20:35:32.076Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/98/1c6a1b61666a08e062c1cbc1b03e8960ff3951ce129d0a6ea6052bb46c4f/qci_client-5.0.2-py3-none-any.whl", hash = "sha256:81b10dd07330f6e2bfeaa55950c828dcd6e45079072c8f34a181dc0fc56559cd", size = 35118, upload-time = "2026-08-11T19:11:34.675Z" },
+    { url = "https://files.pythonhosted.org/packages/c6/8d/1f1f7c9e4f1180aa57e335ea73a78f4351ac816b373f66f1e7ec1c0f024d/qci_client-5.0.3-py3-none-any.whl", hash = "sha256:fc3b29c45116900ef70709b7fbb9b9c676adb75b7cd8a04b0ef7730b8906c3e3", size = 39261, upload-time = "2026-10-05T20:35:30.973Z" },
 ]
 
 [[package]]
@@ -1553,7 +1553,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "eqc-models", specifier = "==0.21.0" },
+    { name = "eqc-models", specifier = "==0.22.1" },
     { name = "highspy", specifier = ">=1.15.1,<2" },
     { name = "ipykernel", specifier = ">=7.3.0,<8" },
     { name = "jupyterlab", specifier = ">=4.6.3,<5" },
