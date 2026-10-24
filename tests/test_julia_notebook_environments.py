@@ -153,6 +153,34 @@ class JuliaNotebookEnvironmentTests(unittest.TestCase):
                         manifest["deps"]["DWave"][0]["repo-rev"],
                     )
 
+    def test_dwave_environments_pin_python_dateutil_below_3_for_ocean_sdk(self) -> None:
+        # Defect class: conda-forge resolves python-dateutil 3.0.0 alongside
+        # matplotlib while dwave-cloud-client==0.14.4 requires >=2.7,<3,
+        # breaking CondaPkg resolution in aggregate and DWave-backed projects.
+        aggregate_condapkg = tomllib.loads(
+            (NOTEBOOKS_DIR / "CondaPkg.toml").read_text()
+        )
+        self.assertEqual(
+            ">=2.7,<3",
+            aggregate_condapkg["deps"]["python-dateutil"],
+        )
+        for project_key in (
+            "2-QUBO",
+            "3-GAMA",
+            "4-DWave",
+            "5-Benchmarking",
+            "9-CancerGenomics",
+            "11-Annealing",
+        ):
+            with self.subTest(project_key=project_key):
+                condapkg = tomllib.loads(
+                    (ENVIRONMENTS_DIR / project_key / "CondaPkg.toml").read_text()
+                )
+                self.assertEqual(
+                    ">=2.7,<3",
+                    condapkg["deps"]["python-dateutil"],
+                )
+
     def test_notebook_2_saved_status_is_focused(self) -> None:
         # Defect class: the saved status silently comes from a shared or polluted
         # environment even though notebook execution itself still succeeds.
