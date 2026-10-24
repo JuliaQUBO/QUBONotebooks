@@ -168,13 +168,12 @@ The per-notebook budget is what bounds the rest of the notebook.
 
 | Notebook | Scope | Granted ceiling | What the stored output is |
 | --- | --- | --- | --- |
-| `notebooks_py/5-Benchmarking_python.ipynb` | One notebook | 2400 KB | The graph render below, plus the sweep and time-to-solution figures of the simulated-annealing benchmark |
-| `notebooks_py/5-Benchmarking_python.ipynb` | One code cell | 608 KB | A `nx.draw` spring-layout rendering of the random Ising model graph |
-| `notebooks_jl/5-Benchmarking.ipynb` | One code cell | 320 KB | A circular-layout plot of the same Ising graph |
+| `notebooks_py/5-Benchmarking_python.ipynb` | One notebook | 2080 KB | The Ising graph renders, plus the sweep, bootstrap, and time-to-solution figures of the simulated-annealing benchmark |
 | `notebooks_py/4-DWAVE_python.ipynb` | One code cell | 448 KB | The QPU topology graph, and the minor-embedding graph a few cells later |
 
-Every remaining grant is a dense graph-layout render, where the lever is
-rasterization and resolution rather than fewer results.
+The only remaining per-cell grant is the dense QPU hardware topology and
+minor-embedding graph render in `notebooks_py/4-DWAVE_python.ipynb`, where the
+lever is rasterization and resolution rather than fewer results.
 
 One reduction worth making is no longer visible in that table, so it is recorded
 here instead. `notebooks_py/1-MathProg_python.ipynb` stores nine plots holding

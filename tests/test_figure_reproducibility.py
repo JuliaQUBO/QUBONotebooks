@@ -45,7 +45,7 @@ LAYOUTS_AFTER_A_GLOBAL_SEED = [
     (
         "notebooks_py/5-Benchmarking_python.ipynb",
         "nx.draw(nx_graph, node_size=15, pos=nx.spring_layout(nx_graph), alpha=0.25, "
-        "edgelist=edges, edge_color=bias, edge_cmap=plt.cm.Blues)",
+        "width=0.5, edgelist=edges, edge_color=bias, edge_cmap=plt.cm.Blues)",
     ),
 ]
 
