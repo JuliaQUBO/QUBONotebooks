@@ -32,6 +32,12 @@ SEEDED_NOTEBOOKS = (
     "notebooks_py/4-DWAVE_python.ipynb",
     "notebooks_py/5-Benchmarking_python.ipynb",
 )
+JULIA_SEEDED_SAMPLER_NOTEBOOKS = (
+    "notebooks_jl/2-QUBO.ipynb",
+    "notebooks_jl/3-GAMA.ipynb",
+    "notebooks_jl/4-DWave.ipynb",
+    "notebooks_jl/5-Benchmarking.ipynb",
+)
 # Layouts whose committed figure was rendered from a notebook-level
 # `np.random.seed(...)`, so an explicit seed would change it. Every other
 # unseeded layout is a defect, wherever it sits in the notebook.
@@ -317,6 +323,69 @@ class CommittedNotebookTests(unittest.TestCase):
         for line in qubo_sampling:
             with self.subTest(line=line):
                 self.assertRegex(line, r"seed=314159\)$")
+
+    def test_the_timing_plots_are_the_only_exempt_cells_in_the_julia_notebooks(self) -> None:
+        exempt_by_notebook = {
+            path.relative_to(REPO_ROOT).as_posix(): [
+                "".join(cell["source"])
+                for cell in json.loads(path.read_text(encoding="utf-8"))["cells"]
+                if figures.is_exempt(cell)
+            ]
+            for path in sorted((REPO_ROOT / "notebooks_jl").glob("*.ipynb"))
+        }
+        nonempty = {name: sources for name, sources in exempt_by_notebook.items() if sources}
+
+        self.assertEqual(
+            {"notebooks_jl/3-GAMA.ipynb", "notebooks_jl/5-Benchmarking.ipynb"},
+            set(nonempty),
+        )
+        self.assertEqual(1, len(nonempty["notebooks_jl/3-GAMA.ipynb"]))
+        self.assertIn("plot_augmentation_runtime", nonempty["notebooks_jl/3-GAMA.ipynb"][0])
+        self.assertEqual(2, len(nonempty["notebooks_jl/5-Benchmarking.ipynb"]))
+        self.assertIn("plot_schedule_grid", nonempty["notebooks_jl/5-Benchmarking.ipynb"][0])
+        self.assertIn("plot_ttt_grid", nonempty["notebooks_jl/5-Benchmarking.ipynb"][1])
+
+    def test_julia_samplers_and_svg_drawings_that_feed_figures_are_seeded(self) -> None:
+        # Defect class: an unseeded Neal/RandomSampler solve, an unseeded Luxor
+        # SVG glyph prefix, or a bare Plots.Plot return value in IJulia causes
+        # re-execution to emit a different figure or a second SVG MIME bundle.
+        unseeded_solves = []
+        for name in JULIA_SEEDED_SAMPLER_NOTEBOOKS:
+            for index, cell in enumerate(self.load(name)["cells"]):
+                if cell["cell_type"] != "code":
+                    continue
+                source = "".join(cell["source"])
+                if (
+                    ("DWave.Neal.Optimizer" in source or "RandomSampler.Optimizer" in source)
+                    and "optimize!(" in source
+                    and '"seed"' not in source
+                ):
+                    unseeded_solves.append((name, index))
+
+        qubo_cells = self.load("notebooks_jl/2-QUBO.ipynb")["cells"]
+        unseeded_drawsvg = [
+            index
+            for index, cell in enumerate(qubo_cells)
+            if cell["cell_type"] == "code"
+            and "@drawsvg(" in "".join(cell["source"])
+            and "Luxor.Random.seed!(" not in "".join(cell["source"])
+        ]
+
+        non_png_display_outputs = []
+        for path in sorted((REPO_ROOT / "notebooks_jl").glob("*.ipynb")):
+            document = json.loads(path.read_text(encoding="utf-8"))
+            for index, cell in enumerate(document["cells"]):
+                for output in cell.get("outputs", []):
+                    data = output.get("data", {})
+                    if "image/png" in data and (
+                        output.get("output_type") != "display_data"
+                        or set(data) != {"image/png"}
+                    ):
+                        non_png_display_outputs.append((path.name, index))
+
+        self.assertEqual([], unseeded_solves)
+        self.assertEqual([], unseeded_drawsvg)
+        self.assertEqual([], non_png_display_outputs)
 
 
 if __name__ == "__main__":

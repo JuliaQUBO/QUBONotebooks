@@ -232,9 +232,16 @@ make check-julia-figure-reproducibility
 The check uses the same `QCI_JULIA_NOTEBOOK` and
 `CANONICAL_PROBLEMS_JULIA_NOTEBOOK` variables as the execution targets.
 
-This gate covers the Julia notebooks executed in CI. The remaining figure
-reproducibility work for the earlier Julia lessons is tracked in
-[issue #160](https://github.com/JuliaQUBO/QUBONotebooks/issues/160).
+This gate covers the Julia notebooks executed in CI. Lessons 1 through 5 also
+publish `image/png` explicitly for `Plots.jl` figures, seed their local
+samplers, graph SVG glyph prefixes, and bootstrap resamples, and tag genuine
+wall-clock timing plots `nondeterministic-output`. Local re-executions of
+Lessons 1 through 3 can be checked directly with
+`make check-figure-reproducibility NOTEBOOKS="notebooks_jl/1-MathProg.ipynb notebooks_jl/2-QUBO.ipynb notebooks_jl/3-GAMA.ipynb"`,
+while `notebooks_jl/4-DWave.ipynb` preserves committed QPU hardware outputs on
+its cloud cells and `notebooks_jl/5-Benchmarking.ipynb` leaves its eight
+multi-instance sweep figure cells unstored in git for size budgets (with all
+stored figures and repeated local runs reproducing byte for byte).
 
 ### Python verification environment
 
