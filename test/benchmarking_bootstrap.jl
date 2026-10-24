@@ -81,8 +81,29 @@ all_results = Dict(
             end
         end
         saved = Dict(name => read(joinpath(cache, name)) for name in readdir(cache))
+        first_ratios = deepcopy(all_approx_ratio)
+        first_samples = Dict(
+            name => [
+                (QUBOTools.state(s), QUBOTools.value(s), QUBOTools.reads(s))
+                for s in QUBOTools.read_solution(joinpath(cache, name))
+            ] for name in readdir(cache)
+        )
         include_string(@__MODULE__, cell_source("n_boot_plot = 100\n"))
         @test saved == Dict(name => read(joinpath(cache, name)) for name in readdir(cache))
+        @test all_approx_ratio == first_ratios
+
+        mktempdir() do second_cache
+            global pickle_path = second_cache
+            include_string(@__MODULE__, cell_source("n_boot_plot = 100\n"))
+            second_samples = Dict(
+                name => [
+                    (QUBOTools.state(s), QUBOTools.value(s), QUBOTools.reads(s))
+                    for s in QUBOTools.read_solution(joinpath(second_cache, name))
+                ] for name in readdir(second_cache)
+            )
+            @test second_samples == first_samples
+            @test all_approx_ratio == first_ratios
+        end
     end
 
 end
