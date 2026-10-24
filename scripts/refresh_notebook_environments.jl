@@ -29,6 +29,12 @@ for project_key in project_keys
     )
     destination_manifest = joinpath(project_dir, basename(SOURCE_MANIFEST))
     project = TOML.parsefile(joinpath(project_dir, "Project.toml"))
+    deps = get(project, "deps", Dict())
+    source_condapkg = joinpath(AGGREGATE_PROJECT, "CondaPkg.toml")
+    destination_condapkg = joinpath(project_dir, "CondaPkg.toml")
+    if isfile(source_condapkg) && haskey(deps, "DWave")
+        cp(source_condapkg, destination_condapkg; force = true)
+    end
     sources = get(project, "sources", Dict())
     if isempty(sources)
         cp(SOURCE_MANIFEST, destination_manifest; force = true)
