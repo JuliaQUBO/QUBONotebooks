@@ -62,8 +62,34 @@ class CostConventionTests(unittest.TestCase):
                 namespace["ising_cost_data"](PenaltyExercise(), reference_energy)
 
     def test_cardinality_qubo_data_builds_constraint_hamiltonian_and_feasible_subspace(self):
-        import dimod
         import numpy as np
+
+        try:
+            import dimod
+        except ModuleNotFoundError:
+            class _StubBQM:
+                def __init__(self, linear, quadratic, offset, vartype):
+                    self.linear = dict(linear)
+                    self.quadratic = dict(quadratic)
+                    self.offset = float(offset)
+                    self.vartype = vartype
+
+                def __len__(self):
+                    return len(self.linear)
+
+                def to_ising(self):
+                    h = {i: 0.5 * bias for i, bias in self.linear.items()}
+                    j_couplings = {}
+                    ising_offset = self.offset + 0.5 * sum(self.linear.values())
+                    for (u, v), q_uv in self.quadratic.items():
+                        pair = (min(u, v), max(u, v))
+                        j_couplings[pair] = j_couplings.get(pair, 0.0) + 0.25 * q_uv
+                        h[u] = h.get(u, 0.0) + 0.25 * q_uv
+                        h[v] = h.get(v, 0.0) + 0.25 * q_uv
+                        ising_offset += 0.25 * q_uv
+                    return h, j_couplings, ising_offset
+
+            dimod = SimpleNamespace(BinaryQuadraticModel=_StubBQM, BINARY="BINARY")
 
         namespace = {"dimod": dimod, "np": np}
         exec(notebook_function_definitions(

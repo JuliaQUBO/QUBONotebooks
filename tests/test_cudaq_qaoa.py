@@ -191,7 +191,7 @@ class KernelTests(unittest.TestCase):
 
 
 class CoverageTests(unittest.TestCase):
-    def test_verifier_default_executes_and_requires_both_optimization_results(self):
+    def test_verifier_default_executes_and_requires_all_optimization_results(self):
         spec = importlib.util.spec_from_file_location("verify_cudaq", REPO_ROOT / "scripts/verify_cudaq.py")
         verifier = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, {"verify_notebooks": verify_notebooks}):
