@@ -61,6 +61,41 @@ class CostConventionTests(unittest.TestCase):
             with self.subTest(reference_energy=reference_energy), self.assertRaises(ValueError):
                 namespace["ising_cost_data"](PenaltyExercise(), reference_energy)
 
+    def test_cardinality_qubo_data_builds_constraint_hamiltonian_and_feasible_subspace(self):
+        import dimod
+        import numpy as np
+
+        namespace = {"dimod": dimod, "np": np}
+        exec(notebook_function_definitions(
+            DWAVE_PYTHON_NOTEBOOK_PATH,
+            "def cardinality_qubo_data",
+            {"cardinality_qubo_data"},
+        ), namespace)
+        exec(notebook_function_definitions(
+            DWAVE_PYTHON_NOTEBOOK_PATH,
+            "def ising_cost_data",
+            {"ising_cost_data"},
+        ), namespace)
+        data = namespace["cardinality_qubo_data"]([-4.0, -3.0, -1.5, -0.5], 2)
+        self.assertEqual(4, data["n_vars"])
+        self.assertEqual(2, data["k_select"])
+        self.assertEqual(6, int(data["feasible_mask"].sum()))
+        self.assertAlmostEqual(-7.0, data["opt_cost"])
+        self.assertAlmostEqual(-2.0, data["worst_cost"])
+        con_fields, left, right, couplings, offset = namespace["ising_cost_data"](
+            data["constraint_bqm"], 1.0
+        )
+        for idx, bits in enumerate(data["bits"]):
+            z = [1 - 2 * int(bit) for bit in bits]
+            pauli_energy = offset + sum(f * s for f, s in zip(con_fields, z))
+            pauli_energy += sum(c * z[i] * z[j] for i, j, c in zip(left, right, couplings))
+            expected_violation = (int(bits.sum()) - 2) ** 2
+            self.assertAlmostEqual(expected_violation, pauli_energy)
+            self.assertEqual(expected_violation == 0, bool(data["feasible_mask"][idx]))
+        for invalid_k in (0, 4, -1):
+            with self.subTest(invalid_k=invalid_k), self.assertRaises(ValueError):
+                namespace["cardinality_qubo_data"]([-4.0, -3.0, -1.5, -0.5], invalid_k)
+
 
 class OptionalCudaqTests(unittest.TestCase):
     def test_import_filters_only_the_exact_cudaq_016_notice(self):
@@ -146,6 +181,7 @@ class OptimizationVerificationTests(unittest.TestCase):
             for tag, message in (
                 ("cudaq-annealing-result", "CUDA-Q quantum annealing checks passed."),
                 ("cudaq-qaoa-results", "CUDA-Q QAOA checks passed."),
+                ("cudaq-qchop-results", "CUDA-Q Q-CHOP checks passed."),
             )
         ]}
 
@@ -154,7 +190,7 @@ class OptimizationVerificationTests(unittest.TestCase):
 
     def test_rejects_a_skipped_unexecuted_or_missing_optimization_section(self):
         complete = self.notebook()
-        for section in (0, 1):
+        for section in (0, 1, 2):
             for defect in ("missing", "unexecuted", "untagged", "skipped", "wrong-method"):
                 notebook = copy.deepcopy(complete)
                 cell = notebook["cells"][section]
@@ -167,7 +203,8 @@ class OptimizationVerificationTests(unittest.TestCase):
                 elif defect == "skipped":
                     cell["outputs"][0]["text"] = ["Skipping CUDA-Q quantum methods.\n"]
                 else:
-                    cell["outputs"] = copy.deepcopy(complete["cells"][1 - section]["outputs"])
+                    other = (section + 1) % len(complete["cells"])
+                    cell["outputs"] = copy.deepcopy(complete["cells"][other]["outputs"])
                 with self.subTest(section=section, defect=defect), self.assertRaises(RuntimeError):
                     self.verifier.require_optimization_result(notebook)
 

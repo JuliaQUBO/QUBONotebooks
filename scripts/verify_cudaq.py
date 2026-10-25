@@ -1,4 +1,4 @@
-"""Execute the required CUDA-Q QAOA and quantum-annealing sections."""
+"""Execute the required CUDA-Q quantum-annealing, QAOA, and Q-CHOP sections."""
 
 import json
 import os
@@ -9,10 +9,11 @@ import verify_notebooks
 
 
 def require_optimization_result(notebook):
-    """Require independent completion of both quantum methods in Lecture 4."""
+    """Require independent completion of all quantum methods in Lecture 4."""
     pending = {
         "cudaq-annealing-result": "CUDA-Q quantum annealing checks passed.",
         "cudaq-qaoa-results": "CUDA-Q QAOA checks passed.",
+        "cudaq-qchop-results": "CUDA-Q Q-CHOP checks passed.",
     }
     for cell in notebook["cells"]:
         if cell.get("execution_count") is None:

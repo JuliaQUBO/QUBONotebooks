@@ -205,6 +205,7 @@ class CoverageTests(unittest.TestCase):
                 for tag, message in (
                     ("cudaq-annealing-result", "CUDA-Q quantum annealing checks passed."),
                     ("cudaq-qaoa-results", "CUDA-Q QAOA checks passed."),
+                    ("cudaq-qchop-results", "CUDA-Q Q-CHOP checks passed."),
                 )
             ]}
             for name in expected:
@@ -253,4 +254,107 @@ class CoverageTests(unittest.TestCase):
                        if "".join(cell["source"]).startswith("## Summary"))
         self.assertLess(positions["cudaq-annealing-result"], positions["cudaq-qaoa-intro"])
         self.assertLess(positions["cudaq-qaoa-intro"], positions["cudaq-qaoa-results"])
-        self.assertLess(positions["cudaq-qaoa-results"], summary)
+        self.assertLess(positions["cudaq-qaoa-results"], positions["cudaq-qchop-intro"])
+        self.assertLess(positions["cudaq-qchop-intro"], positions["cudaq-qchop-results"])
+        self.assertLess(positions["cudaq-qchop-results"], summary)
+
+
+def qchop_section_cells():
+    return [cell for cell in json.loads(DWAVE_PYTHON_NOTEBOOK_PATH.read_text())["cells"]
+            if any(tag.startswith("cudaq-qchop-") for tag in cell.get("metadata", {}).get("tags", []))]
+
+
+class QChopSectionTests(unittest.TestCase):
+    def test_qchop_section_skips_cleanly_without_cudaq(self):
+        original_import = builtins.__import__
+
+        def missing_cudaq(name, *args, **kwargs):
+            if name == "cudaq":
+                raise ModuleNotFoundError("No module named 'cudaq'", name="cudaq")
+            return original_import(name, *args, **kwargs)
+
+        namespace = {"np": np}
+        output = io.StringIO()
+        with patch("builtins.__import__", side_effect=missing_cudaq):
+            with patch.dict(os.environ, {"QUBONOTEBOOKS_CUDAQ_REQUIRE": "0"}):
+                with contextlib.redirect_stdout(output):
+                    exec(notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "CUDAQ_SKIP_MESSAGE ="), namespace)
+                    for cell in qchop_section_cells():
+                        if cell["cell_type"] == "code":
+                            exec("".join(cell["source"]), namespace)
+        self.assertFalse(namespace["HAS_CUDAQ"])
+        self.assertIn("cardinality_qubo_data", namespace)
+        self.assertNotIn("qchop_anneal", namespace)
+
+    def test_published_qchop_outputs_are_executed_and_complete(self):
+        cells = [cell for cell in qchop_section_cells() if cell["cell_type"] == "code"]
+        self.assertEqual(2, len(cells))
+        self.assertTrue(all(cell["execution_count"] is not None for cell in cells))
+        output = "".join(
+            "".join(item.get("text", []))
+            for cell in cells
+            for item in cell["outputs"]
+            if item.get("output_type") == "stream"
+        )
+        self.assertIn("CUDA-Q Q-CHOP checks passed.", output)
+
+
+@unittest.skipUnless(importlib.util.find_spec("cudaq"), "optional CUDA-Q CPU lane")
+class QChopKernelTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory(prefix="qchop-kernel-test-")
+        cls.addClassCleanup(cls.tmp.cleanup)
+        results_src = "".join(
+            next(cell for cell in qchop_section_cells()
+                 if "cudaq-qchop-results" in cell["metadata"]["tags"])["source"]
+        )
+        tree = ast.parse(results_src)
+        kernel = next(node for node in ast.walk(tree)
+                      if isinstance(node, ast.FunctionDef) and node.name == "qchop_anneal")
+        path = Path(cls.tmp.name) / "qchop_notebook_kernel.py"
+        path.write_text(
+            "import numpy as np\n"
+            + notebook_cell_source(DWAVE_PYTHON_NOTEBOOK_PATH, "CUDAQ_SKIP_MESSAGE =")
+            + "\n"
+            + ast.unparse(kernel)
+            + "\n"
+        )
+        spec = importlib.util.spec_from_file_location("qchop_notebook_kernel", path)
+        cls.module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = cls.module
+        cls.addClassCleanup(sys.modules.pop, spec.name, None)
+        with contextlib.redirect_stdout(io.StringIO()):
+            spec.loader.exec_module(cls.module)
+
+    def test_qchop_kernel_matches_dense_trotter_product_and_preserves_feasibility(self):
+        from scipy.linalg import expm
+
+        cudaq = self.module.cudaq
+        con_fields, left, right, con_couplings = [0.0, 0.0], [0], [1], [0.5]
+        obj_fields = [1.5, -1.5]
+        gamma, s_end, total_time, steps = 0.12, 1.0, 4.0, 8
+        actual = np.asarray(
+            cudaq.get_state(
+                self.module.qchop_anneal,
+                2, [1], con_fields, left, right, con_couplings,
+                obj_fields, gamma, s_end, total_time, steps,
+            )
+        )
+        z = np.diag([1.0, -1.0])
+        x_mat = np.array([[0.0, 1.0], [1.0, 0.0]])
+        eye = np.eye(2)
+        h_con = con_couplings[0] * np.kron(z, z)
+        h_obj = obj_fields[0] * np.kron(eye, z) + obj_fields[1] * np.kron(z, eye)
+        h_mix = np.kron(eye, x_mat) + np.kron(x_mat, eye)
+        state = np.array([0.0, 0.0, 1.0, 0.0], dtype=complex)  # |x1=1, x0=0>
+        dt = (total_time * s_end) / steps
+        for k in range(steps):
+            s = s_end * (k + 0.5) / steps
+            theta = np.pi * s
+            mix_coeff = -gamma * np.sin(theta)
+            obj_coeff = -gamma * np.cos(theta)
+            half_mix = expm(-1j * (dt / 2.0) * mix_coeff * h_mix)
+            diag_step = expm(-1j * dt * (h_con + obj_coeff * h_obj))
+            state = half_mix @ (diag_step @ (half_mix @ state))
+        np.testing.assert_allclose(actual, state, rtol=0, atol=1e-10)
