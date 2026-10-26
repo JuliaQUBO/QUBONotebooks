@@ -27,13 +27,6 @@ const CREDENTIAL_FREE_QCI_NOTEBOOKS = Set((
 const COLAB_SYSTEM_PYTHON_PACKAGES = Dict(
     "6-QCi" => ["numpy", "requests"],
     "9-CancerGenomics" => ["dwave-ocean-sdk"],
-    "10-QAOA" => [
-        "qiskit~=2.3.0",
-        "qiskit-aer~=0.17.0",
-        "qiskit-ibm-runtime~=0.46.0",
-        "qiskit-optimization~=0.7.0",
-        "scipy~=1.15.0",
-    ],
     "11-Annealing" => ["dwave-ocean-sdk"],
 )
 const PYTHON_PACKAGE_IMPORT_NAMES = Dict(

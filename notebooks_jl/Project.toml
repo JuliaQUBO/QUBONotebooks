@@ -36,4 +36,4 @@ ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 lib4ti2_jll = "1493ae25-0f90-5c0e-a06c-8c5077d6d66f"
 
 [compat]
-QiskitOpt = "0.7.1"
+QiskitOpt = "0.8.0"

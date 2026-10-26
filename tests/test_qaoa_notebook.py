@@ -150,7 +150,7 @@ class QAOANotebookOutputTests(unittest.TestCase):
         self.assertEqual([], notebook_cell(data, "activate").get("outputs", []))
 
         expected_output_markers = {
-            "runtime-check": "Local runtime ready: QiskitOpt 0.7.1",
+            "runtime-check": "Local runtime ready: QiskitOpt 0.8.0",
             "partition-run": "exact optimum raw energy = 0.0",
             "maxcut-run": "exact optimum raw energy = -7.0",
             "cover-run": "exact optimum raw energy = 2.0",

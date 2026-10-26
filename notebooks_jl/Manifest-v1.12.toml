@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "c58313d4d266d8044a1b732a9c5085715ef8c4b8"
+project_hash = "9c5037e1cc3e1aac46c225916d5e355c61679e83"
 
 [[deps.ASL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -137,6 +137,11 @@ deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "1b96ea4a01afe0ea4090c5c8039690672dd13f2e"
 uuid = "6e34b625-4abd-537c-b88f-471c36dfa7a0"
 version = "1.0.9+0"
+
+[[deps.CEnum]]
+git-tree-sha1 = "389ad5c84de1ae7cf0e28e381131c98ea87d54fc"
+uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
+version = "0.5.0"
 
 [[deps.Cairo]]
 deps = ["Cairo_jll", "Colors", "Glib_jll", "Graphics", "Libdl", "Pango_jll"]
@@ -963,6 +968,12 @@ deps = ["Artifacts", "LibSSH2_jll", "Libdl", "OpenSSL_jll"]
 uuid = "e37daf67-58a4-590a-8e99-b0245dd2ffc5"
 version = "1.9.0+0"
 
+[[deps.LibMPDec_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "ce78ec7bb8a7c6babc1e61f701fbdf36f5384a36"
+uuid = "7106de7a-f406-5ef1-84f7-3345f7341bd2"
+version = "2.5.2+0"
+
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "OpenSSL_jll"]
 uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
@@ -1478,6 +1489,12 @@ git-tree-sha1 = "409884283434a04092ddf1d9594c22bc097d5d9a"
 uuid = "274fc56d-3b97-40fa-a1cd-1b4a50311bf9"
 version = "1.0.6"
 
+[[deps.Python_jll]]
+deps = ["Artifacts", "Bzip2_jll", "Expat_jll", "JLLWrappers", "LibMPDec_jll", "Libdl", "Libffi_jll", "OpenSSL_jll", "SQLite_jll", "XZ_jll", "Zlib_jll"]
+git-tree-sha1 = "76a68dfc4e6fcbcccf90e1961fa2705885699391"
+uuid = "93d3a430-8e7c-50da-8e8d-3dfcfb3baf05"
+version = "3.11.12+0"
+
 [[deps.QCIOpt]]
 deps = ["CondaPkg", "Dates", "DynamicPolynomials", "JSON", "LinearAlgebra", "MathOptInterface", "PythonCall", "QUBODrivers", "QUBOTools", "Suppressor"]
 git-tree-sha1 = "ab844fb172876d019201e8694c8e92a5dde479da"
@@ -1513,11 +1530,39 @@ weakdeps = ["MathOptInterface"]
     [deps.QUBOTools.extensions]
     QUBOTools_MOI = ["MathOptInterface"]
 
+[[deps.Qiskit]]
+deps = ["CEnum", "Compat", "Libdl", "Qiskit_jll"]
+git-tree-sha1 = "290fb2794d5d0b3b48031c2d44931d2b6976c901"
+uuid = "91d9a17d-f964-4b6c-a3c4-2f4cfdea2c95"
+version = "0.6.1"
+
+    [deps.Qiskit.extensions]
+    QiskitUnitfulExt = "Unitful"
+
+    [deps.Qiskit.weakdeps]
+    Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[[deps.QiskitIBMRuntime]]
+deps = ["CEnum", "Compat", "Dates", "Libdl", "Qiskit", "qiskit_ibm_runtime_jll"]
+git-tree-sha1 = "6cdcc1e4616eae6256a33bd0cf98eda97b5c8bbd"
+uuid = "1f74880b-c9c8-4af4-a333-b5b4aaaec6f5"
+version = "0.3.2"
+
 [[deps.QiskitOpt]]
-deps = ["PythonCall", "QUBO"]
-git-tree-sha1 = "ac019faa50eafbb7b14854b8c5982c8f0c835f7f"
+deps = ["LinearAlgebra", "QUBO", "Qiskit", "QiskitIBMRuntime", "Random"]
+git-tree-sha1 = "cad9e214d6533ab501d336cfba6cbca6d37cb4a8"
 uuid = "81b20daf-e62b-4502-a0d1-aa084de80e33"
-version = "0.7.1"
+version = "0.8.0"
+weakdeps = ["PythonCall"]
+
+    [deps.QiskitOpt.extensions]
+    QiskitOptPythonCallExt = "PythonCall"
+
+[[deps.Qiskit_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Python_jll"]
+git-tree-sha1 = "5381658c5c9f525aaafc51914ee8dae34ed4d5ef"
+uuid = "b54e8e98-f244-53b3-a8e8-4727a4907f76"
+version = "2.5.2+0"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
@@ -1665,6 +1710,12 @@ deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers",
 git-tree-sha1 = "139fa63f03a16b3d859d925ee9149dfc15f21ece"
 uuid = "319450e9-13b8-58e8-aa9f-8fd1420848ab"
 version = "2025.9.18+0"
+
+[[deps.SQLite_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll", "dlfcn_win32_jll"]
+git-tree-sha1 = "9df7e0651033430b3b48435b90ecf32059bf85f4"
+uuid = "76ed43ae-9a5d-5a62-8c75-30186b810ce8"
+version = "3.54.0+1"
 
 [[deps.Scratch]]
 deps = ["Dates"]
@@ -2324,6 +2375,12 @@ deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
 git-tree-sha1 = "3667b0931a7fe50f0a5554c61af00e5640019e21"
 uuid = "4d7b5844-a134-5dcd-ac86-c8f19cd51bed"
 version = "0.63.2+0"
+
+[[deps.qiskit_ibm_runtime_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Qiskit_jll"]
+git-tree-sha1 = "4e7169b902ca368453bb36b71584db244285517c"
+uuid = "dfd00f80-54b8-5b12-a44d-54bafd549557"
+version = "0.39.0+0"
 
 [[deps.s2n_tls_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
