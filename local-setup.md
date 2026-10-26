@@ -82,9 +82,11 @@ On Linux and macOS, the runner uses IPC sockets in a private temporary
 directory. It checks the encoded path, including a channel suffix, against
 ZeroMQ's platform limit. Windows and an overly long `TMPDIR` use TCP instead;
 Jupyter may then log its unencrypted-TCP notice. Python warnings still fail
-verification. The launcher initializes the event loop after shell setup and
-provides an awaitable shutdown callback to avoid Jupyter's startup and shutdown
-deprecations. Revisit those workarounds when updating ipykernel or Tornado;
+verification. The launcher initializes the event loop after shell setup, provides an
+awaitable shutdown callback to avoid Jupyter's startup and shutdown
+deprecations, and clears host-wide IPython config search paths so isolated
+virtualenvs on hosted Google Colab do not load `/etc/ipython/ipython_config.py`.
+Revisit those workarounds when updating ipykernel or Tornado;
 [#152](https://github.com/JuliaQUBO/QUBONotebooks/issues/152) tracks their removal.
 
 ## MathProg Python local execution
@@ -195,10 +197,16 @@ an optional environment separately.
 
 Published wheels cover Linux x86_64/aarch64 (glibc 2.28+) and macOS Apple
 Silicon (macOS 13+). Native Windows and Intel macOS have no wheels for this
-release. Linux x86_64 on Ubuntu 22.04 and WSL2 was tested; the other wheel
-platforms were not executed. Hosted Colab installation remains unmeasured.
-The CPU target needs no GPU or CUDA driver, but the distribution still downloads
-GPU libraries.
+release. Linux x86_64 (`ubuntu-22.04` and WSL2), Linux ARM64
+(`ubuntu-24.04-arm`), and macOS Apple Silicon (`macos-14`) are executed on the
+`qpp-cpu` target in CI. On hosted Google Colab CPU (`Linux x86_64`), automatic
+notebook setup intentionally leaves CUDA-Q out; manual installation and
+verification were measured using Colab's preinstalled Python 3.12
+(`UV_PYTHON=3.12 uv sync --locked --group docs --group qubo --group cudaq` in
+70.0 s, `UV_PYTHON=3.12 make verify-cudaq-python` in 476.1 s, and
+`UV_PYTHON=3.12 make test-cudaq-python` in 3.8 s on `cuda-quantum-cu13==0.16.0`
+with `qpp-cpu`). The CPU target needs no GPU or CUDA driver, but the Linux
+distribution still downloads GPU libraries.
 
 The [#138 measurements](https://github.com/JuliaQUBO/QUBONotebooks/issues/138#issuecomment-5671304635)
 on two fresh Ubuntu 22.04 runners found a **2.91 GB** complete environment,
@@ -208,9 +216,10 @@ payload, and a **2.91 GB** uv cache (decimal GB). Cold synchronization took
 sharing can affect actual disk use. These are measured release/platform
 figures, not cross-platform guarantees.
 
-A separate CPU workflow runs on changes to the dependency files, Makefile,
-verification scripts, D-Wave notebook, focused tests, or workflow itself, or by manual
-dispatch. It has a 10-minute limit and no persistent CUDA-Q cache. Existing CI
+A separate CPU workflow runs across `ubuntu-22.04`, `ubuntu-24.04-arm`, and
+`macos-14` on changes to the dependency files, Makefile, verification scripts,
+D-Wave notebook, focused tests, or workflow itself, or by manual dispatch. It
+has a 10-minute limit per runner and no persistent CUDA-Q cache. Existing CI
 jobs retain their original targets and installed groups. No GPU execution
 target is provided.
 

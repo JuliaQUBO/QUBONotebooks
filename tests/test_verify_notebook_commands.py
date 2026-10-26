@@ -183,6 +183,8 @@ class KernelSpecTests(unittest.TestCase):
 
         self.assertEqual(kernel_name, "qubonotebooks-python-local")
         self.assertEqual(env["JUPYTER_PATH"], str(tmp))
+        self.assertEqual(env["JUPYTER_CONFIG_DIR"], str(tmp / "jupyter-config"))
+        self.assertEqual(env["IPYTHONDIR"], str(tmp / "ipython"))
         self.assertEqual(env["PYTHONWARNINGS"], "error")
         self.assertIn(str(REPO_ROOT / "scripts/start_python_kernel.py"), kernel["argv"])
         self.assertEqual(kernel["display_name"], "QUBONotebooks Python (local)")
@@ -339,6 +341,14 @@ class CommandConstructionTests(unittest.TestCase):
         self.assertNotEqual(0, code)
         self.assertIn("CellExecutionError", log)
         self.assertIn("shared runner warning probe", log)
+
+    def test_python_kernel_clears_host_ipython_config_dirs(self) -> None:
+        code, output, log = self.run_kernel_probe(source=[
+            "from IPython.core.application import ENV_CONFIG_DIRS, SYSTEM_CONFIG_DIRS\n",
+            "print(SYSTEM_CONFIG_DIRS, ENV_CONFIG_DIRS)\n",
+        ])
+        self.assertEqual(0, code, log)
+        self.assertEqual("[] []\n", output)
 
     def test_python_kernel_runs_numpy_at_or_below_the_dispatch_cap(self) -> None:
         # The kernel's own selection is asserted as well as its effect, because

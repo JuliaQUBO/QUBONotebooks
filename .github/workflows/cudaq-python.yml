@@ -37,7 +37,14 @@ permissions:
 
 jobs:
   cpu:
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-22.04
+          - ubuntu-24.04-arm
+          - macos-14
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
@@ -52,3 +59,26 @@ jobs:
         run: make verify-cudaq-python
       - name: Check the compiled QAOA kernel against a dense reference
         run: make test-cudaq-python
+      - name: Report CUDA-Q CPU platform, target, and verification summary
+        run: |
+          uv run --locked --group docs --group qubo --group cudaq python -c '
+          import json, pathlib, platform, sys, cudaq
+          cudaq.set_target("qpp-cpu")
+          nb = json.loads(pathlib.Path(".nbverify/4-DWAVE_python.ipynb").read_text())
+          text = "\n".join(
+              "".join(item.get("text", []))
+              for cell in nb["cells"]
+              for item in cell.get("outputs", [])
+              if item.get("output_type") == "stream"
+          )
+          checks = [
+              line for line in text.splitlines()
+              if "CUDA-Q" in line or "Using CUDA-Q" in line or "checks passed" in line
+          ]
+          print("os_platform:", platform.platform())
+          print("architecture:", platform.machine())
+          print("python_version:", sys.version.split()[0])
+          print("cudaq_version:", getattr(cudaq, "__version__", "unknown"))
+          print("cudaq_target:", cudaq.get_target().name)
+          print("energy_and_feasibility_checks:", checks)
+          '

@@ -239,6 +239,10 @@ class CoverageTests(unittest.TestCase):
             self.assertIn("tests/notebook_test_support.py", events[event]["paths"])
             self.assertIn("tests/test_cudaq_optimization.py", events[event]["paths"])
         steps = workflow["jobs"]["cpu"]["steps"]
+        self.assertEqual(
+            ["ubuntu-22.04", "ubuntu-24.04-arm", "macos-14"],
+            workflow["jobs"]["cpu"]["strategy"]["matrix"]["runner"],
+        )
         self.assertTrue(any(step.get("run") == "make test-cudaq-python" for step in steps))
 
     def test_quantum_circuits_follow_classical_lectures_and_annealing(self):

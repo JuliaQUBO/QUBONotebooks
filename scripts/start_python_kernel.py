@@ -3,6 +3,7 @@
 import asyncio
 import inspect
 
+from IPython.core.application import ENV_CONFIG_DIRS, SYSTEM_CONFIG_DIRS
 from ipykernel.ipkernel import IPythonKernel
 from ipykernel.kernelapp import IPKernelApp
 
@@ -16,6 +17,11 @@ class NotebookKernel(IPythonKernel):
 
 
 if __name__ == "__main__":
+    # Ignore host-wide IPython configuration (such as hosted Google Colab's
+    # /etc/ipython/ipython_config.py setting google.colab._kernel.Kernel)
+    # when launching inside an isolated project virtualenv.
+    SYSTEM_CONFIG_DIRS.clear()
+    ENV_CONFIG_DIRS.clear()
     app = IPKernelApp.instance(kernel_class=NotebookKernel)
     app.initialize()
     # Shell initialization can reset the current loop. Set it immediately
