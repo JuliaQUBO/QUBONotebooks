@@ -49,7 +49,7 @@ using Test
         QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES,
         "10-QAOA",
         nothing,
-    ) == qaoa_python_packages
+    ) === nothing
     @test get(
         QUBONotebooksBootstrap.COLAB_SYSTEM_PYTHON_PACKAGES,
         "11-Annealing",

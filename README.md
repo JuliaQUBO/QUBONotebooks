@@ -347,11 +347,12 @@ CondaPkg's `Null` backend as Julia preferences, because these packages decide
 whether to compile CondaPkg and its micromamba or pixi backends before runtime
 environment variables alone can take effect. Those preferences are written to
 the selected notebook project. Notebooks 2–5, 9, and 11 ensure
-the Ocean stack, notebook 6 ensures only `numpy` and `requests`, and notebook 10
-requests QiskitOpt's versioned Qiskit, Aer, IBM Runtime, Optimization, and SciPy
-stack (plus their transitive dependencies). This keeps one notebook's Python
-bridge and compatibility constraints out of every other notebook's setup.
-On a cold Julia 1.12 IJulia kernel, QCIOpt, QiskitOpt, and the
+the Ocean stack and notebook 6 ensures only `numpy` and `requests`, while
+notebook 10 (`QiskitOpt` 0.8) runs natively via `Qiskit.jl` and
+`QiskitIBMRuntime.jl` without requiring a Python or Conda runtime. This keeps
+one notebook's Python bridge and compatibility constraints out of every other
+notebook's setup.
+On a cold Julia 1.12 IJulia kernel, QCIOpt and the
 IJulia/PythonCall extension can otherwise emit failed-task-printer notices
 during their first implicit compilation even when the imports succeed.
 
