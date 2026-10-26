@@ -150,7 +150,11 @@ def uncapped(reason: str) -> dict[str, str]:
 
 def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
     kernels_dir = tmpdir / "kernels" / PYTHON_KERNEL_NAME
+    ipython_dir = tmpdir / "ipython"
+    jupyter_config_dir = tmpdir / "jupyter-config"
     kernels_dir.mkdir(parents=True, exist_ok=True)
+    ipython_dir.mkdir(parents=True, exist_ok=True)
+    jupyter_config_dir.mkdir(parents=True, exist_ok=True)
     kernel_spec = {
         "argv": [
             sys.executable,
@@ -165,6 +169,8 @@ def python_kernel_spec_dir(tmpdir: Path) -> tuple[str, dict[str, str]]:
     (kernels_dir / "kernel.json").write_text(json.dumps(kernel_spec, indent=2) + "\n")
     return PYTHON_KERNEL_NAME, {
         "JUPYTER_PATH": str(tmpdir),
+        "JUPYTER_CONFIG_DIR": str(jupyter_config_dir),
+        "IPYTHONDIR": str(ipython_dir),
         "PYTHONWARNINGS": "error",
         **numpy_dispatch_cap_env(),
     }
