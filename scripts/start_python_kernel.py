@@ -9,7 +9,7 @@ from ipykernel.kernelapp import IPKernelApp
 
 
 class NotebookKernel(IPythonKernel):
-    """Use the awaitable shutdown interface requested by ipykernel 7.3."""
+    """Use the awaitable shutdown interface requested by ipykernel 7.3 (ipython/ipykernel#1582)."""
 
     async def do_shutdown(self, restart):
         result = super().do_shutdown(restart)

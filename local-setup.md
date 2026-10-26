@@ -87,7 +87,9 @@ awaitable shutdown callback to avoid Jupyter's startup and shutdown
 deprecations, and clears host-wide IPython config search paths so isolated
 virtualenvs on hosted Google Colab do not load `/etc/ipython/ipython_config.py`.
 Revisit those workarounds when updating ipykernel or Tornado;
-[#152](https://github.com/JuliaQUBO/QUBONotebooks/issues/152) tracks their removal.
+[#152](https://github.com/JuliaQUBO/QUBONotebooks/issues/152) and upstream
+[ipython/ipykernel#1582](https://github.com/ipython/ipykernel/issues/1582)
+track their removal.
 
 ## MathProg Python local execution
 
