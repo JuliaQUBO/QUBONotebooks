@@ -200,7 +200,7 @@ an optional environment separately.
 Published wheels cover Linux x86_64/aarch64 (glibc 2.28+) and macOS Apple
 Silicon (macOS 13+). Native Windows and Intel macOS have no wheels for this
 release. Linux x86_64 (`ubuntu-22.04` and WSL2), Linux ARM64
-(`ubuntu-24.04-arm`), and macOS Apple Silicon (`macos-14`) are executed on the
+(`ubuntu-24.04-arm`), and macOS Apple Silicon (`macos-15`) are executed on the
 `qpp-cpu` target in CI. On hosted Google Colab CPU (`Linux x86_64`), automatic
 notebook setup intentionally leaves CUDA-Q out; manual installation and
 verification were measured using Colab's preinstalled Python 3.12
@@ -219,7 +219,7 @@ sharing can affect actual disk use. These are measured release/platform
 figures, not cross-platform guarantees.
 
 A separate CPU workflow runs across `ubuntu-22.04`, `ubuntu-24.04-arm`, and
-`macos-14` on changes to the dependency files, Makefile, verification scripts,
+`macos-15` on changes to the dependency files, Makefile, verification scripts,
 D-Wave notebook, focused tests, or workflow itself, or by manual dispatch. It
 has a 10-minute limit per runner and no persistent CUDA-Q cache. Existing CI
 jobs retain their original targets and installed groups. No GPU execution

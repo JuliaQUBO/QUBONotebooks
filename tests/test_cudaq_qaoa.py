@@ -240,7 +240,7 @@ class CoverageTests(unittest.TestCase):
             self.assertIn("tests/test_cudaq_optimization.py", events[event]["paths"])
         steps = workflow["jobs"]["cpu"]["steps"]
         self.assertEqual(
-            ["ubuntu-22.04", "ubuntu-24.04-arm", "macos-14"],
+            ["ubuntu-22.04", "ubuntu-24.04-arm", "macos-15"],
             workflow["jobs"]["cpu"]["strategy"]["matrix"]["runner"],
         )
         self.assertTrue(any(step.get("run") == "make test-cudaq-python" for step in steps))
