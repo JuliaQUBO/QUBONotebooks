@@ -376,7 +376,7 @@ wheels = [
 
 [[package]]
 name = "eqc-models"
-version = "0.22.1"
+version = "0.22.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "lightgbm" },
@@ -389,9 +389,9 @@ dependencies = [
     { name = "xgboost", version = "3.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "xgboost", version = "3.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/42/5d/5b2739a2f980d023bfb6255f00a348b852b0835a383bb82537722633cd87/eqc_models-0.22.1.tar.gz", hash = "sha256:ec7df19bdb14ad42156f55a95ce79c9b781c52cc8a177b735ce70960ed2e5d28", size = 4778319, upload-time = "2026-10-07T15:32:27.222Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e2/c5/91ab87c33989d204d2abb9248452e79f454a1938f8ba9971ca6de60b76b4/eqc_models-0.22.3.tar.gz", hash = "sha256:99868b65adc3267389ca3fcc21d34b5b467cb5af37d203c508ccdefeaaa2f1e9", size = 4779398, upload-time = "2026-11-03T23:21:57.93Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/8f/5f752ae808e27b1bf1c9f74a20337ab21240a6e0ee6223031d3a84a9e43a/eqc_models-0.22.1-py3-none-any.whl", hash = "sha256:921e1bec2d8d47b427fec42df11a4b141822900ab458077a3f4ae292ae63bb3e", size = 283109, upload-time = "2026-10-07T15:32:20.627Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/61/3bdb593e162958e251a7ae0e27bbf9cd9683ec0129aa64dd8be161c75876/eqc_models-0.22.3-py3-none-any.whl", hash = "sha256:6eb8cf41c5e051e9816c93bf048c2b43fc30f09189537ab2d00c74da36b235d2", size = 283575, upload-time = "2026-11-03T23:21:52.532Z" },
 ]
 
 [[package]]
@@ -806,7 +806,7 @@ wheels = [
 
 [[package]]
 name = "jupyterlab"
-version = "4.6.4"
+version = "4.6.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-lru" },
@@ -824,9 +824,9 @@ dependencies = [
     { name = "traitlets" },
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/33/8d/995cc142f6083346b35e7d3eadc5a6717ee89ce64ea53577010ac493bc3c/jupyterlab-4.6.4.tar.gz", hash = "sha256:404f49b081819378524886c9db66dba57a5565981eff885830df1baba3a17df5", size = 28335647, upload-time = "2026-09-21T15:25:18.779Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/22/60/95238fb78af6a6838b63a05437951856cd82946b672028788b8aaf3ec5f7/jupyterlab-4.6.5.tar.gz", hash = "sha256:e115a0ef663927d60afd20bd9a8e822a5c61d7d22bcab489d8e37f4885d0d2ce", size = 28393095, upload-time = "2026-10-29T12:57:55.261Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/e4/072bc0d3c6d45d414062a06af7ee81c02a2c12d769c358ec9919f9995ffd/jupyterlab-4.6.4-py3-none-any.whl", hash = "sha256:15b13f991d3985129c797eb84d9949eeb8b6615e14b444868e642411f2c418b2", size = 17171596, upload-time = "2026-09-21T15:25:14.123Z" },
+    { url = "https://files.pythonhosted.org/packages/41/8f/58a539ef036aca50891a06b283f044da84a6544177fb6e49217c5c5206c9/jupyterlab-4.6.5-py3-none-any.whl", hash = "sha256:cb96fc3d59d20b6f17d0cc1afe6e0508a61d881ab39be89236c55b01fa0e2b99", size = 17331695, upload-time = "2026-10-29T12:57:51.281Z" },
 ]
 
 [[package]]
@@ -1553,7 +1553,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "eqc-models", specifier = "==0.22.1" },
+    { name = "eqc-models", specifier = "==0.22.3" },
     { name = "highspy", specifier = ">=1.15.1,<2" },
     { name = "ipykernel", specifier = ">=7.3.0,<8" },
     { name = "jupyterlab", specifier = ">=4.6.3,<5" },
