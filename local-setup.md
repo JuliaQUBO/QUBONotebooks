@@ -126,7 +126,7 @@ go to `.nbverify/`; the published figures are preserved.
 ## D-Wave Python local execution
 
 `make verify-dwave-python-local` uses the existing locked `docs` and `qubo`
-groups on Python 3.10–3.12. It checks seeded local samples against exhaustive
+groups on Python 3.11–3.12. It checks seeded local samples against exhaustive
 enumeration and executes the notebook without importing the Ocean cloud
 client, reading saved QPU configuration, or contacting Leap. The target forces
 `QUBONOTEBOOKS_DWAVE_ENABLE_QPU=0` even if the caller enabled it. CI runs this
@@ -191,8 +191,7 @@ uv sync --locked --group docs --group qubo --group cudaq
 ```
 
 The group pins the CUDA-Q distribution line `cuda-quantum-cu13>=0.16.0,<0.17`
-and requires Python 3.11+. Python 3.10 remains supported by the portable groups;
-requesting `cudaq` on 3.10 fails explicitly. The default and portable groups
+on Python 3.11–3.12. The default and portable groups
 exclude CUDA-Q. Running a portable target afterwards synchronizes back to its
 smaller environment; use `UV_PROJECT_ENVIRONMENT=/path/to/separate/venv` to keep
 an optional environment separately.
