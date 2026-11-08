@@ -35,6 +35,21 @@ class RepositoryCommandTests(unittest.TestCase):
 
         self.assertTrue({"dimod", "dwave-neal"}.issubset(qubo_packages))
 
+    def test_python_projects_require_python_3_11_or_3_12(self) -> None:
+        root_pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
+        qci_pyproject = tomllib.loads(
+            (REPO_ROOT / "notebooks_py" / "environments" / "qci" / "pyproject.toml").read_text()
+        )
+        root_lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text())
+        qci_lock = tomllib.loads(
+            (REPO_ROOT / "notebooks_py" / "environments" / "qci" / "uv.lock").read_text()
+        )
+
+        self.assertEqual(">=3.11,<3.13", root_pyproject["project"]["requires-python"])
+        self.assertEqual(">=3.11,<3.13", qci_pyproject["project"]["requires-python"])
+        self.assertEqual(">=3.11, <3.13", root_lock["requires-python"])
+        self.assertEqual(">=3.11, <3.13", qci_lock["requires-python"])
+
     def test_colab_installer_default_matches_sysimage_julia_version(self) -> None:
         # Defect class: the installer, deployment workflow, and aggregate
         # notebook manifest silently select different Julia release lines.
