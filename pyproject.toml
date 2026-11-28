@@ -7,7 +7,7 @@ dependencies = []
 
 [dependency-groups]
 cudaq = [
-    "cuda-quantum-cu13>=0.16.0,<0.17",
+    "cuda-quantum-cu13>=0.16.0,<0.18",
 ]
 docs = [
     "ipykernel>=7.3.0,<8",
@@ -32,7 +32,7 @@ qubo = [
     "matplotlib>=3.8,<4",
     "networkx>=3.3,<4",
     "numpy>=1.26,<3",
-    "pandas>=2.2,<3",
+    "pandas>=2.2,<4",
     "pyomo>=6.9,<7",
     "scipy>=1.13,<2",
     "sympy>=1.13,<2",
